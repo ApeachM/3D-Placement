@@ -1,0 +1,3 @@
+[submodule "OpenDB"]
+	path = submodule/OpenDB
+	url = https://github.com/The-OpenROAD-Project/OpenDB.git
