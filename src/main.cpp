@@ -5,7 +5,6 @@ using namespace std;
 
 int main() {
   string lefName = "Nangate45.lef";
-//  string defName = "large01.def";
   string defName = "simple01.def";
   string test_path_name = "../test/benchmarks/";
   string output_path_name = "../output/";
