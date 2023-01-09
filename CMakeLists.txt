@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.14..3.16)
-project(placer)
+project(3D-Placement-with-D2D-Vertical-Connections)
 
 set(CMAKE_CXX_STANDARD 11)
 set(SOURCES
@@ -18,10 +18,16 @@ set(SOURCES
         src/etc/dbTutorial.cpp
         )
 
+set(INCLUDE_DIRS
+        ${PROJECT_SOURCE_DIR}/include
+        ${PROJECT_SOURCE_DIR}/include/algorithm
+        ${PROJECT_SOURCE_DIR}/include/circuit
+        ${PROJECT_SOURCE_DIR}/include/dataStructures
+        ${PROJECT_SOURCE_DIR}/submodule/CImg
+        )
+
 add_executable(placer ${SOURCES})
-target_include_directories(placer PRIVATE ${PROJECT_SOURCE_DIR}/include)
-target_include_directories(placer PRIVATE ${PROJECT_SOURCE_DIR}/include/circuit)
-target_include_directories(placer PRIVATE ${PROJECT_SOURCE_DIR}/include/dataStructures)
+target_include_directories(placer PRIVATE ${INCLUDE_DIRS})
 
 add_subdirectory(submodule/OpenDB)
-target_link_libraries(placer PRIVATE opendb)
+target_link_libraries(placer PRIVATE opendb X11 pthread)

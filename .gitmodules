@@ -1,3 +1,6 @@
 [submodule "OpenDB"]
 	path = submodule/OpenDB
 	url = https://github.com/ApeachM/OpenDB
+[submodule "CImg"]
+	path = submodule/CImg
+	url = https://github.com/GreycLab/CImg.git
