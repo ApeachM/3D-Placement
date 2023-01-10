@@ -34,7 +34,7 @@
 
 #include "Die.h"
 
-namespace Circuit {
+namespace VLSI_backend {
 
 Die::Die(dbBlock *db_block) {
   db_block_ = db_block;
@@ -53,4 +53,4 @@ uint Die::getHeight() {
 uint Die::getArea() {
   return die_shape_.area();
 }
-} // Circuit
+} // VLSI_backend

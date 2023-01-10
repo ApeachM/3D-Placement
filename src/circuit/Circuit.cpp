@@ -35,7 +35,7 @@
 
 using namespace std;
 
-namespace Circuit {
+namespace VLSI_backend {
 
 void Circuit::parse(const string &lef_name, const string &def_name) {
   parser_.readLef(lef_name);
@@ -150,7 +150,7 @@ int Circuit::getUnitOfMicro() const {
   return parser_.db_database_->getTech()->getDbUnitsPerMicron();
 }
 
-} // Circuit
+} // VLSI_backend
 
 
 

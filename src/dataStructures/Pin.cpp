@@ -34,7 +34,7 @@
 
 #include "Pin.h"
 
-namespace Circuit {
+namespace VLSI_backend {
 
 Pin::Pin(odb::dbITerm *db_iterm) {
   db_i_term_ = db_iterm;
@@ -118,4 +118,4 @@ string Pin::getPinName() {
   }
   return name;
 }
-} // Circuit
+} // VLSI_backend

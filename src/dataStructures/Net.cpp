@@ -34,7 +34,7 @@
 
 #include "Net.h"
 
-namespace Circuit {
+namespace VLSI_backend {
 
 Net::Net(odb::dbNet *db_net) {
   db_database_ = db_net->getDb();
@@ -109,4 +109,4 @@ ulong Net::getHPWL() {
 
   return net_box.dx() + net_box.dy();
 }
-} // Circuit
+} // VLSI_backend

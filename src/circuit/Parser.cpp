@@ -34,7 +34,7 @@
 
 #include "Parser.h"
 
-namespace Circuit {
+namespace VLSI_backend {
 
 odb::defout::Version Parser::stringToDefVersion(const string &version) {
   if (version == "5.8")
@@ -58,10 +58,8 @@ Parser::Parser() {
 }
 void Parser::readLef(const string &filename) const {
   odb::lefin lef_reader(db_database_, false);
-  odb::dbLib *lib = nullptr;
-  odb::dbTech *tech = nullptr;
-  lib = lef_reader.createTechAndLib("nangate", filename.c_str());
-  tech = db_database_->getTech();
+  odb::dbLib *lib = lef_reader.createTechAndLib("nangate", filename.c_str());
+  odb::dbTech *tech = db_database_->getTech();
 
   // both are null on parser_ failure
   if (lib != nullptr || tech != nullptr) {
@@ -96,4 +94,4 @@ void Parser::writeDef(const string &filename, const string &version) const {
     std::cout << "Writing Def is failed." << std::endl;
   }
 }
-} // Circuit
+} // VLSI_backend

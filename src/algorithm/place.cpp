@@ -33,7 +33,7 @@
 
 #include "Circuit.h"
 #include <random>
-namespace Circuit {
+namespace VLSI_backend {
 void Circuit::place() {
   // random place
   // this is simple place example

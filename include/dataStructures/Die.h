@@ -36,7 +36,7 @@
 #define PLACER_INCLUDE_DATASTRUCTURES_DIE_H_
 #include "db.h"
 
-namespace Circuit {
+namespace VLSI_backend {
 using namespace odb;
 class Die {
  private:
@@ -52,6 +52,6 @@ class Die {
 
 };
 
-} // Circuit
+} // VLSI_backend
 
 #endif //PLACER_INCLUDE_DATASTRUCTURES_DIE_H_

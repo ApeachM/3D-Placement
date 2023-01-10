@@ -37,7 +37,7 @@
 #include "db.h"
 #include "structures.h"
 
-namespace Circuit {
+namespace VLSI_backend {
 using namespace std;
 class Pin {
  private:

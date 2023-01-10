@@ -32,7 +32,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include "Circuit.h"
-namespace Circuit {
+namespace VLSI_backend {
 using namespace std;
 void Circuit::dbTutorial() const {
 /*

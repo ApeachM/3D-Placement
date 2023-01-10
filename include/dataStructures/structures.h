@@ -38,7 +38,7 @@
 #include "db.h"
 #include "Die.h"
 
-namespace Circuit {
+namespace VLSI_backend {
 using namespace odb;
 class Instance;
 class Net;

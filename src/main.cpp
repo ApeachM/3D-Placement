@@ -9,7 +9,7 @@ int main() {
   string test_path_name = "../test/benchmarks/";
   string output_path_name = "../output/";
 
-  Circuit::Circuit circuit;
+  VLSI_backend::Circuit circuit;
   circuit.parse(test_path_name + lefName, test_path_name + defName);
   // circuit.dbTutorial();
   circuit.place();

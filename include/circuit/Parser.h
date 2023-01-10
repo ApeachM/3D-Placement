@@ -41,7 +41,7 @@
 #include "defin.h"
 
 using std::string;
-namespace Circuit {
+namespace VLSI_backend {
 
 class Parser {
  private:
@@ -56,7 +56,7 @@ class Parser {
   void writeDef(const string &filename, const string &version = "5.8") const;
 };
 
-} // Circuit
+} // VLSI_backend
 
 #endif //PLACER_INCLUDE_DATASTRUCTURES_PARSER_H_
 

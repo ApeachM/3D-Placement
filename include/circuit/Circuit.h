@@ -42,7 +42,7 @@
 #include "Pin.h"
 #include "Die.h"
 
-namespace Circuit {
+namespace VLSI_backend {
 using namespace odb;
 
 class Circuit {
@@ -79,6 +79,6 @@ class Circuit {
 
 };
 
-} // Circuit
+} // VLSI_backend
 
 #endif //PLACER_INCLUDE_DATASTRUCTURES_CIRCUIT_H_

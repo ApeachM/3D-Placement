@@ -33,7 +33,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 #include "Instance.h"
 
-namespace Circuit {
+namespace VLSI_backend {
 
 string Instance::getName() {
   return name_;
@@ -108,4 +108,4 @@ pair<int, int> Instance::getCoordinate() {
   return pair<int, int>{x, y};
 }
 
-} // Circuit
+} // VLSI_backend
