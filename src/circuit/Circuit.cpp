@@ -149,6 +149,12 @@ ulong Circuit::getHPWL() {
 int Circuit::getUnitOfMicro() const {
   return parser_.db_database_->getTech()->getDbUnitsPerMicron();
 }
+int Circuit::getLibCellNum() const {
+  return lib_cell_num_;
+}
+void Circuit::setLibCellNum(int lib_cell_num) {
+  Circuit::lib_cell_num_ = lib_cell_num;
+}
 
 } // VLSI_backend
 

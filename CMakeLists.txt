@@ -16,6 +16,7 @@ set(SOURCES
         src/algorithm/place.cpp
 
         src/etc/dbTutorial.cpp
+        src/dataStructures/D2DChip.cpp
         )
 
 set(INCLUDE_DIRS
