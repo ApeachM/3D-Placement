@@ -39,6 +39,7 @@ namespace VLSI_backend {
 Die::Die(dbBlock *db_block) {
   db_block_ = db_block;
   db_block->getDieArea(die_shape_);
+  setDieSize( die_shape_.dx(), die_shape_.dy());
 }
 void Die::setDbBlock(dbBlock *db_block) {
   db_block_ = db_block;
@@ -52,5 +53,10 @@ uint Die::getHeight() {
 }
 uint Die::getArea() {
   return die_shape_.area();
+}
+void Die::setDieSize(uint width, uint height) {
+  // TODO: set the size of dbBlock, and call setDbBlock
+  width_ = width;
+  height_ = height;
 }
 } // VLSI_backend

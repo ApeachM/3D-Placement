@@ -42,10 +42,15 @@ class Die {
  private:
   dbBlock *db_block_ = nullptr;
   Rect die_shape_{};
+
+  uint width_ = 0;
+  uint height_ = 0 ;
+
  public:
   Die() = default;
   explicit Die(dbBlock *db_block);
   void setDbBlock(dbBlock *db_block);
+  void setDieSize(uint width , uint height);
   uint getWidth();
   uint getHeight();
   uint getArea();

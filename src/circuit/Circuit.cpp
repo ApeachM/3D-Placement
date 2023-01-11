@@ -155,6 +155,19 @@ int Circuit::getLibCellNum() const {
 void Circuit::setLibCellNum(int lib_cell_num) {
   Circuit::lib_cell_num_ = lib_cell_num;
 }
+void Circuit::setDieSize(uint width, uint height) {
+  die_->setDieSize(width, height);
+}
+pair<int, int> Circuit::getDieSize() {
+  pair<int, int> dieSize{die_->getWidth(), die_->getHeight()};
+  return dieSize;
+}
+int Circuit::getUtil() const {
+  return util_;
+}
+void Circuit::setUtil(int util) {
+  util_ = util;
+}
 
 } // VLSI_backend
 

@@ -44,14 +44,41 @@ class D2DChip {
  private:
   int num_technologies_ = 0;
   /*!
+   * \brief
    * This `db_database_netlist_` is just for netlist before partitioning
    * */
   odb::dbDatabase *db_database_netlist_{};
   /*!
+   * \brief
    * The vector includes VLSI_backend classes, one VLSI_backend is for each Tier(Die).
    * */
   vector<Circuit> circuits_;
 
+  /*!
+   * \brief
+   * hybrid bond size
+   * \details
+   * first: x coordinate
+   * second: y coordinate
+   * */
+  pair<int, int> hybrid_bond_size_{0, 0};
+  /*!
+   * \brief
+   * the required spacing between 2 terminals and between terminal and die boundary
+   * */
+  int hybrid_bond_size_space_ = 0;
+
+  /*!
+   * \brief
+   * number of instances(cells)
+   * */
+  int instance_num_ = 0;
+
+  /*!
+   * \brief
+   * number of nets
+   * */
+  int net_num_ = 0;
 
  public:
 
