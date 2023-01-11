@@ -44,8 +44,7 @@ void D2DChip::parse_iccad2022(const string &input_file_name) {
 
   // parsing start.
   string info, name1, name2;
-  int n1;
-  float f1, f2, f3, f4;
+  int n1, n2, n3, n4, n5;
 
   // check the number of Technologies
   // Syntax of input file: NumTechnologies <technologyCount>
@@ -82,27 +81,27 @@ void D2DChip::parse_iccad2022(const string &input_file_name) {
     circuit->setLibCellNum(n1);
     for (int j = 0; j < circuit->getLibCellNum(); ++j) {
       // Syntax: LibCell <libCellName> <libCellSizeX> <libCellSizeY> <pinCount>
-      input_file >> info >> name1 >> f1 >> f2 >> n1;
+      input_file >> info >> name1 >> n2 >> n3 >> n1;
       assert(info == "LibCell");
       // create one libCell
       // (refer to `dbDatabase* createSimpleDB()` submodule/OpenDB/tests/cpp/helper.cpp)
       dbMaster *master = dbMaster::create(lib, name1.c_str());
-      master->setWidth(static_cast<int>(f1));
-      master->setHeight(static_cast<int>(f2));
+      master->setWidth(n2);
+      master->setHeight(n3);
       master->setType(dbMasterType::CORE);
       // create pins in the above libCell
       // (refer to addGeoms in `OpenDB/src/lefin/lefin.cpp`)
       for (int k = 0; k < n1; ++k) {
         // Syntax: Pin <pinName> <pinLocationX> <pinLocationY>
         // pin object generate
-        input_file >> info >> name1 >> f1 >> f2;
+        input_file >> info >> name1 >> n2 >> n3;
         assert(info == "Pin");
         dbMTerm *db_m_term = dbMTerm::create(master, name1.c_str(), dbIoType::INOUT, dbSigType::SIGNAL);
         // pin geometry generate
         dbMPin *db_m_pin = dbMPin::create(db_m_term);
-        int x1 = static_cast<int>(f1);
+        int x1 = n2;
         int x2 = x1 + 1;
-        int y1 = static_cast<int>(f2);
+        int y1 = n3;
         int y2 = y1 + 1;
         dbBox::create(db_m_pin, db_tech_layer, x1, y2, x2, y2);
         // trim the order of pins in the master terminal
@@ -204,6 +203,7 @@ void D2DChip::parse_iccad2022(const string &input_file_name) {
 //  circuit.numNets = n1;
 //  circuit.netlist.setNumNet(n1);
 
+/*
   // read Nets in one circuit
   for (int i = 0; i < circuit.numNets; i++) {
     // Syntax: Net <netName> <numPins>
@@ -221,6 +221,7 @@ void D2DChip::parse_iccad2022(const string &input_file_name) {
 //      circuit.netlist.addPin(name1, name2);
     }
   }
+*/
 
 }
 }
