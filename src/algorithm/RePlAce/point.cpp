@@ -1,8 +1,8 @@
 ///////////////////////////////////////////////////////////////////////////////
-// Creator: Minjae Kim of CSDL, POSTECH
-// Email:   kmj0824@postech.ac.kr
-//
 // BSD 3-Clause License
+//
+// Copyright (c) 2018-2020, The Regents of the University of California
+// All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -21,27 +21,35 @@
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 // AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 // IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-// ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-// LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-// INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-// POSSIBILITY OF SUCH DAMAGE.
+// ARE
+// DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+// FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+// DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+// SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+// CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+// OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ///////////////////////////////////////////////////////////////////////////////
 
-#include "Circuit.h"
-#include <random>
-namespace VLSI_backend {
-void Circuit::doRePlAce() {
-  replace_ = new gpl::Replace();
-  replace_->setDb(this->parser_.db_database_);
-  replace_->doInitialPlace();
-  replace_->doNesterovPlace(0);
+#include "point.h"
+
+namespace gpl {
+
+FloatPoint::FloatPoint() : x(0), y(0)
+{
+}
+FloatPoint::FloatPoint(float inputX, float inputY)
+{
+  x = inputX;
+  y = inputY;
 }
 
-void Circuit::place() {
-  doRePlAce();
+IntPoint::IntPoint() : x(0), y(0)
+{
 }
+IntPoint::IntPoint(int inputX, int inputY)
+{
+  x = inputX;
+  y = inputY;
 }
+}  // namespace gpl

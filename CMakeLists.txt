@@ -16,6 +16,17 @@ set(SOURCES
         src/algorithm/place.cpp
 
         src/etc/dbTutorial.cpp
+
+        src/algorithm/RePlAce/fft.cpp
+        src/algorithm/RePlAce/fftsg.cpp
+        src/algorithm/RePlAce/fftsg2d.cpp
+        src/algorithm/RePlAce/initialPlace.cpp
+        src/algorithm/RePlAce/nesterovBase.cpp
+        src/algorithm/RePlAce/nesterovPlace.cpp
+        src/algorithm/RePlAce/placerBase.cpp
+        src/algorithm/RePlAce/point.cpp
+        src/algorithm/RePlAce/Replace.cpp
+        src/algorithm/RePlAce/solver.cpp
         )
 
 set(INCLUDE_DIRS
@@ -24,10 +35,18 @@ set(INCLUDE_DIRS
         ${PROJECT_SOURCE_DIR}/include/circuit
         ${PROJECT_SOURCE_DIR}/include/dataStructures
         ${PROJECT_SOURCE_DIR}/submodule/CImg
+        ${PROJECT_SOURCE_DIR}/src/algorithm/RePlAce
         )
 
 add_executable(placer ${SOURCES})
 target_include_directories(placer PRIVATE ${INCLUDE_DIRS})
 
 add_subdirectory(submodule/OpenDB)
-target_link_libraries(placer PRIVATE opendb X11 pthread)
+find_package(Eigen3 REQUIRED)
+target_link_libraries(placer
+        PRIVATE
+        Eigen3::Eigen
+        opendb
+        X11
+        pthread
+        )
