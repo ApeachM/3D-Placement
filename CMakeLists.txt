@@ -29,5 +29,9 @@ set(INCLUDE_DIRS
 add_executable(placer ${SOURCES})
 target_include_directories(placer PRIVATE ${INCLUDE_DIRS})
 
+find_package(igraph REQUIRED)
+
 add_subdirectory(submodule/OpenDB)
+add_subdirectory(submodule/igraph)
 target_link_libraries(placer PRIVATE opendb X11 pthread)
+target_link_libraries(placer PUBLIC igraph::igraph)
