@@ -50,6 +50,7 @@ class Instance {
 
   string name_;
   string libName_;
+  int id_;
 
   /// This is lower left position of instance
   /// This is same with the origin of db_inst_ pointer
@@ -74,6 +75,21 @@ class Instance {
   /// return the library name of the cell
   /// example: DFF_X1
   string getLibName();
+
+  /*!
+   * \brief
+   * return the cell id.
+   * example: 13
+   * */
+  int getId() const;
+
+  /*!
+   * \brief
+   * set the cell id
+   * \details
+   * this function should be called in only Circuit::init() function
+   * */
+  void setId(int id);
 
   /// get width of the instance(cell)
   uint getWidth();

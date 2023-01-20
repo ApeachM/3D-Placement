@@ -4,6 +4,3 @@
 [submodule "CImg"]
 	path = submodule/CImg
 	url = https://github.com/GreycLab/CImg.git
-[submodule "igraph"]
-	path = submodule/igraph
-	url = https://github.com/igraph/igraph.git

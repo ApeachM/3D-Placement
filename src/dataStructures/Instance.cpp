@@ -107,5 +107,11 @@ pair<int, int> Instance::getCoordinate() {
   db_inst_->getLocation(x, y);
   return pair<int, int>{x, y};
 }
+int Instance::getId() const {
+  return id_;
+}
+void Instance::setId(int id) {
+  id_ = id;
+}
 
 } // VLSI_backend

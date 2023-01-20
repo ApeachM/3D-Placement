@@ -34,6 +34,7 @@
 #ifndef INC_3D_PLACEMENT_WITH_D2D_VERTICAL_CONNECTIONS_INCLUDE_DATASTRUCTURES_D2DCHIP_H_
 #define INC_3D_PLACEMENT_WITH_D2D_VERTICAL_CONNECTIONS_INCLUDE_DATASTRUCTURES_D2DCHIP_H_
 #include <fstream>
+#include <igraph.h>
 #include "Circuit.h"
 namespace VLSI_backend {
 
@@ -44,6 +45,11 @@ class D2DChip {
  private:
   int num_technologies_ = 0;
   /*!
+   * \brief
+   * A `Circuit` object Only for netlist
+   * */
+  Circuit netlist_;
+  /*!
    * This `db_database_netlist_` is just for netlist before partitioning
    * */
   odb::dbDatabase *db_database_netlist_{};
@@ -52,8 +58,23 @@ class D2DChip {
    * */
   vector<Circuit> circuits_;
 
-
  public:
+
+  /*!
+   * \brief
+   * Parse Def file and Lef file
+   * \details
+   * First of all, this parsing is for only netlist.
+   * When a placement process is required, then you should do(place cells) in the two `Circuit` obejct in `circuits_`.
+   * */
+  void parse(const string &lef_file_name, const string &def_file_name);
+
+  /*!
+   * \brief
+   * Divide a cells into two circuit.
+   * Louvain(actually, not louvain but ledien) clustering is implemented by igraph package
+   * */
+  void partition();
 
   /*!
    * \brief

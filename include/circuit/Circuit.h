@@ -83,6 +83,9 @@ class Circuit {
   int getLibCellNum() const;
   void setLibCellNum(int lib_cell_num);
 
+  const vector<Instance *> &getInstancePointers() const;
+  const vector<Net *> &getNetPointers() const;
+
   // etc
   void dbTutorial() const;
 

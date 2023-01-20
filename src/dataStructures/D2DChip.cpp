@@ -35,193 +35,70 @@
 
 namespace VLSI_backend {
 void D2DChip::parse_iccad2022(const string &input_file_name) {
-  // open input file
-  ifstream input_file(input_file_name);
-  if (input_file.fail()) {
-    cerr << "Cannot open the input file: " << input_file_name << endl;
-    exit(1);
-  }
+}
 
-  // parsing start.
-  string info, name1, name2;
-  int n1;
-  float f1, f2, f3, f4;
+void D2DChip::parse(const string &lef_file_name, const string &def_file_name) {
+  netlist_.parse(lef_file_name, def_file_name);
+}
+void D2DChip::partition() {
+  igraph_t graph;
+  igraph_vector_int_t membership;
+  igraph_vector_int_t degree;
+  igraph_vector_t weights;
+  igraph_integer_t nb_clusters;
+  igraph_real_t quality;
 
-  // check the number of Technologies
-  // Syntax of input file: NumTechnologies <technologyCount>
-  input_file >> info >> n1;
-  assert(info == "NumTechnologies");
-  this->num_technologies_ = n1;
-  circuits_.resize(this->num_technologies_);
+  /* Set default seed to get reproducible results */
+  igraph_rng_seed(igraph_rng_default(), 0);
 
-  dbTech *db_tech;
-  dbTechLayer *db_tech_layer;
-  dbLib *lib;
-  dbChip *chip;
-  dbBlock *block;
+  igraph_empty(&graph, 0, IGRAPH_UNDIRECTED);
 
-  // read Technologies
-  /////////////////////////////////// lef parsing for each tier ///////////////////////////////////////
-  for (int i = 0; i < this->num_technologies_; ++i) {
-    // Syntax: Tech <techName> <libCellCount>
-    input_file >> info >> name1 >> n1;
-    assert(info == "Tech");
+  igraph_integer_t num_of_vertices{static_cast<int>(netlist_.getInstancePointers().size())};
+  igraph_add_vertices(&graph, num_of_vertices, nullptr);
 
-    Circuit *circuit = &circuits_.at(i);
-    dbDatabase *db_database = circuit->getDbDatabase();
-
-    // create tech
-    // (refer to `dbDatabase* createSimpleDB()` submodule/OpenDB/tests/cpp/helper.cpp)
-    db_tech = dbTech::create(circuit->getDbDatabase());
-    db_tech_layer = dbTechLayer::create(db_tech, "metal1", dbTechLayerType::MASTERSLICE);
-    lib = dbLib::create(db_database, info.c_str(), ',');
-    chip = dbChip::create(db_database);
-    block = dbBlock::create(chip, "block");
-
-    // create libCells
-    circuit->setLibCellNum(n1);
-    for (int j = 0; j < circuit->getLibCellNum(); ++j) {
-      // Syntax: LibCell <libCellName> <libCellSizeX> <libCellSizeY> <pinCount>
-      input_file >> info >> name1 >> f1 >> f2 >> n1;
-      assert(info == "LibCell");
-      // create one libCell
-      // (refer to `dbDatabase* createSimpleDB()` submodule/OpenDB/tests/cpp/helper.cpp)
-      dbMaster *master = dbMaster::create(lib, name1.c_str());
-      master->setWidth(static_cast<int>(f1));
-      master->setHeight(static_cast<int>(f2));
-      master->setType(dbMasterType::CORE);
-      // create pins in the above libCell
-      // (refer to addGeoms in `OpenDB/src/lefin/lefin.cpp`)
-      for (int k = 0; k < n1; ++k) {
-        // Syntax: Pin <pinName> <pinLocationX> <pinLocationY>
-        // pin object generate
-        input_file >> info >> name1 >> f1 >> f2;
-        assert(info == "Pin");
-        dbMTerm *db_m_term = dbMTerm::create(master, name1.c_str(), dbIoType::INOUT, dbSigType::SIGNAL);
-        // pin geometry generate
-        dbMPin *db_m_pin = dbMPin::create(db_m_term);
-        int x1 = static_cast<int>(f1);
-        int x2 = x1 + 1;
-        int y1 = static_cast<int>(f2);
-        int y2 = y1 + 1;
-        dbBox::create(db_m_pin, db_tech_layer, x1, y2, x2, y2);
-        // trim the order of pins in the master terminal
-        dbSet<dbMPin> pins = db_m_term->getMPins();
-        if (pins.reversible() && pins.orderReversed())
-          pins.reverse();
+  vector<Net *> net_pointers = netlist_.getNetPointers();
+  for (Net *net : net_pointers) {
+    vector<int> cell_indices{};
+    for (Pin *pin : net->getConnectedPins()) {
+      if (pin->isInstancePin()) {
+        cell_indices.push_back(pin->getInstance()->getId());
+      }
+    }
+    for (auto i = 0; i < cell_indices.size(); ++i) {
+      for (int j = 0; j < i; ++j) {
+        igraph_integer_t index_from{cell_indices.at(i)};
+        igraph_integer_t index_to{cell_indices.at(j)};
+        igraph_add_edge(&graph, index_from, index_to);
       }
     }
   }
 
-  // Syntax: DieSize <lowerLeftX> <lowerLeftY> <upperRightX> <upperRightY>
-  input_file >> info >> f1 >> f2 >> f3 >> f4;
-  assert(info == "DieSize");
-  // TODO
-//  circuit.topDie = Die("TopDie", f1, f2, f3, f4);
-//  circuit.bottomDie = Die("BottomDie", f1, f2, f3, f4);
+//  igraph_community_leiden(&graph, NULL, NULL, 0.05, 0.01, 1, 10, &membership, &nb_clusters, &quality);
+//  igraph_community_leiden(&graph, /*const igraph_t *graph,*/
+//                          NULL,   /*const igraph_vector_t *edge_weights,*/
+//                          NULL,   /*const igraph_vector_t *node_weights,*/
+//                          0.05,   /*const igraph_real_t resolution_parameter,*/
+//                          0.01,   /*const igraph_real_t beta,*/
+//                          10,     /*const igraph_bool_t start,*/
+//                          /*-1,*/
+//                          &membership,  /*igraph_vector_t *membership,*/
+//                          &nb_clusters, /*igraph_integer_t *nb_clusters,*/
+//                          &quality      /*igraph_real_t *quality*/
+//                          );
 
 
-  // Syntax: TopDieMaxUtil <util>
-  input_file >> info >> f1;
-  assert(info == "TopDieMaxUtil");
-  // TODO
-//  circuit.topDie.maxUtil = f1;
+//
+//  igraph_vector_destroy(&weights);
+//  igraph_vector_int_destroy(&degree);
+//  igraph_vector_int_destroy(&membership);
+//  igraph_destroy(&graph);
+}
 
-  // Syntax: BottomDieMaxUtil <util>
-  input_file >> info >> f1;
-  assert(info == "BottomDieMaxUtil");
-  // TODO
-//  circuit.bottomDie.maxUtil = f1;
-
-  // Syntax: TopDieRows <startX> <startY> <rowLength> <rowHeight> <repeatCount>
-  input_file >> info >> f1 >> f2 >> f3 >> f4 >> n1;
-  assert(info == "TopDieRows");
-  // TODO
-//  circuit.topDie.setRows(f1, f2, f3, f4, n1);
-
-  // Syntax: BottomDieRows <startX> <startY> <rowLength> <rowHeight>
-  // <repeatCount>
-  input_file >> info >> f1 >> f2 >> f3 >> f4 >> n1;
-  assert(info == "BottomDieRows");
-  // TODO
-//  circuit.bottomDie.setRows(f1, f2, f3, f4, n1);
-
-  // Syntax: TopDieTech <TechName>
-  input_file >> info >> name1;
-  assert(info == "TopDieTech");
-  // TODO
-//  circuit.topDie.tech = techs[name1];
-//  for (auto &libCell : circuit.topDie.tech.libCells) {
-//    libCell.dieID = DieID::TOP;
-//  }
-
-  // Syntax: BottomDieTech <TechName>
-  input_file >> info >> name1;
-  assert(info == "BottomDieTech");
-  // TODO
-//  circuit.bottomDie.tech = techs[name1];
-//  for (auto &libCell : circuit.bottomDie.tech.libCells) {
-//    libCell.dieID = DieID::BOTTOM;
-//  }
-
-  // Syntax: TerminalSize <sizeX> <sizeY>
-  input_file >> info >> f1 >> f2;
-  assert(info == "TerminalSize");
-  // TODO
-//  circuit.terminalSizeX = f1;
-//  circuit.terminalSizeY = f2;
-
-  // Syntax: TerminalSpacing <spacing>
-  input_file >> info >> f1;
-  assert(info == "TerminalSpacing");
-  // TODO
-//  circuit.terminalSpacing = f1;
-
-  // Syntax: NumInstances <instanceCount>
-  input_file >> info >> n1;
-  assert(info == "NumInstances");
-  // TODO
-//  circuit.numInstances = n1;
-//  circuit.netlist.setNumCell(n1);
-//  circuit.setBench(n1);
-
-
-  // read Instances in one circuit
-  // TODO
-//  for (int i = 0; i < circuit.numInstances; i++) {
-//    // Syntax: Inst <instName> <libCellName>
-//    input_file >> info >> name1 >> name2;
-//    assert(info == "Inst");
-//    auto &libCellTop = circuit.topDie.tech.getLibCell(name2);
-//    auto &libCellBottom = circuit.bottomDie.tech.getLibCell(name2);
-//    circuit.netlist.addCell(name1, libCellTop, libCellBottom);
-//  }
-
-  // Syntax: NumNets <netCount>
-  input_file >> info >> n1;
-  assert(info == "NumNets");
-  // TODO
-//  circuit.numNets = n1;
-//  circuit.netlist.setNumNet(n1);
-
-  // read Nets in one circuit
-  for (int i = 0; i < circuit.numNets; i++) {
-    // Syntax: Net <netName> <numPins>
-    input_file >> info >> name1 >> n1;
-    assert(info == "Net");
-    // TODO
-//    circuit.netlist.addNet(name1, n1);
-
-    // read pins in one Net
-    for (int j = 0; j < n1; j++) {
-      // Syntax: Pin <instName>/<libPinName>
-      input_file >> info >> name2;
-      assert(info == "Pin");
-      // TODO
-//      circuit.netlist.addPin(name1, name2);
-    }
-  }
-
+const Circuit &D2DChip::getNetlist() const {
+  return netlist_;
+}
+void D2DChip::setNetlist(const Circuit &netlist) {
+  netlist_ = netlist;
 }
 }
 
