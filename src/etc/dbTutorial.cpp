@@ -35,7 +35,9 @@
 namespace VLSI_backend {
 using namespace std;
 void Circuit::dbTutorial() const {
-/*
+  cout << this->parser_.db_database_->getChip()->getBlock()->getBBox()->getDX() << endl;
+
+
   dbBlock *block = parser_.db_database_->getChip()->getBlock();
   for (int i = 0; i < 4; ++i) {
     cout << endl;
@@ -105,7 +107,7 @@ void Circuit::dbTutorial() const {
       cellIdx++;
     }
   }
- * */
+/*
 
   cout << endl << endl << endl << endl;
   cout << "OpenDB Tutorial starts." << endl;
@@ -188,7 +190,9 @@ void Circuit::dbTutorial() const {
           cout << "  box DY: " << box->getDY() << endl;
           cout << "  box width: " << box->getWidth() << endl;
           cout << "  box dir: " << box->getDir() << endl;
-          if (box->getBlockVia())/* meaningless in this case*/
+          if (box->getBlockVia())*/
+/* meaningless in this case*//*
+
             cout << "  via name: " << box->getBlockVia()->getName() << endl;
         }
 
@@ -203,6 +207,7 @@ void Circuit::dbTutorial() const {
   block->getCoreArea(Core);
   cout << Die.dx() << " " << Die.dy() << endl;
   cout << Core.dx() << " " << Core.dy() << endl;
+*/
 
 }
 

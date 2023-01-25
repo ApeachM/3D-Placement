@@ -75,13 +75,13 @@ void Circuit::init() {
   }
 
 
-  /*!
-   * @brief
-   * Pin setting
-   *
-   * @details
-   * Same with above way
-   */
+    /*!
+     * @brief
+     * Pin setting
+     *
+     * @details
+     * Same with above way
+     */
   // 1. make real data
   // 1-1. Instance terminals
   for (auto instance : instance_pointers_) {
@@ -163,6 +163,19 @@ const vector<Instance *> &Circuit::getInstancePointers() const {
 }
 const vector<Net *> &Circuit::getNetPointers() const {
   return net_pointers_;
+}
+void Circuit::setDieSize(uint width, uint height) {
+  die_->setDieSize(width, height);
+}
+pair<int, int> Circuit::getDieSize() {
+  pair<int, int> dieSize{die_->getWidth(), die_->getHeight()};
+  return dieSize;
+}
+int Circuit::getUtil() const {
+  return util_;
+}
+void Circuit::setUtil(int util) {
+  util_ = util;
 }
 
 } // VLSI_backend

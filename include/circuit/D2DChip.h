@@ -34,7 +34,7 @@
 #ifndef INC_3D_PLACEMENT_WITH_D2D_VERTICAL_CONNECTIONS_INCLUDE_DATASTRUCTURES_D2DCHIP_H_
 #define INC_3D_PLACEMENT_WITH_D2D_VERTICAL_CONNECTIONS_INCLUDE_DATASTRUCTURES_D2DCHIP_H_
 #include <fstream>
-#include <igraph.h>
+//#include <igraph.h>
 #include "Circuit.h"
 namespace VLSI_backend {
 
@@ -54,9 +54,45 @@ class D2DChip {
    * */
   odb::dbDatabase *db_database_netlist_{};
   /*!
+   * \brief
    * The vector includes VLSI_backend classes, one VLSI_backend is for each Tier(Die).
    * */
   vector<Circuit> circuits_;
+
+  /*!
+   * \brief
+   * hybrid bond size
+   * \details
+   * first: x coordinate
+   * second: y coordinate
+   * */
+  pair<int, int> hybrid_bond_size_{0, 0};
+  /*!
+   * \brief
+   * the required spacing between 2 terminals and between terminal and die boundary
+   * */
+  int hybrid_bond_size_space_ = 0;
+
+  /*!
+   * \brief
+   * number of instances(cells)
+   * */
+  int instance_num_ = 0;
+
+  /*!
+   * \brief
+   * number of nets
+   * */
+  int net_num_ = 0;
+
+  bool is_parsed_ = false;
+
+  /*!
+   * \brief
+   * Divide a cells into two circuit.
+   * Louvain(actually, not louvain but ledien) clustering is implemented by igraph package
+   * */
+  void partition();
 
  public:
 
@@ -71,13 +107,6 @@ class D2DChip {
 
   /*!
    * \brief
-   * Divide a cells into two circuit.
-   * Louvain(actually, not louvain but ledien) clustering is implemented by igraph package
-   * */
-  void partition();
-
-  /*!
-   * \brief
    * Parsing the input of iccad2022 contest
    * \details
    * This function highly refers to https://github.com/csdl-projects/ICCAD2022/blob/main/src/utils/Parser.cpp#L6-L149 \n
@@ -87,6 +116,15 @@ class D2DChip {
    *
    * */
   void parse_iccad2022(const string &input_file_name);
+
+  /*!
+   * \brief
+   * Core method
+   * */
+   void do3DPlace(){
+
+
+   }
 
 };
 

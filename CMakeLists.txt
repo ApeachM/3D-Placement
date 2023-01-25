@@ -16,7 +16,7 @@ set(SOURCES
         src/algorithm/place.cpp
 
         src/etc/dbTutorial.cpp
-        src/dataStructures/D2DChip.cpp
+        src/circuit/D2DChip.cpp
 
         src/algorithm/RePlAce/fft.cpp
         src/algorithm/RePlAce/fftsg.cpp
@@ -28,7 +28,7 @@ set(SOURCES
         src/algorithm/RePlAce/point.cpp
         src/algorithm/RePlAce/Replace.cpp
         src/algorithm/RePlAce/solver.cpp
-        )
+        src/circuit/D2DChip.cpp)
 
 set(INCLUDE_DIRS
         ${PROJECT_SOURCE_DIR}/include
@@ -44,12 +44,12 @@ target_include_directories(placer PRIVATE ${INCLUDE_DIRS})
 
 find_package(Eigen3 REQUIRED)
 add_subdirectory(submodule/OpenDB)
-add_subdirectory(submodule/igraph)
+#add_subdirectory(submodule/igraph)
 target_link_libraries(placer
         PRIVATE
         Eigen3::Eigen
         opendb
         X11
         pthread
-        igraph
+#        igraph
         )

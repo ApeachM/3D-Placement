@@ -60,17 +60,18 @@ class Circuit {
   Die *die_ = nullptr;
 
   int lib_cell_num_ = 0;
-  void init();
+  int util_ = 100;
 
   // placer
-  void doRePlAce();
   gpl::Replace* replace_ = nullptr;
+  void doRePlAce();
+  void init();
 
  public:
   Circuit() = default;
   ~Circuit() = default;
   void parse(const string &lef_name, const string &def_name);
-  void write(const string& out_file_name);
+  void write(const string &out_file_name);
   void place();
   ulong getHPWL();
 
@@ -82,13 +83,16 @@ class Circuit {
   /// (20000, 30000) means coordinate (200um, 300um)
   int getUnitOfMicro() const;
 
-  dbDatabase* getDbDatabase(){
+  dbDatabase *getDbDatabase() {
     return parser_.db_database_;
   }
 
   int getLibCellNum() const;
   void setLibCellNum(int lib_cell_num);
-
+  int getUtil() const;
+  void setUtil(int util);
+  void setDieSize(uint width, uint height);
+  pair<int, int> getDieSize();
   const vector<Instance *> &getInstancePointers() const;
   const vector<Net *> &getNetPointers() const;
 
