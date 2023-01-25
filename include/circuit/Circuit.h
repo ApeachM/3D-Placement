@@ -42,6 +42,8 @@
 #include "Pin.h"
 #include "Die.h"
 
+#include "Replace.h"
+
 namespace VLSI_backend {
 using namespace odb;
 
@@ -57,6 +59,10 @@ class Circuit {
   std::vector<Pin *> pad_pointers_;
   Die *die_ = nullptr;
   void init();
+
+  // placer
+  void doRePlAce();
+  gpl::Replace* replace_ = nullptr;
 
  public:
   Circuit() = default;
