@@ -1,7 +1,6 @@
 ///////////////////////////////////////////////////////////////////////////////
 // Creator: Minjae Kim of CSDL, POSTECH
 // Email:   kmj0824@postech.ac.kr
-// GitHub:  ApeachM
 //
 // BSD 3-Clause License
 //
@@ -32,71 +31,65 @@
 // POSSIBILITY OF SUCH DAMAGE.
 ///////////////////////////////////////////////////////////////////////////////
 
-#ifndef PLACER_INCLUDE_DATASTRUCTURES_CIRCUIT_H_
-#define PLACER_INCLUDE_DATASTRUCTURES_CIRCUIT_H_
-#include <vector>
-#include <unordered_map>
-#include "Parser.h"
-#include "Instance.h"
-#include "Net.h"
-#include "Pin.h"
-#include "Die.h"
-
-#include "Replace.h"
-
+#ifndef INC_3D_PLACEMENT_WITH_D2D_VERTICAL_CONNECTIONS_INCLUDE_DATASTRUCTURES_D2DCHIP_H_
+#define INC_3D_PLACEMENT_WITH_D2D_VERTICAL_CONNECTIONS_INCLUDE_DATASTRUCTURES_D2DCHIP_H_
+#include <fstream>
+#include <igraph.h>
+#include "Circuit.h"
 namespace VLSI_backend {
-using namespace odb;
 
-class Circuit {
- protected:
-  Parser parser_;
-  data_storage data_storage_;
-  data_mapping data_mapping_;
-
-  std::vector<Instance *> instance_pointers_;
-  std::vector<Net *> net_pointers_;
-  std::vector<Pin *> pin_pointers_;  // This vector includes instance pin pointers and pad pin pointers
-  std::vector<Pin *> pad_pointers_;
-  Die *die_ = nullptr;
-
-  int lib_cell_num_ = 0;
-  void init();
-
-  // placer
-  void doRePlAce();
-  gpl::Replace* replace_ = nullptr;
+/*!
+ * `D2DChip` class includes
+ * */
+class D2DChip {
+ private:
+  int num_technologies_ = 0;
+  /*!
+   * \brief
+   * A `Circuit` object Only for netlist
+   * */
+  Circuit netlist_;
+  /*!
+   * This `db_database_netlist_` is just for netlist before partitioning
+   * */
+  odb::dbDatabase *db_database_netlist_{};
+  /*!
+   * The vector includes VLSI_backend classes, one VLSI_backend is for each Tier(Die).
+   * */
+  vector<Circuit> circuits_;
 
  public:
-  Circuit() = default;
-  ~Circuit() = default;
-  void parse(const string &lef_name, const string &def_name);
-  void write(const string& out_file_name);
-  void place();
-  ulong getHPWL();
 
-  /// get unit of micro
-  /// \details
-  /// the coordinate in this circuit is `return value`/1um.
-  /// \example
-  /// if the return value is 100, then
-  /// (20000, 30000) means coordinate (200um, 300um)
-  int getUnitOfMicro() const;
+  /*!
+   * \brief
+   * Parse Def file and Lef file
+   * \details
+   * First of all, this parsing is for only netlist.
+   * When a placement process is required, then you should do(place cells) in the two `Circuit` obejct in `circuits_`.
+   * */
+  void parse(const string &lef_file_name, const string &def_file_name);
 
-  dbDatabase* getDbDatabase(){
-    return parser_.db_database_;
-  }
+  /*!
+   * \brief
+   * Divide a cells into two circuit.
+   * Louvain(actually, not louvain but ledien) clustering is implemented by igraph package
+   * */
+  void partition();
 
-  int getLibCellNum() const;
-  void setLibCellNum(int lib_cell_num);
-
-  const vector<Instance *> &getInstancePointers() const;
-  const vector<Net *> &getNetPointers() const;
-
-  // etc
-  void dbTutorial() const;
+  /*!
+   * \brief
+   * Parsing the input of iccad2022 contest
+   * \details
+   * This function highly refers to https://github.com/csdl-projects/ICCAD2022/blob/main/src/utils/Parser.cpp#L6-L149 \n
+   * However, this parsing function will parse correspond to the OpenDB structure
+   *
+   * \author Minjae (ApeachM)
+   *
+   * */
+  void parse_iccad2022(const string &input_file_name);
 
 };
 
-} // VLSI_backend
+}
 
-#endif //PLACER_INCLUDE_DATASTRUCTURES_CIRCUIT_H_
+#endif //INC_3D_PLACEMENT_WITH_D2D_VERTICAL_CONNECTIONS_INCLUDE_DATASTRUCTURES_D2DCHIP_H_

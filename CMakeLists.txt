@@ -16,6 +16,7 @@ set(SOURCES
         src/algorithm/place.cpp
 
         src/etc/dbTutorial.cpp
+        src/dataStructures/D2DChip.cpp
 
         src/algorithm/RePlAce/fft.cpp
         src/algorithm/RePlAce/fftsg.cpp
@@ -41,12 +42,14 @@ set(INCLUDE_DIRS
 add_executable(placer ${SOURCES})
 target_include_directories(placer PRIVATE ${INCLUDE_DIRS})
 
-add_subdirectory(submodule/OpenDB)
 find_package(Eigen3 REQUIRED)
+add_subdirectory(submodule/OpenDB)
+add_subdirectory(submodule/igraph)
 target_link_libraries(placer
         PRIVATE
         Eigen3::Eigen
         opendb
         X11
         pthread
+        igraph
         )

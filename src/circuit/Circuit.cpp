@@ -65,10 +65,13 @@ void Circuit::init() {
     instance.setDataMapping(&data_mapping_);
     data_storage_.instances.push_back(instance);
   }
-  // 2-3. make pointer set and map from db_instance to instance pointer
-  for (auto &instance : data_storage_.instances) {
-    instance_pointers_.push_back(&instance);
-    data_mapping_.inst_map[instance.getDbInst()] = &instance;
+  // 2-3. make pointer set and map from db_instance to instance pointer.
+  // Additionally: set the cell id
+  for (int i = 0; i < data_storage_.instances.size(); ++i) {
+    Instance* instance = &data_storage_.instances.at(i);
+    instance_pointers_.push_back(instance);
+    data_mapping_.inst_map[instance->getDbInst()] = instance;
+    instance->setId(i);
   }
 
 
@@ -148,6 +151,18 @@ ulong Circuit::getHPWL() {
 }
 int Circuit::getUnitOfMicro() const {
   return parser_.db_database_->getTech()->getDbUnitsPerMicron();
+}
+int Circuit::getLibCellNum() const {
+  return lib_cell_num_;
+}
+void Circuit::setLibCellNum(int lib_cell_num) {
+  Circuit::lib_cell_num_ = lib_cell_num;
+}
+const vector<Instance *> &Circuit::getInstancePointers() const {
+  return instance_pointers_;
+}
+const vector<Net *> &Circuit::getNetPointers() const {
+  return net_pointers_;
 }
 
 } // VLSI_backend
