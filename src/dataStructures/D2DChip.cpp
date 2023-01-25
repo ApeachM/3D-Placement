@@ -206,6 +206,7 @@ void D2DChip::parse_iccad2022(const string &input_file_name) {
   net_num_ = n1;
 
   // read Nets in one circuit
+  // (refer to `create2LevetDbNoBTerms` function in submodule/OpenDB/tests/cpp/helper.cpp)
   for (int i = 0; i < net_num_; i++) {
     // Syntax: Net <netName> <numPins>
     input_file >> info >> name1 >> n1;
