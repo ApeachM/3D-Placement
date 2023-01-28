@@ -56,7 +56,7 @@ class Net {
   /// Constructors
   Net() = default;
   explicit Net(odb::dbNet *db_net);
-  /// methods for Circuit.init()
+  /// methods for Chip.init()
   dbNet *getDbNet() const;
   void setDataMapping(data_mapping *data_mapping);
   void setDataStorage(data_storage *data_storage);

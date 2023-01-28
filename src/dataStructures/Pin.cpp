@@ -118,4 +118,28 @@ string Pin::getPinName() {
   }
   return name;
 }
+void Pin::setMinPinXField(bool min_pin_x_field) {
+  min_pin_x_field_ = min_pin_x_field;
+}
+void Pin::setMinPinYField(bool min_pin_y_field) {
+  min_pin_y_field_ = min_pin_y_field;
+}
+void Pin::setMaxPinXField(bool max_pin_x_field) {
+  max_pin_x_field_ = max_pin_x_field;
+}
+void Pin::setMaxPinYField(bool max_pin_y_field) {
+  max_pin_y_field_ = max_pin_y_field;
+}
+bool Pin::isMinPinX() const {
+  return min_pin_x_field_;
+}
+bool Pin::isMinPinY() const {
+  return min_pin_y_field_;
+}
+bool Pin::isMaxPinX() const {
+  return max_pin_x_field_;
+}
+bool Pin::isMaxPinY() const {
+  return max_pin_y_field_;
+}
 } // VLSI_backend

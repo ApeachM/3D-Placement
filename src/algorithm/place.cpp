@@ -31,17 +31,46 @@
 // POSSIBILITY OF SUCH DAMAGE.
 ///////////////////////////////////////////////////////////////////////////////
 
-#include "Circuit.h"
+#include "Chip.h"
 #include <random>
 namespace VLSI_backend {
-void Circuit::doRePlAce() {
-  replace_ = new gpl::Replace();
-  replace_->setDb(this->parser_.db_database_);
-  replace_->doInitialPlace();
-  replace_->doNesterovPlace(0);
+void Chip::normalPlacement() {
+  /* top die util setting manually in code level */
+  vector<double> densities;
+  densities.push_back(1.0);
+  densities.push_back(1.0);
+  setTargetDensity(densities);
+
+  doInitialPlace();
+
+
 }
 
-void Circuit::place() {
-  doRePlAce();
+void Chip::partition() {
+  /* Temporal code */
+  int cell_num = static_cast<int>(instance_pointers_.size());
+  for (int i = 0; i < floor(cell_num / 2); ++i) {
+    Instance* instance = instance_pointers_.at(i);
+    instance->assignDie(1);
+  }
+  for (int i = floor(cell_num/2); i < cell_num; ++i) {
+    Instance* instance = instance_pointers_.at(i);
+    instance->assignDie(2);
+  }
+}
+
+void Chip::placement2DieSynchronously() {
+
+}
+
+void Chip::do3DPlace() {
+  // 1. do3DPlace the cells in the pseudo die
+  this->normalPlacement();
+
+  // 2. partition
+  this->partition();
+
+  // 3. placement synchronously
+  this->placement2DieSynchronously();
 }
 }
