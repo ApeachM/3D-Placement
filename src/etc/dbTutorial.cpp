@@ -31,10 +31,10 @@
 // POSSIBILITY OF SUCH DAMAGE.
 ///////////////////////////////////////////////////////////////////////////////
 
-#include "Circuit.h"
+#include "Chip.h"
 namespace VLSI_backend {
 using namespace std;
-void Circuit::dbTutorial() const {
+void Chip::dbTutorial() const {
   cout << this->parser_.db_database_->getChip()->getBlock()->getBBox()->getDX() << endl;
 
 

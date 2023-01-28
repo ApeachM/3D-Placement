@@ -49,7 +49,7 @@ struct data_storage {
   std::vector<Instance> instances;
   std::vector<Net> nets;
   std::vector<Pin> pins;
-  Die die;
+  std::vector<Die> dies;
 };
 
 /// data mapping from db to data_storage

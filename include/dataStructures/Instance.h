@@ -50,7 +50,8 @@ class Instance {
 
   string name_;
   string libName_;
-  int id_;
+  int id_{};
+  int die_id_ = 0;
 
   /// This is lower left position of instance
   /// This is same with the origin of db_inst_ pointer
@@ -87,7 +88,7 @@ class Instance {
    * \brief
    * set the cell id
    * \details
-   * this function should be called in only Circuit::init() function
+   * this function should be called in only Chip::init() function
    * */
   void setId(int id);
 
@@ -118,6 +119,16 @@ class Instance {
   /// check whether it is placed or not
   bool isPlaced();
 
+  uint getCenterX() {
+    return getCoordinate().first + floor(getWidth() / 2);
+  }
+  uint getCenterY() {
+    return getCoordinate().second + floor(getHeight() / 2);
+  }
+
+  void assignDie(int die_id) {
+    die_id_ = die_id;
+  }
 
 };
 

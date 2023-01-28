@@ -1,6 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // Creator: Minjae Kim of CSDL, POSTECH
 // Email:   kmj0824@postech.ac.kr
+// GitHub:  ApeachM
 //
 // BSD 3-Clause License
 //
@@ -30,13 +31,136 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 ///////////////////////////////////////////////////////////////////////////////
+#include "Chip.h"
 
-#include "D2DChip.h"
+using namespace std;
 
 namespace VLSI_backend {
-void D2DChip::parse_iccad2022(const string &input_file_name) {
-  is_parsed_ = true;
 
+void Chip::parse(const string &lef_name, const string &def_name) {
+  parser_.readLef(lef_name);
+  parser_.readDef(def_name);
+  this->init();
+}
+void Chip::init() {
+  dbBlock *block = parser_.db_database_->getChip()->getBlock();
+  dbSet<dbInst> db_instances = block->getInsts();
+  dbSet<dbNet> db_nets = block->getNets();
+
+  /*!
+   * @brief
+   * Instance setting
+   *
+   * @details
+   * 1. It makes real instance data and store in \c data_storage.instances. \n
+   * 2. Then it makes pointer set for \c Chip class, \n
+   * 3. And also makes mapping from \c db_instance to instance pointer. \n\n
+   * */
+  data_storage_.instances.reserve(db_instances.size());  // real data for instance
+  instance_pointers_.reserve(db_instances.size());  // pointer data for instances
+  // 1. make real data for instances
+  for (odb::dbInst *db_inst : db_instances) {
+    Instance instance(db_inst);
+    instance.setDataStorage(&data_storage_);
+    instance.setDataMapping(&data_mapping_);
+    data_storage_.instances.push_back(instance);
+  }
+  // 2-3. make pointer set and map from db_instance to instance pointer.
+  // Additionally: set the cell id
+  for (int i = 0; i < data_storage_.instances.size(); ++i) {
+    Instance* instance = &data_storage_.instances.at(i);
+    instance_pointers_.push_back(instance);
+    data_mapping_.inst_map[instance->getDbInst()] = instance;
+    instance->setId(i);
+  }
+
+
+    /*!
+     * @brief
+     * Pin setting
+     *
+     * @details
+     * Same with above way
+     */
+  // 1. make real data
+  // 1-1. Instance terminals
+  for (auto instance : instance_pointers_) {
+    for (dbITerm *db_i_term : instance->getDbInst()->getITerms()) {
+      Pin pin(db_i_term);
+      pin.setDataStorage(&data_storage_);
+      pin.setDataMapping(&data_mapping_);
+      data_storage_.pins.push_back(pin);
+    }
+  }
+  // 1-2. Block terminals
+  for(dbBTerm* db_b_term: block->getBTerms()){
+    Pin pin(db_b_term);
+    pin.setDataStorage(&data_storage_);
+    pin.setDataMapping(&data_mapping_);
+    data_storage_.pins.push_back(pin);
+  }
+
+  // 2. make pointer set and map from db_pin to pin pointer
+  for (auto & pin : data_storage_.pins) {
+    Pin *pin_pointer = &pin;
+    pin_pointers_.push_back(pin_pointer);
+    if (pin_pointer->isInstancePin()) {
+      data_mapping_.pin_map_i[pin_pointer->getDbITerm()] = pin_pointer;
+    } else if (pin_pointer->isBlockPin()) {
+      data_mapping_.pin_map_b[pin_pointer->getDbBTerm()] = pin_pointer;
+      pad_pointers_.push_back(pin_pointer);
+    }
+  }
+
+  /*!
+   * @brief
+   * Net setting
+   *
+   * @details
+   * Same with above way
+   */
+  data_storage_.nets.reserve(db_nets.size());
+  net_pointers_.reserve(db_nets.size());
+  // 1. make real data
+  for (odb::dbNet *db_net : db_nets) {
+    Net net(db_net);
+    net.setDataStorage(&data_storage_);
+    net.setDataMapping(&data_mapping_);
+    data_storage_.nets.push_back(net);
+  }
+  // 2. make pointer set and map from db_net to net pointer
+  for (auto &net : data_storage_.nets) {
+    net_pointers_.push_back(&net);
+    data_mapping_.net_map[net.getDbNet()] = &net;
+  }
+
+
+  /// Die setting
+  // TODO: check whether this is valid
+  int num_of_die = 2;
+  data_storage_.dies.reserve(num_of_die);
+  for (int i = 0; i < num_of_die; ++i) {
+    Die die;
+    die.setDbBlock(block);
+    data_storage_.dies.push_back(die);
+  }
+  for (int i = 0; i < num_of_die; ++i) {
+    die_pointers_.push_back(&data_storage_.dies.at(i));
+  }
+
+}
+void Chip::write(const string &out_file_name) {
+  parser_.writeDef(out_file_name);
+}
+ulong Chip::getHPWL() {
+  ulong HPWL = 0;
+  for (Net *net : net_pointers_) {
+    HPWL += net->getHPWL();
+  }
+  return HPWL;
+}
+void Chip::parse_iccad(const string &lef_name, const string &def_name)  {
+/*
   // open input file
   ifstream input_file(input_file_name);
   if (input_file.fail()) {
@@ -69,7 +193,7 @@ void D2DChip::parse_iccad2022(const string &input_file_name) {
     input_file >> info >> name1 >> n1;
     assert(info == "Tech");
 
-    Circuit *circuit = &circuits_.at(i);
+    Chip *circuit = &circuits_.at(i);
     dbDatabase *db_database = circuit->getDbDatabase();
 
     // create tech
@@ -225,67 +349,29 @@ void D2DChip::parse_iccad2022(const string &input_file_name) {
       //      circuit.netlist.addPin(name1, name2);
     }
   }
-
+*/
+}
+int Chip::getUnitOfMicro() const {
+  return parser_.db_database_->getTech()->getDbUnitsPerMicron();
 }
 
-void D2DChip::parse(const string &lef_file_name, const string &def_file_name) {
-  is_parsed_ = true;
-  netlist_.parse(lef_file_name, def_file_name);
-}
-
-void D2DChip::partition() {
-//  igraph_t graph;
-//  igraph_vector_int_t membership;
-//  igraph_vector_int_t degree;
-//  igraph_vector_t weights;
-//  igraph_integer_t nb_clusters;
-//  igraph_real_t quality;
-//
-//  /* Set default seed to get reproducible results */
-//  igraph_rng_seed(igraph_rng_default(), 0);
-//
-//  igraph_empty(&graph, 0, IGRAPH_UNDIRECTED);
-//
-//  igraph_integer_t num_of_vertices{static_cast<int>(netlist_.getInstancePointers().size())};
-//  igraph_add_vertices(&graph, num_of_vertices, nullptr);
-//
-//  vector < Net * > net_pointers = netlist_.getNetPointers();
-//  for (Net *net : net_pointers) {
-//    vector<int> cell_indices{};
-//    for (Pin *pin : net->getConnectedPins()) {
-//      if (pin->isInstancePin()) {
-//        cell_indices.push_back(pin->getInstance()->getId());
-//      }
-//    }
-//    for (auto i = 0; i < cell_indices.size(); ++i) {
-//      for (int j = 0; j < i; ++j) {
-//        igraph_integer_t index_from{cell_indices.at(i)};
-//        igraph_integer_t index_to{cell_indices.at(j)};
-//        igraph_add_edge(&graph, index_from, index_to);
-//      }
-//    }
-//  }
-//
-//  igraph_community_leiden(&graph, NULL, NULL, 0.05, 0.01, 1, 10, &membership, &nb_clusters, &quality);
-//  igraph_community_leiden(&graph, /*const igraph_t *graph,*/
-//                          NULL,   /*const igraph_vector_t *edge_weights,*/
-//                          NULL,   /*const igraph_vector_t *node_weights,*/
-//                          0.05,   /*const igraph_real_t resolution_parameter,*/
-//                          0.01,   /*const igraph_real_t beta,*/
-//                          10,     /*const igraph_bool_t start,*/
-//                          /*-1,*/
-//                          &membership,  /*igraph_vector_t *membership,*/
-//                          &nb_clusters, /*igraph_integer_t *nb_clusters,*/
-//                          &quality      /*igraph_real_t *quality*/
-//                          );
+} // VLSI_backend
 
 
-//
-//  igraph_vector_destroy(&weights);
-//  igraph_vector_int_destroy(&degree);
-//  igraph_vector_int_destroy(&membership);
-//  igraph_destroy(&graph);
-}
 
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

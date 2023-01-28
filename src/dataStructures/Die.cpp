@@ -59,4 +59,10 @@ void Die::setDieSize(uint width, uint height) {
   width_ = width;
   height_ = height;
 }
+double Die::getDensity() const {
+  return density_;
+}
+void Die::setDensity(double density) {
+  density_ = density;
+}
 } // VLSI_backend

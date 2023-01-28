@@ -43,6 +43,8 @@ class Die {
   dbBlock *db_block_ = nullptr;
   Rect die_shape_{};
 
+  double density_ = 1.0;
+
   uint width_ = 0;
   uint height_ = 0 ;
 
@@ -54,6 +56,8 @@ class Die {
   uint getWidth();
   uint getHeight();
   uint getArea();
+  double getDensity() const;
+  void setDensity(double density);
 
 };
 

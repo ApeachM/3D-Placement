@@ -1,7 +1,6 @@
 ///////////////////////////////////////////////////////////////////////////////
 // Creator: Minjae Kim of CSDL, POSTECH
 // Email:   kmj0824@postech.ac.kr
-// GitHub:  ApeachM
 //
 // BSD 3-Clause License
 //
@@ -31,76 +30,15 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 ///////////////////////////////////////////////////////////////////////////////
-
-#ifndef PLACER_INCLUDE_DATASTRUCTURES_CIRCUIT_H_
-#define PLACER_INCLUDE_DATASTRUCTURES_CIRCUIT_H_
-#include <vector>
-#include <unordered_map>
-#include "Parser.h"
-#include "Instance.h"
-#include "Net.h"
-#include "Pin.h"
-#include "Die.h"
-
-#include "Replace.h"
+#include "Chip.h"
+using namespace std;
 
 namespace VLSI_backend {
-using namespace odb;
-
-class Circuit {
- protected:
-  Parser parser_;
-  data_storage data_storage_;
-  data_mapping data_mapping_;
-
-  std::vector<Instance *> instance_pointers_;
-  std::vector<Net *> net_pointers_;
-  std::vector<Pin *> pin_pointers_;  // This vector includes instance pin pointers and pad pin pointers
-  std::vector<Pin *> pad_pointers_;
-  Die *die_ = nullptr;
-
-  int lib_cell_num_ = 0;
-  int util_ = 100;
-
-  // placer
-  gpl::Replace* replace_ = nullptr;
-  void doRePlAce();
-  void init();
-
- public:
-  Circuit() = default;
-  ~Circuit() = default;
-  void parse(const string &lef_name, const string &def_name);
-  void write(const string &out_file_name);
-  void place();
-  ulong getHPWL();
-
-  /// get unit of micro
-  /// \details
-  /// the coordinate in this circuit is `return value`/1um.
-  /// \example
-  /// if the return value is 100, then
-  /// (20000, 30000) means coordinate (200um, 300um)
-  int getUnitOfMicro() const;
-
-  dbDatabase *getDbDatabase() {
-    return parser_.db_database_;
+void Chip::setTargetDensity(vector<double> densities) {
+  if (densities.size() != die_pointers_.size())
+    assert(0);
+  for (int i = 0; i < densities.size(); ++i) {
+    die_pointers_.at(i)->setDensity(densities.at(i));
   }
-
-  int getLibCellNum() const;
-  void setLibCellNum(int lib_cell_num);
-  int getUtil() const;
-  void setUtil(int util);
-  void setDieSize(uint width, uint height);
-  pair<int, int> getDieSize();
-  const vector<Instance *> &getInstancePointers() const;
-  const vector<Net *> &getNetPointers() const;
-
-  // etc
-  void dbTutorial() const;
-
-};
-
+}
 } // VLSI_backend
-
-#endif //PLACER_INCLUDE_DATASTRUCTURES_CIRCUIT_H_

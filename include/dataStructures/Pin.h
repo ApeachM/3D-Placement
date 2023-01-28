@@ -48,12 +48,18 @@ class Pin {
   data_storage *data_storage_ = nullptr;
   data_mapping *data_mapping_ = nullptr;
 
+  bool min_pin_x_field_ = true;
+  bool min_pin_y_field_ = true;
+  bool max_pin_x_field_ = true;
+  bool max_pin_y_field_ = true;
+
+
  public:
   /// Constructors
   Pin() = default;
   explicit Pin(odb::dbITerm *db_iterm);
   explicit Pin(odb::dbBTerm *db_b_term);
-  /// methods for Circuit.init()
+  /// methods for Chip.init()
   void setDataStorage(data_storage *data_storage);
   void setDataMapping(data_mapping *data_mapping);
   dbITerm *getDbITerm() const;
@@ -83,6 +89,15 @@ class Pin {
   /// \details
   /// the returned coordinate will be the center of the box (pin shape)
   pair<int, int> getCoordinate();;
+
+  void setMinPinXField(bool min_pin_x_field);
+  void setMinPinYField(bool min_pin_y_field);
+  void setMaxPinXField(bool max_pin_x_field);
+  void setMaxPinYField(bool max_pin_y_field);
+  bool isMinPinX() const;
+  bool isMinPinY() const;
+  bool isMaxPinX() const;
+  bool isMaxPinY() const;
 
 };
 }
