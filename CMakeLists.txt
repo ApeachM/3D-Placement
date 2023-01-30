@@ -31,12 +31,12 @@ target_include_directories(placer PRIVATE ${INCLUDE_DIRS})
 
 find_package(Eigen3 REQUIRED)
 add_subdirectory(submodule/OpenDB)
-#add_subdirectory(submodule/igraph)
+add_subdirectory(submodule/igraph)
 target_link_libraries(placer
         PRIVATE
         Eigen3::Eigen
         opendb
         X11
         pthread
-        #igraph
+        igraph
         )
