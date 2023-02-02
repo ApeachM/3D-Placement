@@ -113,5 +113,8 @@ int Instance::getId() const {
 void Instance::setId(int id) {
   id_ = id;
 }
+int Instance::getDieId() const {
+  return die_id_;
+}
 
 } // VLSI_backend

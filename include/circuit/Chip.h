@@ -426,7 +426,7 @@ class Chip {
    * Core method
    * \details
    * 1. do replace in pseudo die \n
-   * 2. partition into two dies
+   * 2. partition into two dies \n
    * 3. do placement synchronously
    * */
   void do3DPlace();

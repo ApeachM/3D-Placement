@@ -52,6 +52,9 @@ class Instance {
   string libName_;
   int id_{};
   int die_id_ = 0;
+ public:
+  int getDieId() const;
+ private:
 
   /// This is lower left position of instance
   /// This is same with the origin of db_inst_ pointer
