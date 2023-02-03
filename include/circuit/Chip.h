@@ -44,6 +44,7 @@
 #include "Net.h"
 #include "Pin.h"
 #include "Die.h"
+#include <igraph.h>
 
 typedef Eigen::SparseMatrix<float, Eigen::RowMajor> SMatrix;
 typedef Eigen::Triplet<float> T;
@@ -403,6 +404,8 @@ class Chip {
    * This code is just temporal code now. Meaningless but only simple partition is implemented.
    * */
   void partition();
+  void make_igraph(igraph_t &graph);
+
 
   /**\brief
    * get unit of micro

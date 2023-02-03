@@ -33,7 +33,6 @@
 #include <ctime>
 #include "Chip.h"
 #include <random>
-#include <igraph.h>
 
 namespace VLSI_backend {
 void Chip::normalPlacement() {
@@ -49,13 +48,15 @@ void Chip::normalPlacement() {
 void Chip::partition() {
   clock_t time_start, total_time;
   int Die_1 = 0, Die_2 = 0;
-  double resolution = 0.03;
+  double resolution = 0.11;
+
+  int connection = 0;
 
   total_time = clock();
 
   igraph_t graph;
   igraph_vector_int_t membership;
-  igraph_integer_t nb_clusters;
+  igraph_integer_t nb_clusters = 9999999;
   igraph_real_t quality;
 
   igraph_rng_seed(igraph_rng_default(), 0);
@@ -63,98 +64,27 @@ void Chip::partition() {
   igraph_empty(&graph, 0, IGRAPH_UNDIRECTED);
   igraph_add_vertices(&graph, num_of_vertices, NULL);
 
-  time_start = clock();
-  for (Net *net : net_pointers_) {
-    vector<int> cell_indices{};
-    for (Pin *pin : net->getConnectedPins()) {
-      if (pin->isInstancePin()) {
-        cell_indices.push_back(pin->getInstance()->getId());
-      }
-    }
-
-    for (int i = 0; i < cell_indices.size() - 1; i++) {
-      for (int j = i + 1; j < cell_indices.size(); j++) {
-        igraph_integer_t START(cell_indices[i]);
-        igraph_integer_t FINAL(cell_indices[j]);
-        igraph_add_edge(&graph, START, FINAL);
-      }
-    }
-  }
-  cout << "Net Partition Duration: " << double(clock() - time_start) / CLOCKS_PER_SEC << "[s]" << endl;
-
+  make_igraph(graph);
   igraph_vector_int_init(&membership, igraph_vcount(&graph));
 
   time_start = clock();
-  igraph_community_leiden(&graph, NULL, NULL, resolution, 0.01, 0, -1, &membership, &nb_clusters, &quality);
+  while (nb_clusters > 10) {
+    resolution -= 0.01;
+    igraph_community_leiden(&graph, NULL, NULL, resolution, 0.01, 0, -1, &membership, &nb_clusters, &quality);
+  }
+  printf("Leiden found %" IGRAPH_PRId " clusters using CPM (resolution parameter %.2f), quality is %.3f.\n", nb_clusters, resolution, quality);
   cout << "Leiden Duration: " << double(clock() - time_start) / CLOCKS_PER_SEC << "[s]" << endl;
 
-  printf("Leiden found %" IGRAPH_PRId " clusters using CPM (resolution parameter %.3f), quality is %.4f.\n", nb_clusters, resolution, quality);
   printf("Membership: ");
   igraph_vector_int_print(&membership);
 
-  for (int i = 0; i < instance_pointers_.size(); i++) {
-    Instance *instance = instance_pointers_[i];
-    instance->assignDie(VECTOR(membership)[i]);
-  }
-
-  while (false) {
-    if (nb_clusters <= 15)
-      break;
-
-    igraph_vector_t weights;
-    igraph_vector_init(&weights, nb_clusters);
-
-    for (int i = 0; i < igraph_vector_int_size(&membership); i++) {
-      VECTOR(weights)[VECTOR(membership)[i]]++;
-    }
-
-    printf("Weights: ");
-    igraph_vector_print(&weights);
-
-    igraph_vector_int_destroy(&membership);
-
-    igraph_empty(&graph, 0, IGRAPH_UNDIRECTED);
-    igraph_add_vertices(&graph, nb_clusters, NULL);
-
-    for (Net *net : net_pointers_) {
-      vector<int> cell_indices{};
-      for (Pin *pin : net->getConnectedPins()) {
-        if (pin->isInstancePin()) {
-          cell_indices.push_back(pin->getInstance()->getDieId());
-        }
-      }
-
-      for (int i = 0; i < cell_indices.size() - 1; i++) {
-        for (int j = i + 1; j < cell_indices.size(); j++) {
-          igraph_integer_t START(cell_indices[i]);
-          igraph_integer_t FINAL(cell_indices[j]);
-          if (START != FINAL)
-            igraph_add_edge(&graph, START, FINAL);
-        }
-      }
-    }
-
-    igraph_vector_int_init(&membership, igraph_vcount(&graph));
-    igraph_community_leiden(&graph, &weights, NULL, 0.05, 0.01, 0, 10, &membership, &nb_clusters, &quality);
-
-    printf("Leiden found %" IGRAPH_PRId " clusters using CPM (resolution parameter 0.05), quality is %.4f.\n", nb_clusters, quality);
-    printf("Membership: ");
-    igraph_vector_int_print(&membership);
-
-    for (Instance *instance : instance_pointers_) {
-      instance->assignDie(VECTOR(membership)[instance->getDieId()]);
-    }
-
-    igraph_vector_destroy(&weights);
-  }
-
-  for (Instance *instance : instance_pointers_) {
-    if(instance->getDieId() * 2 <  nb_clusters){
-      instance->assignDie(1);
+  for (int i = 0; i < num_of_vertices; i++) {
+    Instance *cell = instance_pointers_[i];
+    if (VECTOR(membership)[i] * 2 < nb_clusters) {
+      cell->assignDie(1);
       Die_1++;
-    }
-    else {
-      instance->assignDie(2);
+    } else {
+      cell->assignDie(2);
       Die_2++;
     }
   }
@@ -163,11 +93,52 @@ void Chip::partition() {
   igraph_destroy(&graph);
 
   cout << "Total Duration: " << double(clock() - total_time) / CLOCKS_PER_SEC << "[s]" << endl;
-
   cout << "Dei_1: " << Die_1 << endl;
   cout << "Dei_2: " << Die_2 << endl;
 
   return;
+}
+
+void Chip::make_igraph(igraph_t &graph) {
+  int connection = 0;
+
+  clock_t time_start = clock();
+
+//  for (Net *net : net_pointers_) {
+//    vector<int> cell_indices{};
+//    for (Pin *pin : net->getConnectedPins()) {
+//      if (pin->isInstancePin()) {
+//        cell_indices.push_back(pin->getInstance()->getId());
+//      }
+//    }
+//
+//    for (int i = 0; i < cell_indices.size() - 1; i++) {
+//      for (int j = i + 1; j < cell_indices.size(); j++) {
+//        igraph_integer_t START(cell_indices[i]);
+//        igraph_integer_t FINAL(cell_indices[j]);
+//        igraph_add_edge(&graph, START, FINAL);
+//        connection++;
+//      }
+//    }
+//  }
+
+  for (Instance *cell : instance_pointers_) {
+    for (Pin *pin : cell->getPins()) {
+      if(pin->isInstancePin()){
+        Net* instance_net = pin->getNet();
+        if(instance_net) {
+          for(Pin *p : instance_net->getConnectedPins()){
+            if(p->isInstancePin() && cell->getId() < p->getInstance()->getId()){
+              igraph_add_edge(&graph, cell->getId(), p->getInstance()->getId());
+              connection++;
+            }
+          }
+        }
+      }
+    }
+  }
+//  cout << "Connection: " << connection << endl;
+  cout << "make_igraph Duration: " << double(clock() - time_start) / CLOCKS_PER_SEC << "[s]" << endl;
 }
 
 void Chip::placement2DieSynchronously() {
