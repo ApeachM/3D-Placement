@@ -12,17 +12,24 @@ set(SOURCES
         src/dataStructures/Instance.cpp
         src/dataStructures/Net.cpp
         src/dataStructures/Pin.cpp
+        src/dataStructures/Bin.cpp
 
         src/algorithm/place.cpp
+        src/algorithm/normalPlace.cpp
+
+        src/tool/fft.cpp
+        src/tool/fftsg.cpp
+        src/tool/fftsg2d.cpp
 
         src/etc/dbTutorial.cpp
-        src/algorithm/normalPlace.cpp)
+        src/algorithm/Nestrov.cpp)
 
 set(INCLUDE_DIRS
         #${PROJECT_SOURCE_DIR}/include
         #${PROJECT_SOURCE_DIR}/include/algorithm
         ${PROJECT_SOURCE_DIR}/include/circuit
         ${PROJECT_SOURCE_DIR}/include/dataStructures
+        ${PROJECT_SOURCE_DIR}/include/tool
         ${PROJECT_SOURCE_DIR}/submodule/CImg
         )
 

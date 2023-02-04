@@ -44,6 +44,7 @@ Die::Die(dbBlock *db_block) {
 void Die::setDbBlock(dbBlock *db_block) {
   db_block_ = db_block;
   db_block->getDieArea(die_shape_);
+  setDieSize( die_shape_.dx(), die_shape_.dy());
 }
 uint Die::getWidth() {
   return  die_shape_.dx();
@@ -59,7 +60,7 @@ void Die::setDieSize(uint width, uint height) {
   width_ = width;
   height_ = height;
 }
-double Die::getDensity() const {
+float Die::getDensity() const {
   return density_;
 }
 void Die::setDensity(double density) {

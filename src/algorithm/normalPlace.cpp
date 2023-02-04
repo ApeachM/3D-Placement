@@ -41,4 +41,38 @@ void Chip::setTargetDensity(vector<double> densities) {
     die_pointers_.at(i)->setDensity(densities.at(i));
   }
 }
+void Chip::doInitialPlace() {
+  // This function is from below link
+  // https://github.com/The-OpenROAD-Project/OpenROAD/blob/977c0794af50e0d3ed993d324b0adead87e32782/src/gpl/src/initialPlace.cpp#L82
+  InitialPlacer initial_placer(
+      this->instance_pointers_,
+      this->net_pointers_,
+      this->pin_pointers_,
+      this->pad_pointers_,
+      this->die_pointers_);
+
+  initial_placer.placeInstancesCenter();
+  initial_placer.setPlaceIDs();
+  for (int iter = 0; iter < initial_placer.max_iter_; ++iter) {
+    initial_placer.updatePinInfo();
+    initial_placer.createSparseMatrix();
+    pair<float, float> error = initial_placer.cpuSparseSolve();
+    float error_max = max(error.first, error.second);
+    cout << "[InitialPlace] Iter: " << iter << "\tHPWL: " << getHPWL() << " CG residual: " << error_max << endl;
+    if (error_max < 1e-5 && iter >= 5)
+      break;
+  }
+}
+void Chip::doNestrovPlace() {
+  NestrovPlacer nestrov_placer(
+      this->parser_.db_database_,
+      this->instance_pointers_,
+      this->net_pointers_,
+      this->pin_pointers_,
+      this->pad_pointers_,
+      this->die_pointers_.at(0));
+  nestrov_placer.initNestrovPlace();
+  nestrov_placer.doNestrovPlace(0);
+}
+
 } // VLSI_backend

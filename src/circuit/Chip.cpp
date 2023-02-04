@@ -36,7 +36,6 @@
 using namespace std;
 
 namespace VLSI_backend {
-
 void Chip::parse(const string &lef_name, const string &def_name) {
   parser_.readLef(lef_name);
   parser_.readDef(def_name);
@@ -68,20 +67,20 @@ void Chip::init() {
   // 2-3. make pointer set and map from db_instance to instance pointer.
   // Additionally: set the cell id
   for (int i = 0; i < data_storage_.instances.size(); ++i) {
-    Instance* instance = &data_storage_.instances.at(i);
+    Instance *instance = &data_storage_.instances.at(i);
     instance_pointers_.push_back(instance);
     data_mapping_.inst_map[instance->getDbInst()] = instance;
     instance->setId(i);
   }
 
 
-    /*!
-     * @brief
-     * Pin setting
-     *
-     * @details
-     * Same with above way
-     */
+  /*!
+   * @brief
+   * Pin setting
+   *
+   * @details
+   * Same with above way
+   */
   // 1. make real data
   // 1-1. Instance terminals
   for (auto instance : instance_pointers_) {
@@ -93,7 +92,7 @@ void Chip::init() {
     }
   }
   // 1-2. Block terminals
-  for(dbBTerm* db_b_term: block->getBTerms()){
+  for (dbBTerm *db_b_term : block->getBTerms()) {
     Pin pin(db_b_term);
     pin.setDataStorage(&data_storage_);
     pin.setDataMapping(&data_mapping_);
@@ -101,7 +100,7 @@ void Chip::init() {
   }
 
   // 2. make pointer set and map from db_pin to pin pointer
-  for (auto & pin : data_storage_.pins) {
+  for (auto &pin : data_storage_.pins) {
     Pin *pin_pointer = &pin;
     pin_pointers_.push_back(pin_pointer);
     if (pin_pointer->isInstancePin()) {
@@ -159,7 +158,7 @@ ulong Chip::getHPWL() {
   }
   return HPWL;
 }
-void Chip::parse_iccad(const string &lef_name, const string &def_name)  {
+void Chip::parse_iccad(const string &lef_name, const string &def_name) {
 /*
   // open input file
   ifstream input_file(input_file_name);
@@ -356,22 +355,3 @@ int Chip::getUnitOfMicro() const {
 }
 
 } // VLSI_backend
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

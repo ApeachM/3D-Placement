@@ -34,7 +34,7 @@
 #include "Chip.h"
 namespace VLSI_backend {
 using namespace std;
-void Chip::dbTutorial() const {
+__attribute__((unused)) void Chip::dbTutorial() const {
   cout << this->parser_.db_database_->getChip()->getBlock()->getBBox()->getDX() << endl;
 
 
