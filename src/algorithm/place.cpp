@@ -48,9 +48,7 @@ void Chip::normalPlacement() {
 void Chip::partition() {
   clock_t time_start, total_time;
   int Die_1 = 0, Die_2 = 0;
-  double resolution = 0.11;
-
-  int connection = 0;
+  double resolution = 0.05;
 
   total_time = clock();
 
@@ -59,32 +57,29 @@ void Chip::partition() {
   igraph_integer_t nb_clusters = 9999999;
   igraph_real_t quality;
 
-  igraph_rng_seed(igraph_rng_default(), 0);
-  igraph_integer_t num_of_vertices{static_cast<int>(instance_pointers_.size())};
-  igraph_empty(&graph, 0, IGRAPH_UNDIRECTED);
-  igraph_add_vertices(&graph, num_of_vertices, NULL);
-
   make_igraph(graph);
+
   igraph_vector_int_init(&membership, igraph_vcount(&graph));
 
   time_start = clock();
-  while (nb_clusters > 10) {
+  while (nb_clusters > 20 && (resolution - 0.0) > 1.0e-8) {
+    igraph_community_leiden(&graph, nullptr, nullptr, resolution, 0.01, false, -1, &membership, &nb_clusters, &quality);
+//    printf("Leiden found %" IGRAPH_PRId " clusters using CPM (resolution parameter %.2f), quality is %.3f.\n", nb_clusters, resolution, quality);
     resolution -= 0.01;
-    igraph_community_leiden(&graph, NULL, NULL, resolution, 0.01, 0, -1, &membership, &nb_clusters, &quality);
   }
-  printf("Leiden found %" IGRAPH_PRId " clusters using CPM (resolution parameter %.2f), quality is %.3f.\n", nb_clusters, resolution, quality);
-  cout << "Leiden Duration: " << double(clock() - time_start) / CLOCKS_PER_SEC << "[s]" << endl;
+  printf("Leiden found %" IGRAPH_PRId " clusters using CPM (resolution parameter %.2f), quality is %.3f.\n", nb_clusters, resolution + 0.01, quality);
+  cout << "Leiden time: " << double(clock() - time_start) / CLOCKS_PER_SEC << "[s]" << endl;
 
-  printf("Membership: ");
-  igraph_vector_int_print(&membership);
+//  printf("Membership: ");
+//  igraph_vector_int_print(&membership);
 
-  for (int i = 0; i < num_of_vertices; i++) {
-    Instance *cell = instance_pointers_[i];
+  for (int i = 0; i < instance_pointers_.size(); i++) {
     if (VECTOR(membership)[i] * 2 < nb_clusters) {
-      cell->assignDie(1);
+      instance_pointers_[i]->assignDie(1);
       Die_1++;
-    } else {
-      cell->assignDie(2);
+    }
+    else {
+      instance_pointers_[i]->assignDie(2);
       Die_2++;
     }
   }
@@ -92,53 +87,46 @@ void Chip::partition() {
   igraph_vector_int_destroy(&membership);
   igraph_destroy(&graph);
 
-  cout << "Total Duration: " << double(clock() - total_time) / CLOCKS_PER_SEC << "[s]" << endl;
+  cout << "Total time: " << double(clock() - total_time) / CLOCKS_PER_SEC << "[s]" << endl;
   cout << "Dei_1: " << Die_1 << endl;
   cout << "Dei_2: " << Die_2 << endl;
-
-  return;
 }
 
-void Chip::make_igraph(igraph_t &graph) {
-  int connection = 0;
+void Chip::make_igraph(igraph_t &graph){
+  igraph_integer_t num_of_cell{static_cast<int>(instance_pointers_.size())};
+  igraph_integer_t num_of_net{static_cast<int>(net_pointers_.size())};
+
+  igraph_rng_seed(igraph_rng_default(), 0);
+  igraph_empty(&graph, 0, IGRAPH_UNDIRECTED);
+  igraph_add_vertices(&graph, num_of_cell + num_of_net, nullptr);
 
   clock_t time_start = clock();
 
-//  for (Net *net : net_pointers_) {
-//    vector<int> cell_indices{};
-//    for (Pin *pin : net->getConnectedPins()) {
-//      if (pin->isInstancePin()) {
-//        cell_indices.push_back(pin->getInstance()->getId());
-//      }
-//    }
-//
-//    for (int i = 0; i < cell_indices.size() - 1; i++) {
-//      for (int j = i + 1; j < cell_indices.size(); j++) {
-//        igraph_integer_t START(cell_indices[i]);
-//        igraph_integer_t FINAL(cell_indices[j]);
-//        igraph_add_edge(&graph, START, FINAL);
-//        connection++;
-//      }
-//    }
-//  }
-
-  for (Instance *cell : instance_pointers_) {
-    for (Pin *pin : cell->getPins()) {
-      if(pin->isInstancePin()){
-        Net* instance_net = pin->getNet();
-        if(instance_net) {
-          for(Pin *p : instance_net->getConnectedPins()){
-            if(p->isInstancePin() && cell->getId() < p->getInstance()->getId()){
-              igraph_add_edge(&graph, cell->getId(), p->getInstance()->getId());
-              connection++;
-            }
-          }
-        }
+  vector<int> edges_list{};
+  int net_index = static_cast<int>(instance_pointers_.size());
+  for(Net *net : net_pointers_){
+    for(Pin *pin : net->getConnectedPins()){
+      if (pin->isInstancePin()) {
+        edges_list.push_back(net_index);
+        edges_list.push_back(pin->getInstance()->getId());
       }
     }
+    net_index++;
   }
-//  cout << "Connection: " << connection << endl;
-  cout << "make_igraph Duration: " << double(clock() - time_start) / CLOCKS_PER_SEC << "[s]" << endl;
+
+  if(!edges_list.empty()) {
+    cout << "igraph connection: " << edges_list.size() / 2 << endl;
+    igraph_vector_int_t edges;
+    igraph_vector_int_init(&edges, static_cast<igraph_integer_t>(edges_list.size()));
+    int x = 0;
+    for (int i : edges_list) {
+      VECTOR(edges)[x] = i;
+      x++;
+    }
+    igraph_add_edges(&graph, &edges, nullptr);
+    igraph_vector_int_destroy(&edges);
+  }
+  cout << "make_igraph time: " << double(clock() - time_start) / CLOCKS_PER_SEC << "[s]" << endl;
 }
 
 void Chip::placement2DieSynchronously() {

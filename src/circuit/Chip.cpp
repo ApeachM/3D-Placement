@@ -160,7 +160,6 @@ ulong Chip::getHPWL() {
   return HPWL;
 }
 void Chip::parse_iccad(const string &lef_name, const string &def_name)  {
-/*
   // open input file
   ifstream input_file(input_file_name);
   if (input_file.fail()) {
@@ -349,7 +348,6 @@ void Chip::parse_iccad(const string &lef_name, const string &def_name)  {
       //      circuit.netlist.addPin(name1, name2);
     }
   }
-*/
 }
 int Chip::getUnitOfMicro() const {
   return parser_.db_database_->getTech()->getDbUnitsPerMicron();

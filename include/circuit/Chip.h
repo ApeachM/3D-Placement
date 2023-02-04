@@ -406,7 +406,6 @@ class Chip {
   void partition();
   void make_igraph(igraph_t &graph);
 
-
   /**\brief
    * get unit of micro
    * \details
