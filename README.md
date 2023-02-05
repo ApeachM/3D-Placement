@@ -17,8 +17,9 @@ You can use `etc/DependencyInstaller.sh` in linux system.
 ## How to build
 
 ```shell
-git clone --recurse-submodules https://github.com/ApeachM/3D-Placement-with-D2D-Vertical-Connections.git
-cd EDA-API
+git clone --recurse-submodules https://github.com/ApeachM/3D-Placement.git
+cd 3D-Placement
+git submodule update --force --recursive --init --remote
 ```
 
 ```shell
