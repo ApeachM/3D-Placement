@@ -195,16 +195,7 @@ class Instance {
     return false;
   }
 
-  void setDensityCenterLocation(int dCx, int dCy) {
-    const int halfDDx = dDx() / 2;
-    const int halfDDy = dDy() / 2;
-
-    dLx_ = dCx - halfDDx;
-    dLy_ = dCy - halfDDy;
-    dUx_ = dCx + halfDDx;
-    dUy_ = dCy + halfDDy;
-    // pin setting can be skipped because the pin data structure is based on openDB
-  }
+  void setDensityCenterLocation(int dCx, int dCy);
 
   /// getter and setters for density variables
   int dLx() const;

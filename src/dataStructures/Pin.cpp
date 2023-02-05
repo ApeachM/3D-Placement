@@ -32,7 +32,7 @@
 // POSSIBILITY OF SUCH DAMAGE.
 ///////////////////////////////////////////////////////////////////////////////
 
-#include "Pin.h"
+#include "Chip.h"
 
 namespace VLSI_backend {
 
@@ -117,6 +117,17 @@ string Pin::getPinName() {
     assert(0);
   }
   return name;
+}
+void Pin::initDensityCoordinate() {
+  cx_ = getCoordinate().first;
+  cy_ = getCoordinate().second;
+  if (db_i_term_) {
+    offsetCx_ = cx_ - getInstance()->getCoordinate().first;
+    offsetCy_ = cy_ - getInstance()->getCoordinate().second;
+  } else if (db_b_term_) {
+    offsetCx_ = cx_;
+    offsetCy_ = cy_;
+  }
 }
 void Pin::setMinPinXField(bool min_pin_x_field) {
   min_pin_x_field_ = min_pin_x_field;

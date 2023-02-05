@@ -117,10 +117,10 @@ void Net::updateBox() {
   ux_ = uy_ = INT_MIN;
 
   for (Pin *gPin : getConnectedPins()) {
-    lx_ = std::min(gPin->getCoordinate().first, lx_);
-    ly_ = std::min(gPin->getCoordinate().second, ly_);
-    ux_ = std::max(gPin->getCoordinate().first, ux_);
-    uy_ = std::max(gPin->getCoordinate().second, uy_);
+    lx_ = std::min(gPin->cx(), lx_);
+    ly_ = std::min(gPin->cy(), ly_);
+    ux_ = std::max(gPin->cx(), ux_);
+    uy_ = std::max(gPin->cy(), uy_);
   }
 }
 } // VLSI_backend

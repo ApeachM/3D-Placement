@@ -31,7 +31,7 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 ///////////////////////////////////////////////////////////////////////////////
-#include "Instance.h"
+#include "Chip.h"
 
 namespace VLSI_backend {
 
@@ -215,6 +215,18 @@ void Instance::setDensityLocation(float dLx, float dLy) {
   dUy_ = dLy + (dUy_ - dLy_);
   dLx_ = dLx;
   dLy_ = dLy;
+}
+void Instance::setDensityCenterLocation(int dCx, int dCy) {
+  const int halfDDx = dDx() / 2;
+  const int halfDDy = dDy() / 2;
+
+  dLx_ = dCx - halfDDx;
+  dLy_ = dCy - halfDDy;
+  dUx_ = dCx + halfDDx;
+  dUy_ = dCy + halfDDy;
+  for (Pin* pin: getPins()){
+    pin->updateDensityLocation(this);
+  }
 }
 
 } // VLSI_backend

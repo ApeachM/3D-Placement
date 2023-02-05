@@ -61,6 +61,9 @@ bool Chip::NestrovPlacer::initNestrovPlace() {
     for (Instance *instance : instance_pointers_) {
       instance->setDensityValueAsDefault();
     }
+    for(Pin* pin: pin_pointers_){
+      pin->initDensityCoordinate();
+    }
     // setDensityValuesAsDefault();
     updateDensitySize();
   }
@@ -104,6 +107,7 @@ bool Chip::NestrovPlacer::initNestrovPlace() {
   updateInitialPrevSLPCoordi();
 
   // bin, FFT, wlen update with prevSLPCoordi.
+  // prevSLPCoordi_ 얘 안 바뀌였나..?
   updateGCellDensityCenterLocation(prevSLPCoordi_);
   updateDensityForceBin();
   updateWireLengthForceWA(wireLengthCoefX_, wireLengthCoefY_);
@@ -175,7 +179,6 @@ int Chip::NestrovPlacer::doNestrovPlace(int start_iter) {
   // Core Nesterov Loop
   int iter = start_iter;
   for (; iter < maxNesterovIter; ++iter) {
-    cout << "[replace] np: Iter: " << iter << endl;
 
     float prevA = curA;
     // here, prevA is a_(k), curA is a_(k+1)
@@ -253,6 +256,7 @@ int Chip::NestrovPlacer::doNestrovPlace(int start_iter) {
     updateNextIter();
 
     if (iter == 0 || (iter + 1) % 10 == 0) {
+      cout << "[replace] np: Iter: " << iter << endl;
       cout << iter + 1 << "\t" << sumOverflowUnscaled_ << "\t" << prevHpwl_ << endl;
       cout << "[NesterovSolve] Iter: " << iter + 1
            << "\toverflow: " << sumOverflowUnscaled_

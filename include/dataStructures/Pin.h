@@ -53,6 +53,12 @@ class Pin {
   bool max_pin_x_field_ = true;
   bool max_pin_y_field_ = true;
 
+  // density coordinate -- need to refactor
+  int offsetCx_ = 0;
+  int offsetCy_ = 0;
+  int cx_ = 0;
+  int cy_ = 0;
+
   // Please check the equation (4) in the ePlace-MS paper.
   //
   // maxExpSum_: holds exp(x_i/gamma)
@@ -120,11 +126,20 @@ class Pin {
   bool isMaxPinX() const;
   bool isMaxPinY() const;
 
-  int cx() { return getCoordinate().first; }
-  int cy() { return getCoordinate().second; }
+  // this function will return the density coordinate
+  int cx() { return cx_; }
+  int cy() { return cy_; }
+
+  void initDensityCoordinate();
+  void updateDensityLocation(Instance *instance) {
+    // why is this "instance->dCx + offsetCx"?
+    // shouldn't it be "instance->dLy + offsetCx"?
+    cx_ = instance->dCx() + offsetCx_;
+    cy_ = instance->dCy() + offsetCy_;
+  }
 
   // clear WA(Weighted Average) variables.
-  void clearWaVars(){
+  void clearWaVars() {
     hasMaxExpSumX_ = 0;
     hasMaxExpSumY_ = 0;
     hasMinExpSumX_ = 0;
