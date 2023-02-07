@@ -46,9 +46,10 @@ void Chip::normalPlacement() {
 }
 
 void Chip::partition() {
+  enum{IGRAPH, KAHYPAR};
   clock_t time_start, total_time;
   int Die_1 = 0, Die_2 = 0;
-  double resolution = 0.05;
+  double resolution = 0.01;
 
   total_time = clock();
 
@@ -62,14 +63,13 @@ void Chip::partition() {
   igraph_vector_int_init(&membership, igraph_vcount(&graph));
 
   time_start = clock();
-  while (nb_clusters > 20 && (resolution - 0.0) > 1.0e-8) {
+  while (nb_clusters > 20 && (resolution - 0.0001) > 1.0e-8) {
     igraph_community_leiden(&graph, nullptr, nullptr, resolution, 0.01, false, -1, &membership, &nb_clusters, &quality);
 //    printf("Leiden found %" IGRAPH_PRId " clusters using CPM (resolution parameter %.2f), quality is %.3f.\n", nb_clusters, resolution, quality);
-    resolution -= 0.01;
+    resolution -= 0.001;
   }
   printf("Leiden found %" IGRAPH_PRId " clusters using CPM (resolution parameter %.2f), quality is %.3f.\n", nb_clusters, resolution + 0.01, quality);
   cout << "Leiden time: " << double(clock() - time_start) / CLOCKS_PER_SEC << "[s]" << endl;
-
 //  printf("Membership: ");
 //  igraph_vector_int_print(&membership);
 
@@ -90,6 +90,7 @@ void Chip::partition() {
   cout << "Total time: " << double(clock() - total_time) / CLOCKS_PER_SEC << "[s]" << endl;
   cout << "Dei_1: " << Die_1 << endl;
   cout << "Dei_2: " << Die_2 << endl;
+  evaluation(IGRAPH);
 }
 
 void Chip::make_igraph(igraph_t &graph){
@@ -126,7 +127,33 @@ void Chip::make_igraph(igraph_t &graph){
     igraph_add_edges(&graph, &edges, nullptr);
     igraph_vector_int_destroy(&edges);
   }
-  cout << "make_igraph time: " << double(clock() - time_start) / CLOCKS_PER_SEC << "[s]" << endl;
+  cout << "make igraph time: " << double(clock() - time_start) / CLOCKS_PER_SEC << "[s]" << endl;
+}
+
+void Chip::evaluation(int type){
+  int connection = 0;
+  for(Net *net : net_pointers_){
+    int die_1 = 0, die_2 = 0;
+    for(Pin *pin : net->getConnectedPins()){
+      if (pin->isInstancePin()) {
+        if(pin->getInstance()->getDieId() == 1){
+          die_1++;
+        }
+        else{
+          die_2++;
+        }
+      }
+    }
+    if(die_1 != die_2){
+      connection++;
+    }
+  }
+  if(!type){
+    cout << "igraph die to die connection: " << connection << endl;
+  }
+  else{
+    cout << "KaHyPar die to die connection: " << connection << endl;
+  }
 }
 
 void Chip::placement2DieSynchronously() {
