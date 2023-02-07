@@ -22,7 +22,8 @@ set(SOURCES
         src/tool/fftsg2d.cpp
 
         src/etc/dbTutorial.cpp
-        src/algorithm/Nestrov.cpp)
+        src/algorithm/Nestrov.cpp
+        )
 
 set(INCLUDE_DIRS
         #${PROJECT_SOURCE_DIR}/include

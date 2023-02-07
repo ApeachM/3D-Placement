@@ -646,6 +646,7 @@ class Chip {
     void updateDensityCoordiLayoutInside(Instance *gCell);
     void updateInitialPrevSLPCoordi();
     void initSLPStepsVars();
+    void updateDB();
   };
 
   void setTargetDensity(vector<double> densities);

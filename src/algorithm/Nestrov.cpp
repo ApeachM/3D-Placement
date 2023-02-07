@@ -61,7 +61,7 @@ bool Chip::NestrovPlacer::initNestrovPlace() {
     for (Instance *instance : instance_pointers_) {
       instance->setDensityValueAsDefault();
     }
-    for(Pin* pin: pin_pointers_){
+    for (Pin *pin : pin_pointers_) {
       pin->initDensityCoordinate();
     }
     // setDensityValuesAsDefault();
@@ -168,17 +168,10 @@ int Chip::NestrovPlacer::doNestrovPlace(int start_iter) {
 
   bool isDivergeTriedRevert = false;
 
-  // density position initialization
-  for (Instance *instance : instance_pointers_) {
-    instance->setDLx(instance->getCoordinate().first);
-    instance->setDLy(instance->getCoordinate().second);
-    instance->setDUx(instance->getCoordinate().first + instance->getWidth());
-    instance->setDUy(instance->getCoordinate().second + instance->getHeight());
-  }
-
   // Core Nesterov Loop
   int iter = start_iter;
   for (; iter < maxNesterovIter; ++iter) {
+    // cout << "[replace-test] np: InitSumOverflow: " << sumOverflowUnscaled_ << endl;
 
     float prevA = curA;
     // here, prevA is a_(k), curA is a_(k+1)
@@ -212,7 +205,6 @@ int Chip::NestrovPlacer::doNestrovPlace(int start_iter) {
       updateDensityForceBin();
       updateWireLengthForceWA(wireLengthCoefX_, wireLengthCoefY_);
       updateGradients(nextSLPSumGrads_, nextSLPWireLengthGrads_, nextSLPDensityGrads_);
-
       if (isDiverged_) {
         break;
       }
@@ -236,7 +228,6 @@ int Chip::NestrovPlacer::doNestrovPlace(int start_iter) {
       }
     }
 
-
     // dynamic adjustment for
     // better convergence with
     // large designs
@@ -256,8 +247,6 @@ int Chip::NestrovPlacer::doNestrovPlace(int start_iter) {
     updateNextIter();
 
     if (iter == 0 || (iter + 1) % 10 == 0) {
-      cout << "[replace] np: Iter: " << iter << endl;
-      cout << iter + 1 << "\t" << sumOverflowUnscaled_ << "\t" << prevHpwl_ << endl;
       cout << "[NesterovSolve] Iter: " << iter + 1
            << "\toverflow: " << sumOverflowUnscaled_
            << "\tHPWL: " << prevHpwl_
@@ -395,13 +384,13 @@ int Chip::NestrovPlacer::doNestrovPlace(int start_iter) {
     */
     // if it reached target overflow
     if (sumOverflowUnscaled_ <= targetOverflow) {
-      cout << "\"[NesterovSolve] Finished with Overflow: " << sumOverflowUnscaled_ << endl;
+      cout << "[NesterovSolve] Finished with Overflow: " << sumOverflowUnscaled_ << endl;
       break;
     }
   }
   // in all case including diverge,
   // db should be updated.
-
+  updateDB();
   if (isDiverged_) {
     cout << "log_->error(GPL, divergeCode_, divergeMsg_);" << endl;
   }
@@ -937,7 +926,7 @@ void Chip::NestrovPlacer::updateNextIter() {
 pair<float, float> Chip::NestrovPlacer::getWireLengthPreconditioner(Instance *instance) {
   // original function: getWireLengthPreconditioner
   int binding_nums = 0;
-  for (Pin* pin: instance->getPins()) {
+  for (Pin *pin : instance->getPins()) {
     if (pin->getNet())
       binding_nums += 1;
   }
@@ -1296,6 +1285,11 @@ void Chip::NestrovPlacer::updateInitialPrevSLPCoordi() {
     prevSLPCoordi_[i] = newCoordi;
   }
 
+}
+void Chip::NestrovPlacer::updateDB() {
+  for (Instance *instance : instance_pointers_) {
+    instance->setCoordinate(instance->dCx(), instance->dCy());
+  }
 }
 float fastExp(float a) {
   a = 1.0f + a / 1024.0f;
