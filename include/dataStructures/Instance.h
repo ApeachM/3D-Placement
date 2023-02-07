@@ -52,10 +52,26 @@ class Instance {
   string libName_;
   int id_{};
   int die_id_ = 0;
+  bool is_macro_ = false;
+  bool is_locked_ = false;
 
   /// This is lower left position of instance
   /// This is same with the origin of db_inst_ pointer
   pair<int, int> position_ = pair<int, int>{0, 0};
+  uint width_ = 0;
+  uint height_ = 0;
+
+  /// density location
+  int dLx_{0};
+  int dLy_{0};
+  int dUx_{0};
+  int dUy_{0};
+
+  // density variables
+  float densityScale_{0};
+  float gradientX_{};
+  float gradientY_{};
+
  public:
 
   /// Constructors
@@ -101,6 +117,15 @@ class Instance {
   /// get area of the instance(cell)
   uint getArea();
 
+  void setWidth(uint width){
+    // this function will be called when making a filler
+    width_ = width;
+  }
+  void setHeight(uint height){
+    // this function will be called when making a filler
+    height_ = height;
+  }
+
   std::vector<Pin *> getPins();
 
   /// get db instance pointer
@@ -130,6 +155,93 @@ class Instance {
     die_id_ = die_id;
   }
 
+  /*!
+   * \brief
+   * Determine whether it is dummy cell or not
+   * \details
+   * If it is not dummy cell, then this returns true.
+   * */
+  bool isInstance() {
+    return db_inst_ != nullptr;
+  }
+
+  /*!
+   * \brief
+   * Determine whether it is dummy cell or not
+   * \details
+   * If it is not dummy cell, then this returns false.
+   * */
+  bool isDummy() {
+    return db_inst_ == nullptr;
+  }
+
+  // ref: https://github.com/The-OpenROAD-Project/OpenROAD/blob/a5e786eb65f40abfb7004b18312d519dac95cc33/src/gpl/src/placerBase.cpp#L139
+  bool isFixed() {
+    // dummy instance is always fixed
+    if (isDummy())
+      return true;
+
+    switch (db_inst_->getPlacementStatus()) {
+      case odb::dbPlacementStatus::NONE:
+      case odb::dbPlacementStatus::UNPLACED:
+      case odb::dbPlacementStatus::SUGGESTED:
+      case odb::dbPlacementStatus::PLACED:return false;
+        break;
+      case odb::dbPlacementStatus::LOCKED:
+      case odb::dbPlacementStatus::FIRM:
+      case odb::dbPlacementStatus::COVER:return true;
+        break;
+    }
+    return false;
+  }
+
+  void setDensityCenterLocation(int dCx, int dCy);
+
+  /// getter and setters for density variables
+  int dLx() const;
+  void setDLx(int d_lx);
+  int dLy() const;
+  void setDLy(int d_ly);
+  int dUx() const;
+  void setDUx(int d_ux);
+  int dUy() const;
+  void setDUy(int d_uy);
+  float densityScale() const;
+  void setDensityScale(float density_scale);
+  float getGradientX() const;
+  void setGradientX(float gradient_x);
+  float getGradientY() const;
+  void setGradientY(float gradient_y);
+  int dCx() const { return (dUx_ + dLx_) / 2; }
+  int dCy() const { return (dUy_ + dLy_) / 2; }
+  int dDx() const { return dUx_ - dLx_; }
+  int dDy() const { return dUy_ - dLy_; }
+  int dDx() { return dUx_ - dLx_; }
+  int dDy() { return dUy_ - dLy_; }
+  int lx() { return getCoordinate().first; }
+  int ly() { return getCoordinate().second; }
+  int ux() { return getCoordinate().first + getWidth(); }
+  int uy() { return getCoordinate().second + getHeight(); }
+  int cx() { return lx() + getWidth() / 2; }
+  int cy() { return ly() + getHeight() / 2; }
+  int dx() { return ux() - lx(); }
+  int dy() { return uy() - ly(); }
+  void setDensityValueAsDefault();
+  bool isMacro() const { return is_macro_; }
+  bool isLocked() const { return is_locked_; }
+  void setDensitySize(int dDx, int dDy) {
+    const uint dCenterX = dCx();
+    const uint dCenterY = dCy();
+
+    dLx_ = dCenterX - dDx / 2;
+    dLy_ = dCenterY - dDy / 2;
+    dUx_ = dCenterX + dDx / 2;
+    dUy_ = dCenterY + dDy / 2;
+  }
+  bool isMacroInstance();
+  bool isStdInstance();
+  bool isFiller();
+  void setDensityLocation(float dLx, float dLy);
 };
 
 }

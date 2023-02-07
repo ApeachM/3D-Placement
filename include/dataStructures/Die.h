@@ -43,7 +43,7 @@ class Die {
   dbBlock *db_block_ = nullptr;
   Rect die_shape_{};
 
-  double density_ = 1.0;
+  float density_ = 1.0;
 
   uint width_ = 0;
   uint height_ = 0 ;
@@ -55,9 +55,23 @@ class Die {
   void setDieSize(uint width , uint height);
   uint getWidth();
   uint getHeight();
+
   uint getArea();
-  double getDensity() const;
+  float getDensity() const;
   void setDensity(double density);
+
+  int getLowerLeftX(){
+    return die_shape_.ll().getX();
+  }
+  int getLowerLeftY(){
+    return die_shape_.ll().getY();
+  }
+  int getUpperRightX(){
+    return die_shape_.ur().getX();
+  }
+  int getUpperRightY(){
+    return die_shape_.ur().getY();
+  }
 
 };
 

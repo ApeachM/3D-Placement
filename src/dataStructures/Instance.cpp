@@ -31,7 +31,7 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 ///////////////////////////////////////////////////////////////////////////////
-#include "Instance.h"
+#include "Chip.h"
 
 namespace VLSI_backend {
 
@@ -48,15 +48,20 @@ void Instance::setDataMapping(data_mapping *data_mapping) {
   data_mapping_ = data_mapping;
 }
 dbInst *Instance::getDbInst() const {
-  if(db_inst_ == nullptr)
+  if (db_inst_ == nullptr)
     std::cout << "Invalid access to db data from instance" << std::endl;
   return db_inst_;
 }
 std::vector<Pin *> Instance::getPins() {
   std::vector<Pin *> pins;
-  for (dbITerm *db_i_term : db_inst_->getITerms()) {
-    Pin *pin = data_mapping_->pin_map_i[db_i_term];
-    pins.push_back(pin);
+  if (db_inst_ != nullptr) {
+    // if this is not a filler
+    // TODO
+    //   block pins?
+    for (dbITerm *db_i_term : db_inst_->getITerms()) {
+      Pin *pin = data_mapping_->pin_map_i[db_i_term];
+      pins.push_back(pin);
+    }
   }
   return pins;
 }
@@ -65,6 +70,15 @@ Instance::Instance(odb::dbInst *db_inst) {
   db_inst_ = db_inst;
   name_ = db_inst->getName();
   libName_ = db_inst->getMaster()->getName();
+  is_macro_ = db_inst_->getMaster()->getType().isBlock();
+  position_.first = getCoordinate().first;
+  position_.second = getCoordinate().second;
+  width_ = db_inst_->getMaster()->getWidth();
+  height_ = db_inst_->getMaster()->getHeight();
+  dLx_ = position_.first;
+  dLy_ = position_.second;
+  dUx_ = dLx_ + width_;
+  dUy_ = dLy_ + height_;
 }
 Instance::Instance(odb::dbInst *db_inst, data_storage *data_storage, data_mapping *data_mapping) {
   db_database_ = db_inst->getDb();
@@ -74,7 +88,13 @@ Instance::Instance(odb::dbInst *db_inst, data_storage *data_storage, data_mappin
   db_inst_ = db_inst;
   name_ = db_inst->getName();
   libName_ = db_inst->getMaster()->getName();
-
+  is_macro_ = db_inst_->getMaster()->getType().isBlock();
+  position_.first = getCoordinate().first;
+  position_.second = getCoordinate().second;
+  dLx_ = position_.first;
+  dLy_ = position_.second;
+  dUx_ = dLx_ + width_;
+  dUy_ = dLy_ + height_;
 }
 uint Instance::getArea() {
   return this->getWidth() * this->getHeight();
@@ -82,8 +102,11 @@ uint Instance::getArea() {
 void Instance::setCoordinate(int x, int y) {
   position_.first = x;
   position_.second = y;
-  db_inst_->setPlacementStatus(odb::dbPlacementStatus::PLACED);
-  db_inst_->setLocation(x, y);
+  if (db_inst_ != nullptr) {
+    // if this is normal(not filler) instance,
+    db_inst_->setPlacementStatus(odb::dbPlacementStatus::PLACED);
+    db_inst_->setLocation(x, y);
+  }
 }
 bool Instance::isPlaced() {
   if (db_inst_->getPlacementStatus() == odb::dbPlacementStatus::PLACED) {
@@ -97,14 +120,27 @@ bool Instance::isPlaced() {
   }
 }
 uint Instance::getWidth() {
-  return db_inst_->getMaster()->getWidth();
+  if (db_inst_)
+    return db_inst_->getMaster()->getWidth();
+  else
+    // when this instance is filler
+    return width_;
 }
 uint Instance::getHeight() {
-  return db_inst_->getMaster()->getHeight();
+  if (db_inst_)
+    return db_inst_->getMaster()->getHeight();
+  else
+    // when this instance is filler
+    return height_;
 }
 pair<int, int> Instance::getCoordinate() {
   int x = 0, y = 0;
-  db_inst_->getLocation(x, y);
+  if (db_inst_)
+    db_inst_->getLocation(x, y);
+  else {
+    x = position_.first;
+    y = position_.second;
+  }
   return pair<int, int>{x, y};
 }
 int Instance::getId() const {
@@ -112,6 +148,85 @@ int Instance::getId() const {
 }
 void Instance::setId(int id) {
   id_ = id;
+}
+int Instance::dLx() const {
+  return dLx_;
+}
+void Instance::setDLx(int d_lx) {
+  dLx_ = d_lx;
+}
+int Instance::dLy() const {
+  return dLy_;
+}
+void Instance::setDLy(int d_ly) {
+  dLy_ = d_ly;
+}
+int Instance::dUx() const {
+  return dUx_;
+}
+void Instance::setDUx(int d_ux) {
+  dUx_ = d_ux;
+}
+int Instance::dUy() const {
+  return dUy_;
+}
+void Instance::setDUy(int d_uy) {
+  dUy_ = d_uy;
+}
+float Instance::densityScale() const {
+  return densityScale_;
+}
+void Instance::setDensityScale(float density_scale) {
+  densityScale_ = density_scale;
+}
+void Instance::setDensityValueAsDefault() {
+  dLx_ = position_.first;
+  dLy_ = position_.second;
+  dUx_ = position_.first + getWidth();
+  dUy_ = position_.second + getHeight();
+}
+float Instance::getGradientX() const {
+  return gradientX_;
+}
+void Instance::setGradientX(float gradient_x) {
+  gradientX_ = gradient_x;
+}
+float Instance::getGradientY() const {
+  return gradientY_;
+}
+void Instance::setGradientY(float gradient_y) {
+  gradientY_ = gradient_y;
+}
+bool Instance::isMacroInstance() {
+  if (!isInstance())
+    return false;
+  return is_macro_;
+}
+bool Instance::isStdInstance() {
+  if (!isInstance())
+    return false;
+  return !is_macro_;
+}
+bool Instance::isFiller() {
+  return db_inst_ == nullptr;
+}
+void Instance::setDensityLocation(float dLx, float dLy) {
+  dUx_ = dLx + (dUx_ - dLx_);
+  dUy_ = dLy + (dUy_ - dLy_);
+  dLx_ = dLx;
+  dLy_ = dLy;
+}
+void Instance::setDensityCenterLocation(int dCx, int dCy) {
+  const int halfDDx = dDx() / 2;
+  const int halfDDy = dDy() / 2;
+
+  dLx_ = dCx - halfDDx;
+  dLy_ = dCy - halfDDy;
+  dUx_ = dCx + halfDDx;
+  dUy_ = dCy + halfDDy;
+  for (Pin* pin: getPins()){
+    pin->updateDensityLocation(this);
+  }
 }
 
 } // VLSI_backend

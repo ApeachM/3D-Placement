@@ -53,6 +53,33 @@ class Pin {
   bool max_pin_x_field_ = true;
   bool max_pin_y_field_ = true;
 
+  // density coordinate -- need to refactor
+  int offsetCx_ = 0;
+  int offsetCy_ = 0;
+  int cx_ = 0;
+  int cy_ = 0;
+
+  // Please check the equation (4) in the ePlace-MS paper.
+  //
+  // maxExpSum_: holds exp(x_i/gamma)
+  // minExpSum_: holds exp(-x_i/gamma)
+  // the x_i is equal to cx_ variable.
+  //
+  float maxExpSumX_;
+  float maxExpSumY_;
+
+  float minExpSumX_;
+  float minExpSumY_;
+
+  // flag variables
+  //
+  // check whether
+  // this pin is considered in a WA models.
+  unsigned char hasMaxExpSumX_: 1;
+  unsigned char hasMaxExpSumY_: 1;
+
+  unsigned char hasMinExpSumX_: 1;
+  unsigned char hasMinExpSumY_: 1;
 
  public:
   /// Constructors
@@ -98,6 +125,55 @@ class Pin {
   bool isMinPinY() const;
   bool isMaxPinX() const;
   bool isMaxPinY() const;
+
+  // this function will return the density coordinate
+  int cx() { return cx_; }
+  int cy() { return cy_; }
+
+  void initDensityCoordinate();
+  void updateDensityLocation(Instance *instance) {
+    // why is this "instance->dCx + offsetCx"?
+    // shouldn't it be "instance->dLy + offsetCx"?
+    cx_ = instance->dCx() + offsetCx_;
+    cy_ = instance->dCy() + offsetCy_;
+  }
+
+  // clear WA(Weighted Average) variables.
+  void clearWaVars() {
+    hasMaxExpSumX_ = 0;
+    hasMaxExpSumY_ = 0;
+    hasMinExpSumX_ = 0;
+    hasMinExpSumY_ = 0;
+
+    maxExpSumX_ = maxExpSumY_ = 0;
+    minExpSumX_ = minExpSumY_ = 0;
+  }
+
+  void setMaxExpSumX(float maxExpSumX) {
+    hasMaxExpSumX_ = 1;
+    maxExpSumX_ = maxExpSumX;
+  }
+  void setMaxExpSumY(float maxExpSumY) {
+    hasMaxExpSumY_ = 1;
+    maxExpSumY_ = maxExpSumY;
+  }
+  void setMinExpSumX(float minExpSumX) {
+    hasMinExpSumX_ = 1;
+    minExpSumX_ = minExpSumX;
+  }
+  void setMinExpSumY(float minExpSumY) {
+    hasMinExpSumY_ = 1;
+    minExpSumY_ = minExpSumY;
+  }
+  float maxExpSumX() const { return maxExpSumX_; }
+  float maxExpSumY() const { return maxExpSumY_; }
+  float minExpSumX() const { return minExpSumX_; }
+  float minExpSumY() const { return minExpSumY_; }
+
+  bool hasMaxExpSumX() const { return (hasMaxExpSumX_ == 1); }
+  bool hasMaxExpSumY() const { return (hasMaxExpSumY_ == 1); }
+  bool hasMinExpSumX() const { return (hasMinExpSumX_ == 1); }
+  bool hasMinExpSumY() const { return (hasMinExpSumY_ == 1); }
 
 };
 }

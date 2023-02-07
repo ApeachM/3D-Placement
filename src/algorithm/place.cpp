@@ -37,13 +37,12 @@ namespace VLSI_backend {
 void Chip::normalPlacement() {
   /* top die util setting manually in code level */
   vector<double> densities;
-  densities.push_back(1.0);
-  densities.push_back(1.0);
+  densities.push_back(0.7);
+  densities.push_back(0.7);
   setTargetDensity(densities);
 
   doInitialPlace();
-
-
+  doNestrovPlace();
 }
 
 void Chip::partition() {

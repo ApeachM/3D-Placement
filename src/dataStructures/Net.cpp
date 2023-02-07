@@ -32,7 +32,7 @@
 // POSSIBILITY OF SUCH DAMAGE.
 ///////////////////////////////////////////////////////////////////////////////
 
-#include "Net.h"
+#include "Chip.h"
 
 namespace VLSI_backend {
 
@@ -108,5 +108,19 @@ ulong Net::getHPWL() {
   }
 
   return net_box.dx() + net_box.dy();
+}
+int64_t Net::hpwl() {
+  return static_cast<int64_t>((ux_ - lx_) + (uy_ - ly_));
+}
+void Net::updateBox() {
+  lx_ = ly_ = INT_MAX;
+  ux_ = uy_ = INT_MIN;
+
+  for (Pin *gPin : getConnectedPins()) {
+    lx_ = std::min(gPin->cx(), lx_);
+    ly_ = std::min(gPin->cy(), ly_);
+    ux_ = std::max(gPin->cx(), ux_);
+    uy_ = std::max(gPin->cy(), uy_);
+  }
 }
 } // VLSI_backend
