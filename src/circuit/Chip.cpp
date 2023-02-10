@@ -138,12 +138,13 @@ void Chip::init() {
   // TODO: check whether this is valid
   int num_of_die = 2;
   data_storage_.dies.reserve(num_of_die);
-  for (int i = 0; i < num_of_die; ++i) {
+  for (int i = 0; i < num_of_die + 1; ++i) {
     Die die;
     die.setDbBlock(block);
+    die.setDieId(i);
     data_storage_.dies.push_back(die);
   }
-  for (int i = 0; i < num_of_die; ++i) {
+  for (int i = 0; i < num_of_die + 1; ++i) {
     die_pointers_.push_back(&data_storage_.dies.at(i));
   }
 

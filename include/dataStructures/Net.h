@@ -101,6 +101,15 @@ class Net {
 
   unsigned char isDontCare_: 1;
 
+  // if this net has been shared by two die, then we pretend it is intersected_
+  bool intersected_ = false;
+  // if this net is on the die1 or die2, then this value will be 1 or 2, respectively.
+  // if this net is intersected, then this value will be -1.
+  // if this net is on virtual, then this value will be zero.
+  int die_id_ = 0;
+  // this should be nullptr only when `intersected_` is false
+  Pin* hybrid_bond_pin_ = nullptr;
+
  public:
   /// Constructors
   Net() = default;
@@ -160,11 +169,18 @@ class Net {
   inline int ly() const { return ly_; }
   inline int ux() const { return ux_; }
   inline int uy() const { return uy_; }
-  void updateBox();
+  void updateBox(int die_ID = 0);
   float totalWeight() const { return timingWeight_ * customWeight_; }
   float timingWeight() const { return timingWeight_; }
   float customWeight() const { return customWeight_; }
   int64_t hpwl();
+
+  bool isIntersected() const;
+  void setAsIntersected();
+  int getDieId() const;
+  void setDieId(int die_id);
+  Pin *getHybridBondPin() const;
+  void setHybridBondPin(Pin *hybrid_bond_pin);
 };
 
 }

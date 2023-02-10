@@ -14,7 +14,7 @@ set(SOURCES
         src/dataStructures/Pin.cpp
         src/dataStructures/Bin.cpp
 
-        src/algorithm/place.cpp
+        src/algorithm/do3DPlace.cpp
         src/algorithm/normalPlace.cpp
 
         src/tool/fft.cpp

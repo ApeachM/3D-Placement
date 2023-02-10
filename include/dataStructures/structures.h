@@ -50,6 +50,10 @@ struct data_storage {
   std::vector<Net> nets;
   std::vector<Pin> pins;
   std::vector<Die> dies;
+
+  // for hybrid bonds
+  std::vector<Instance> hybrid_bonds; // set this object as Instance for placing compatibility
+  std::vector<Pin> hybrid_bond_pins; // one hybrid bond has one `hybrid_bond_pin`.
 };
 
 /// data mapping from db to data_storage

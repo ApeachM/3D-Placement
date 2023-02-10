@@ -55,12 +55,15 @@ void Net::setDataStorage(data_storage *data_storage) {
     data_storage_ = data_storage;
 }
 vector<Pin *> Net::getConnectedPins() {
-  vector<Pin*> pins;
-  for (dbITerm* db_i_term: db_net_->getITerms()) {
+  vector<Pin *> pins;
+  for (dbITerm *db_i_term : db_net_->getITerms()) {
     pins.push_back(data_mapping_->pin_map_i[db_i_term]);
   }
-  for(dbBTerm* db_b_term: db_net_->getBTerms()){
+  for (dbBTerm *db_b_term : db_net_->getBTerms()) {
     pins.push_back(data_mapping_->pin_map_b[db_b_term]);
+  }
+  if (isIntersected()) {
+    pins.push_back(hybrid_bond_pin_);
   }
   return pins;
 }
@@ -112,15 +115,58 @@ ulong Net::getHPWL() {
 int64_t Net::hpwl() {
   return static_cast<int64_t>((ux_ - lx_) + (uy_ - ly_));
 }
-void Net::updateBox() {
+// TODO: check is that right or not
+void Net::updateBox(int die_ID) {
   lx_ = ly_ = INT_MAX;
   ux_ = uy_ = INT_MIN;
-
-  for (Pin *gPin : getConnectedPins()) {
-    lx_ = std::min(gPin->cx(), lx_);
-    ly_ = std::min(gPin->cy(), ly_);
-    ux_ = std::max(gPin->cx(), ux_);
-    uy_ = std::max(gPin->cy(), uy_);
+  // TODO: check the default value is 0 or not
+  if (!isIntersected()) {
+    for (Pin *gPin : getConnectedPins()) {
+      lx_ = std::min(gPin->cx(), lx_);
+      ly_ = std::min(gPin->cy(), ly_);
+      ux_ = std::max(gPin->cx(), ux_);
+      uy_ = std::max(gPin->cy(), uy_);
+    }
+  } else {
+    for (Pin *gPin : getConnectedPins()) {
+      if (!gPin->isBlockPin()) {
+        if (die_ID == gPin->getInstance()->getDieId()) {
+          lx_ = std::min(gPin->cx(), lx_);
+          ly_ = std::min(gPin->cy(), ly_);
+          ux_ = std::max(gPin->cx(), ux_);
+          uy_ = std::max(gPin->cy(), uy_);
+        }
+      } else {
+        // TODO: need to more accuracy method for block pins
+        lx_ = std::min(gPin->cx(), lx_);
+        ly_ = std::min(gPin->cy(), ly_);
+        ux_ = std::max(gPin->cx(), ux_);
+        uy_ = std::max(gPin->cy(), uy_);
+      }
+    }
   }
+}
+bool Net::isIntersected() const {
+  return intersected_;
+}
+void Net::setAsIntersected() {
+  Net::intersected_ = true;
+  die_id_ = -1;
+}
+int Net::getDieId() const {
+  return die_id_;
+}
+void Net::setDieId(int die_id) {
+  die_id_ = die_id;
+}
+Pin *Net::getHybridBondPin() const {
+  if (intersected_ == false)
+    assert(0);
+  return hybrid_bond_pin_;
+}
+void Net::setHybridBondPin(Pin *hybrid_bond_pin) {
+  if (intersected_ == false)
+    assert(0);
+  hybrid_bond_pin_ = hybrid_bond_pin;
 }
 } // VLSI_backend

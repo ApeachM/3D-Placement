@@ -57,11 +57,14 @@ std::vector<Pin *> Instance::getPins() {
   if (db_inst_ != nullptr) {
     // if this is not a filler
     // TODO
-    //   block pins?
+    //   consider block pins
     for (dbITerm *db_i_term : db_inst_->getITerms()) {
       Pin *pin = data_mapping_->pin_map_i[db_i_term];
       pins.push_back(pin);
     }
+  }
+  if (is_hybrid_bond_){
+
   }
   return pins;
 }
@@ -123,7 +126,7 @@ uint Instance::getWidth() {
   if (db_inst_)
     return db_inst_->getMaster()->getWidth();
   else
-    // when this instance is filler
+    // when this instance is filler or hybrid bond
     return width_;
 }
 uint Instance::getHeight() {
@@ -208,6 +211,7 @@ bool Instance::isStdInstance() {
   return !is_macro_;
 }
 bool Instance::isFiller() {
+  // TODO: make a `is_filler_` variable for this method. We should consider a case for hybrid bond
   return db_inst_ == nullptr;
 }
 void Instance::setDensityLocation(float dLx, float dLy) {
@@ -227,6 +231,54 @@ void Instance::setDensityCenterLocation(int dCx, int dCy) {
   for (Pin* pin: getPins()){
     pin->updateDensityLocation(this);
   }
+}
+bool Instance::isFixed() {
+  // ref: https://github.com/The-OpenROAD-Project/OpenROAD/blob/a5e786eb65f40abfb7004b18312d519dac95cc33/src/gpl/src/placerBase.cpp#L139
+  // dummy instance is always fixed
+  if (isDummy())
+    return true;
+
+  switch (db_inst_->getPlacementStatus()) {
+    case odb::dbPlacementStatus::NONE:
+    case odb::dbPlacementStatus::UNPLACED:
+    case odb::dbPlacementStatus::SUGGESTED:
+    case odb::dbPlacementStatus::PLACED:return false;
+      break;
+    case odb::dbPlacementStatus::LOCKED:
+    case odb::dbPlacementStatus::FIRM:
+    case odb::dbPlacementStatus::COVER:return true;
+      break;
+  }
+  return false;
+}
+void Instance::setDensitySize(int dDx, int dDy) {
+  const uint dCenterX = dCx();
+  const uint dCenterY = dCy();
+
+  dLx_ = dCenterX - dDx / 2;
+  dLy_ = dCenterY - dDy / 2;
+  dUx_ = dCenterX + dDx / 2;
+  dUy_ = dCenterY + dDy / 2;
+}
+int Instance::getDieId() const {
+  return die_id_;
+}
+bool Instance::isHybridBond() const {
+  return is_hybrid_bond_;
+}
+void Instance::setAsHybridBond() {
+  is_hybrid_bond_ = true;
+  width_ = 0;
+  height_ = 0;
+  die_id_ = -1;
+}
+Pin *Instance::getHybridBondPin() const {
+  return hybrid_bond_pin_;
+}
+void Instance::setHybridBondPin(Pin *hybrid_bond_pin) {
+  if (!hybrid_bond_pin->isHybridBondPin())
+    assert(0); // This pin is not a pin for hybrid bond.
+  hybrid_bond_pin_ = hybrid_bond_pin;
 }
 
 } // VLSI_backend

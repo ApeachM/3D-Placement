@@ -73,8 +73,10 @@ bool Pin::isBlockPin() {
 Net *Pin::getNet() {
   if (isInstancePin()) {
     return data_mapping_->net_map[db_i_term_->getNet()];
-  } else {
+  } else if (isBlockPin()) {
     return data_mapping_->net_map[db_b_term_->getNet()];
+  } else if (isHybridBondPin()) {
+    return intersected_net_;
   }
 }
 string Pin::getSignalType() {
@@ -98,13 +100,20 @@ pair<int, int> Pin::getCoordinate() {
         y = (box->yMin() + (int) box->getDY());
       }
     }
+  } else if (isHybridBondPin()) {
+    if (!this->getInstance()->isHybridBond())
+      assert(0);
+    x = this->getInstance()->getCoordinate().first;
+    y = this->getInstance()->getCoordinate().second;
   }
   return pair<int, int>{x, y};
 }
 Instance *Pin::getInstance() {
   if (isInstancePin())
     return data_mapping_->inst_map[db_i_term_->getInst()];
-  else
+  else if (isHybridBondPin()) {
+    return hybrid_bond_;
+  } else
     return nullptr;
 }
 string Pin::getPinName() {
@@ -125,6 +134,7 @@ void Pin::initDensityCoordinate() {
     offsetCx_ = cx_ - getInstance()->getCoordinate().first;
     offsetCy_ = cy_ - getInstance()->getCoordinate().second;
   } else if (db_b_term_) {
+    // TODO: ??? is this right ???
     offsetCx_ = cx_;
     offsetCy_ = cy_;
   }
@@ -152,5 +162,32 @@ bool Pin::isMaxPinX() const {
 }
 bool Pin::isMaxPinY() const {
   return max_pin_y_field_;
+}
+bool Pin::isHybridBondPin() const {
+  return is_hybrid_bond_pin_;
+}
+void Pin::setAsHybridBondPin() {
+  is_hybrid_bond_pin_ = true;
+}
+void Pin::setHybridBondCoordinate(int x, int y) {
+  if (!is_hybrid_bond_pin_)
+    assert(0);
+  // use density coordinate because hybrid bond will be considered only in Nestrov
+  cx_ = x;
+  cy_ = y;
+}
+Net *Pin::getIntersectedNet() const {
+  return intersected_net_;
+}
+void Pin::setIntersectedNet(Net *intersected_net) {
+  if (!this->isHybridBondPin())
+    assert(0);
+  intersected_net_ = intersected_net;
+}
+Instance *Pin::getHybridBond() const {
+  return hybrid_bond_;
+}
+void Pin::setHybridBond(Instance *hybrid_bond) {
+  hybrid_bond_ = hybrid_bond;
 }
 } // VLSI_backend

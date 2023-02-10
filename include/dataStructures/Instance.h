@@ -54,6 +54,8 @@ class Instance {
   int die_id_ = 0;
   bool is_macro_ = false;
   bool is_locked_ = false;
+  bool is_hybrid_bond_ = false;
+  Pin* hybrid_bond_pin_ = nullptr;
 
   /// This is lower left position of instance
   /// This is same with the origin of db_inst_ pointer
@@ -176,24 +178,7 @@ class Instance {
   }
 
   // ref: https://github.com/The-OpenROAD-Project/OpenROAD/blob/a5e786eb65f40abfb7004b18312d519dac95cc33/src/gpl/src/placerBase.cpp#L139
-  bool isFixed() {
-    // dummy instance is always fixed
-    if (isDummy())
-      return true;
-
-    switch (db_inst_->getPlacementStatus()) {
-      case odb::dbPlacementStatus::NONE:
-      case odb::dbPlacementStatus::UNPLACED:
-      case odb::dbPlacementStatus::SUGGESTED:
-      case odb::dbPlacementStatus::PLACED:return false;
-        break;
-      case odb::dbPlacementStatus::LOCKED:
-      case odb::dbPlacementStatus::FIRM:
-      case odb::dbPlacementStatus::COVER:return true;
-        break;
-    }
-    return false;
-  }
+  bool isFixed();
 
   void setDensityCenterLocation(int dCx, int dCy);
 
@@ -229,19 +214,16 @@ class Instance {
   void setDensityValueAsDefault();
   bool isMacro() const { return is_macro_; }
   bool isLocked() const { return is_locked_; }
-  void setDensitySize(int dDx, int dDy) {
-    const uint dCenterX = dCx();
-    const uint dCenterY = dCy();
-
-    dLx_ = dCenterX - dDx / 2;
-    dLy_ = dCenterY - dDy / 2;
-    dUx_ = dCenterX + dDx / 2;
-    dUy_ = dCenterY + dDy / 2;
-  }
+  void setDensitySize(int dDx, int dDy);
   bool isMacroInstance();
   bool isStdInstance();
   bool isFiller();
   void setDensityLocation(float dLx, float dLy);
+  int getDieId() const;
+  bool isHybridBond() const;
+  void setAsHybridBond();
+  Pin *getHybridBondPin() const;
+  void setHybridBondPin(Pin *hybrid_bond_pin);
 };
 
 }
