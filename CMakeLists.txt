@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.14..3.16)
 project(3D-Placement)
 
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 14)
 set(SOURCES
         src/main.cpp
 
@@ -24,15 +24,16 @@ set(INCLUDE_DIRS
         ${PROJECT_SOURCE_DIR}/include/circuit
         ${PROJECT_SOURCE_DIR}/include/dataStructures
         ${PROJECT_SOURCE_DIR}/submodule/CImg
+        ${PROJECT_SOURCE_DIR}/submodule/kahypar/include
         )
-
 add_executable(placer ${SOURCES})
 target_include_directories(placer PRIVATE ${INCLUDE_DIRS})
 
 find_package(Eigen3 REQUIRED)
 add_subdirectory(submodule/OpenDB)
 add_subdirectory(submodule/igraph)
-add_subdirectory(submodule/KaHyPar)
+add_subdirectory(submodule/kahypar)
+
 target_link_libraries(placer
         PRIVATE
         Eigen3::Eigen

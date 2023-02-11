@@ -7,9 +7,9 @@ using namespace std;
 int main() {
 //    VLSI_backend::Chip chip;
 //    chip.parse_iccad2022("..//test/benchmarks/iccad2022/case1.txt");
-//
+
   string lefName = "Nangate45.lef";
-  string defName = "large01.def";
+  string defName = "simple01.def";
   string test_path_name = "../test/benchmarks/etc/";
   string output_path_name = "../test/output/";
 

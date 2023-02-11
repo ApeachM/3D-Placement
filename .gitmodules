@@ -7,6 +7,6 @@
 [submodule "igraph"]
 	path = submodule/igraph
 	url = https://github.com/igraph/igraph.git
-[submodule "KaHyPar"]
+[submodule "kahypar"]
 	path = submodule/kahypar
 	url = https://github.com/kahypar/kahypar.git

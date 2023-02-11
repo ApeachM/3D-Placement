@@ -403,10 +403,11 @@ class Chip {
    * \todo
    * This code is just temporal code now. Meaningless but only simple partition is implemented.
    * */
-  void partition();
+  void partition_igraph();
   void make_igraph(igraph_t &graph);
   void evaluation(int type);
-
+  void partition_kahypar();
+  void partition_kahypar_bin();
   /**\brief
    * get unit of micro
    * \details
