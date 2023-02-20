@@ -29,6 +29,7 @@ bool Chip::NestrovPlacer::initNestrovPlace() {
   if (!is_base_initialized) {
     // refer to: https://github.com/The-OpenROAD-Project/OpenROAD/blob/402c5cff5d5dac9868f812fec69edb064a5bfbb3/src/gpl/src/nesterovBase.cpp#L1054
     // bool Replace::initNesterovPlace()
+    // void NesterovBase::init()
     is_base_initialized = true;
 
     if (instance_pointers_.empty()) {
@@ -64,7 +65,6 @@ bool Chip::NestrovPlacer::initNestrovPlace() {
     for (Pin *pin : pin_pointers_) {
       pin->initDensityCoordinate();
     }
-    // setDensityValuesAsDefault();
     updateDensitySize();
   }
 
@@ -140,12 +140,11 @@ bool Chip::NestrovPlacer::initNestrovPlace() {
   }
 
 }
-int Chip::NestrovPlacer::doNestrovPlace(int start_iter) {
+int Chip::NestrovPlacer::doNestrovPlace(int start_iter, bool only_one_iter) {
   // refer: https://github.com/The-OpenROAD-Project/OpenROAD/blob/a5e786eb65f40abfb7004b18312d519dac95cc33/src/gpl/src/nesterovPlace.cpp#L482
   // int NesterovPlace::doNesterovPlace(int start_iter)
 
   // backTracking variable.
-  float curA = 1.0;
   // divergence detection
   float minSumOverflow = 1e30;
   float hpwlWithMinSumOverflow = 1e30;
@@ -173,7 +172,7 @@ int Chip::NestrovPlacer::doNestrovPlace(int start_iter) {
   for (; iter < maxNesterovIter; ++iter) {
     // cout << "[replace-test] np: InitSumOverflow: " << sumOverflowUnscaled_ << endl;
 
-    float prevA = curA;
+    prevA = curA;
     // here, prevA is a_(k), curA is a_(k+1)
     // See, the ePlace-MS paper's Algorithm 1
     curA = (1.0 + sqrt(4.0 * prevA * prevA + 1.0)) * 0.5;
@@ -258,28 +257,6 @@ int Chip::NestrovPlacer::doNestrovPlace(int start_iter) {
       hpwlWithMinSumOverflow = prevHpwl_;
     }
     /*
-        // timing driven feature
-        // do reweight on timing-critical nets.
-        if (npVars_.timingDrivenMode
-            && tb_->isTimingNetWeightOverflow(sumOverflow_)) {
-          // update db's instance location from current density coordinates
-          updateDb();
-
-          // Call resizer's estimateRC API to fill in PEX using placed locations,
-          // Call sta's API to extract worst timing paths,
-          // and update GNet's weights from worst timing paths.
-          //
-          // See timingBase.cpp in detail
-          bool shouldTdProceed = tb_->updateGNetWeights(sumOverflow_);
-
-          // problem occured
-          // escape timing driven later
-          if (!shouldTdProceed) {
-            npVars_.timingDrivenMode = false;
-          }
-        }
-    */
-    /*
      diverge detection on
      large max_phi_cof value + large design
 
@@ -294,13 +271,6 @@ int Chip::NestrovPlacer::doNestrovPlace(int start_iter) {
       divergeCode_ = 307;
       isDiverged_ = true;
 
-      // revert back to the original rb solutions
-      // one more opportunity
-      /*
-          if (!isDivergeTriedRevert && rb_->numCall() >= 1) {
-            // get back to the working rc size
-            rb_->revertGCellSizeToMinRc();
-      */
 
       // revert back the current density penality
       curCoordi_ = snapshotCoordi;
@@ -323,70 +293,16 @@ int Chip::NestrovPlacer::doNestrovPlace(int start_iter) {
 
       // turn off the RD forcely
       isRoutabilityNeed_ = false;
-      /*
-          } else {
-            // no way to revert
-            break;
-          }
-      */
     }
-    /*
-        // save snapshots for routability-driven
-        if (!isSnapshotSaved && npVars_.routabilityDrivenMode
-            && 0.6 >= sumOverflowUnscaled_) {
-          snapshotCoordi = curCoordi_;
-          snapshotSLPCoordi = curSLPCoordi_;
-          snapshotSLPSumGrads = curSLPSumGrads_;
-          snapshotA = curA;
-          snapshotDensityPenalty = densityPenalty_;
-          snapshotStepLength = stepLength_;
-          snapshotWlCoefX = wireLengthCoefX_;
-          snapshotWlCoefY = wireLengthCoefY_;
-
-          isSnapshotSaved = true;
-          log_->report("[NesterovSolve] Snapshot saved at iter = {}", iter);
-        }
-    */
-    /*
-        // check routability using GR
-        if (routabilityDrivenMode && isRoutabilityNeed_
-            && routabilityCheckOverflow >= sumOverflowUnscaled_) {
-          // recover the densityPenalty values
-          // if further routability-driven is needed
-          std::pair<bool, bool> result = rb_->routability();
-          isRoutabilityNeed_ = result.first;
-          bool isRevertInitNeeded = result.second;
-
-          // if routability is needed
-          if (isRoutabilityNeed_ || isRevertInitNeeded) {
-            // cutFillerCoordinates();
-
-            // revert back the current density penality
-            curCoordi_ = snapshotCoordi;
-            curSLPCoordi_ = snapshotSLPCoordi;
-            curSLPSumGrads_ = snapshotSLPSumGrads;
-            curA = snapshotA;
-            densityPenalty_ = snapshotDensityPenalty;
-            stepLength_ = snapshotStepLength;
-            wireLengthCoefX_ = snapshotWlCoefX;
-            wireLengthCoefY_ = snapshotWlCoefY;
-
-            nb_->updateGCellDensityCenterLocation(curCoordi_);
-            nb_->updateDensityForceBin();
-            nb_->updateWireLengthForceWA(wireLengthCoefX_, wireLengthCoefY_);
-
-            // reset the divergence detect conditions
-            minSumOverflow = 1e30;
-            hpwlWithMinSumOverflow = 1e30;
-            log_->report("[NesterovSolve] Revert back to snapshot coordi");
-          }
-        }
-    */
     // if it reached target overflow
     if (sumOverflowUnscaled_ <= targetOverflow) {
+      iter = maxNesterovIter;
       cout << "[NesterovSolve] Finished with Overflow: " << sumOverflowUnscaled_ << endl;
       break;
     }
+
+    if (only_one_iter)
+      return iter;
   }
   // in all case including diverge,
   // db should be updated.
@@ -800,9 +716,26 @@ void Chip::NestrovPlacer::updateWireLengthForceWA(float wlCoeffX, float wlCoeffY
   }
 
   for (Net *&gNet : net_pointers_) {
-    gNet->updateBox();
+    gNet->updateBox(die_pointer_->getDieId());
+    vector<Pin *> pin_set;
 
-    for (Pin *gPin : gNet->getConnectedPins()) {
+    if (!gNet->isIntersected())
+      pin_set = gNet->getConnectedPins();
+    else {
+      for (Pin *pin : gNet->getConnectedPins()) {
+        if (pin->isInstancePin()) {
+          if (pin->getInstance()->getDieId() == die_pointer_->getDieId())
+            pin_set.push_back(pin);
+        } else if (pin->isBlockPin()) {
+          // TODO: more accurate method is needed.
+          pin_set.push_back(pin);
+        } else if (pin->isHybridBondPin()) {
+          pin_set.push_back(pin);
+        }
+      }
+    }
+
+    for (Pin *gPin : pin_set) {
       // The WA terms are shift invariant:
       //
       //   Sum(x_i * exp(x_i))    Sum(x_i * exp(x_i - C))
@@ -872,7 +805,7 @@ float Chip::NestrovPlacer::getPhiCoef(float scaledDiffHpwl) {
 int64_t Chip::NestrovPlacer::getHpwl() {
   int64_t hpwl = 0;
   for (auto &gNet : net_pointers_) {
-    gNet->updateBox();
+    gNet->updateBox(this->die_pointer_->getDieId());
     hpwl += gNet->hpwl();
   }
   return hpwl;
@@ -1078,11 +1011,9 @@ pair<float, float> Chip::NestrovPlacer::getWireLengthGradientWA(Instance *gCell,
   pair<float, float> gradientPair;
 
   for (auto &gPin : gCell->getPins()) {
-    if (gPin->getNet() == nullptr) {
+    if (gPin->getNet() == nullptr)
+      // pass the floating pins
       continue;
-      // TODO
-      //  should check this is right or not
-    }
 
     auto tmpPair = getWireLengthGradientPinWA(gPin, wlCoeffX, wlCoeffY);
 
@@ -1222,16 +1153,12 @@ void Chip::NestrovPlacer::updateBinsGCellDensityArea(vector<Instance *> cells) {
   // for nesterov use and FFT library
   for (auto &bin : bins_) {
     int64_t binArea = bin->binArea();
-    const float scaledBinArea
-        = static_cast<float>(binArea * bin->targetDensity());
+    const float scaledBinArea = static_cast<float>(binArea * bin->targetDensity());
     bin->setDensity((static_cast<float>(bin->instPlacedArea())
-        + static_cast<float>(bin->fillerArea())
-        + static_cast<float>(bin->nonPlaceArea()))
-                        / scaledBinArea);
+        + static_cast<float>(bin->fillerArea()) + static_cast<float>(bin->nonPlaceArea())) / scaledBinArea);
 
     overflowArea_ += std::max(0.0f,
-                              static_cast<float>(bin->instPlacedArea())
-                                  + static_cast<float>(bin->nonPlaceArea())
+                              static_cast<float>(bin->instPlacedArea()) + static_cast<float>(bin->nonPlaceArea())
                                   - scaledBinArea);
 
     overflowAreaUnscaled_ += std::max(
@@ -1290,6 +1217,9 @@ void Chip::NestrovPlacer::updateDB() {
   for (Instance *instance : instance_pointers_) {
     instance->setCoordinate(instance->dCx(), instance->dCy());
   }
+}
+int Chip::NestrovPlacer::getMaxNesterovIter() const {
+  return maxNesterovIter;
 }
 float fastExp(float a) {
   a = 1.0f + a / 1024.0f;

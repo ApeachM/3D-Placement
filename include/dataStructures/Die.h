@@ -48,6 +48,8 @@ class Die {
   uint width_ = 0;
   uint height_ = 0 ;
 
+  int die_id_ = 0;
+
  public:
   Die() = default;
   explicit Die(dbBlock *db_block);
@@ -72,6 +74,9 @@ class Die {
   int getUpperRightY(){
     return die_shape_.ur().getY();
   }
+
+  int getDieId() const;
+  void setDieId(int die_id);
 
 };
 

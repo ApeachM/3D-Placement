@@ -66,4 +66,10 @@ float Die::getDensity() const {
 void Die::setDensity(double density) {
   density_ = density;
 }
+int Die::getDieId() const {
+  return die_id_;
+}
+void Die::setDieId(int die_id) {
+  die_id_ = die_id;
+}
 } // VLSI_backend

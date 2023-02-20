@@ -486,6 +486,9 @@ class Chip {
     float referenceHpwl = 446000000;                // refDeltaHpwl
     float routabilityCheckOverflow = 0.20;
 
+    float curA = 1.0;
+    float prevA;
+
     static const int maxRecursionWlCoef{10};
     static const int maxRecursionInitSLPCoef{10};
 
@@ -599,7 +602,10 @@ class Chip {
      * the iteration number will be returned by this function
      */
 
-    int doNestrovPlace(int start_iter);;
+    int doNestrovPlace(int start_iter, bool only_one_iter=false);
+    void updateDB();
+
+    int getMaxNesterovIter() const;
    private:
     void setInstancesArea();
     void initFillerCells();
@@ -646,7 +652,7 @@ class Chip {
     void updateDensityCoordiLayoutInside(Instance *gCell);
     void updateInitialPrevSLPCoordi();
     void initSLPStepsVars();
-    void updateDB();
+
   };
 
   void setTargetDensity(vector<double> densities);
@@ -654,18 +660,9 @@ class Chip {
   void doNestrovPlace();
 
   /**\brief
-   * Placement before partitioning
+   * One die (virtual die) placement before partitioning
    * */
   void normalPlacement();
-
-  /*!
- * \brief
- * Do placement 2 Die synchronously.\n
- * This will consider the interaction between two die. \n
- * \details
- * This function is called in `do3DPlace()`.
- * */
-  void placement2DieSynchronously();
 
   /*!
    * \brief
@@ -675,6 +672,20 @@ class Chip {
    * This code is just temporal code now. Meaningless but only simple partition is implemented.
    * */
   void partition();
+
+  /*!\brief
+   * After partitioning, the
+   * */
+  void generateHybridBonds();
+
+  /*!
+ * \brief
+ * Do placement 2 Die synchronously.\n
+ * This will consider the interaction between two die. \n
+ * \details
+ * This function is called in `do3DPlace()`.
+ * */
+  void placement2DieSynchronously();
 
   /**\brief
    * get unit of micro

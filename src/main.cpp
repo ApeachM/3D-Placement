@@ -17,4 +17,5 @@ int main() {
   chip.parse(test_path_name + lefName, test_path_name + defName);
   chip.do3DPlace();
   chip.write(output_path_name+defName);
+  cout << "Writing is succeed." << endl;
 }
