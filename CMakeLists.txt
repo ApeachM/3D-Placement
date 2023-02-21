@@ -16,6 +16,7 @@ set(SOURCES
 
         src/algorithm/do3DPlace.cpp
         src/algorithm/normalPlace.cpp
+        src/algorithm/initialPlace.cpp
 
         src/tool/fft.cpp
         src/tool/fftsg.cpp
