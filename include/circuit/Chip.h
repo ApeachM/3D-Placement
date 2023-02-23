@@ -355,18 +355,172 @@ class Chip {
      * \return
      * the iteration number will be returned by this function
      */
-
     int doNestrovPlace(int start_iter, bool only_one_iter=false);
     void updateDB();
 
     int getMaxNesterovIter() const;
    private:
+    /*!
+     * \name
+     * setInstancesArea
+     *
+     * \brief
+     * Set area counting variables by iterating the all instances
+     *
+     * \details
+     * This method highly refers to https://github.com/The-OpenROAD-Project/OpenROAD/blob/a5e786eb65f40abfb7004b18312d519dac95cc33/src/gpl/src/placerBase.cpp#L798 \n
+     * , which is name of `void PlacerBase::init()`.\n\n
+     *
+     * The set variables are next: `place_instances_area_`, `macro_instances_area_`, and `std_instances_area_`. \n
+     * This code should be called at initialization of Nestrov.
+     * */
     void setInstancesArea();
+
+    /*!
+     * \name
+     * initFillerCells
+     *
+     * \brief
+     * This method initialize the fillers.
+     *
+     * \details
+     * This method highly refers to the code in below link. \n
+     * https://github.com/The-OpenROAD-Project/OpenROAD/blob/402c5cff5d5dac9868f812fec69edb064a5bfbb3/src/gpl/src/nesterovBase.cpp#L1184 \n
+     * , which name is `void NesterovBase::initFillerGCells()`. \n\n
+     * This method set the filler width and heights, and the number of the fillers.
+     * The number of the fillers considers the area of die, target density, and the area of filler, etc. \n
+     * After setting them, this function sets the filler coordinates randomly.
+     *
+     * \pre
+     * You should call `setInstancesArea()` method before calling this code.
+     * */
     void initFillerCells();
+
+    /*!
+     * \name
+     * initBins
+     *
+     * \brief
+     * This methods initializes the bins.
+     *
+     * \details
+     * This method highly refers to the code in below link. \n
+     * https://github.com/The-OpenROAD-Project/OpenROAD/blob/402c5cff5d5dac9868f812fec69edb064a5bfbb3/src/gpl/src/nesterovBase.cpp#L723 \n
+     * , which name is `void BinGrid::initBins()`. \n\n
+     * The \c Bin is for defining the gradient vectors.
+     * Using bin notion, the complexity is reasonably highly deduced keeping the result reasonable.\n
+     * In this function, the number of bins and the size of bins is determined. \n
+     * And in the `updateBinsNonPlaceArea()` function, get the overlapped area with each bin and each instances. \n
+     * How many cells is overlapped with the bin determine the charge amounts in the bin.
+     *
+     * \pre
+     * You should call `setInstancesArea()` and `initFillerCells()` methods before calling this code.
+     * */
     void initBins();
+
+    /*!
+     * \name
+     * updateBinsNonPlaceArea
+     *
+     * \brief
+     * Set the non place area for each bin
+     *
+     * \details
+     * This method highly refers to the code in below link. \n
+     * https://github.com/The-OpenROAD-Project/OpenROAD/blob/402c5cff5d5dac9868f812fec69edb064a5bfbb3/src/gpl/src/nesterovBase.cpp#L806 \n
+     * , which name is `void BinGrid::updateBinsNonPlaceArea()`. \n\n
+     * This function should be called only in `initBins()` function. \n
+     * Here, the function sets the value for how many cells is overlapped with the each bins.
+     *
+     * \pre
+     * You should call `setInstancesArea()` and `initFillerCells()` methods before calling this code,
+     * because this function should be only in `initBins()`.
+     * */
     void updateBinsNonPlaceArea();
+
+    /*!
+     * \name
+     * getDensityCoordiLayoutInsideX
+     *
+     * \brief
+     * If the cell is out of the die,
+     * then return the value that the center of the cell coordinate which make the cell be in the die.\n
+     * This function is only for x coordinate.
+     *
+     * \param
+     * Instance, float \n
+     * float is for the target coordinated that will be adjusted. \n
+     * Instance object will be considered when the target coordinate is adjusted.
+     *
+     * \return
+     * float \n
+     * adjusted target coordinate
+     *
+     * \details
+     * This method highly refers to the code in below link. \n
+     * https://github.com/The-OpenROAD-Project/OpenROAD/blob/e0983e4988d09bcffe31590ae3d921489159fd10/src/gpl/src/nesterovBase.cpp#L1586 \n
+     * , which name is `getDensityCoordiLayoutInsideX` . \n\n
+     * The `cx`  is considered as target coordinate. This means the center location of the cell. \n
+     * If `cx` makes the cell out of the die, then adjust the target coordinate (`adjVal`) to be in the die for the cell.
+     * The adjusted target coordinate will be returned as return value. \n
+     * This function only for x coordinate.
+     *
+     * */
     float getDensityCoordiLayoutInsideX(Instance *instance, float cx);
+
+    /*!
+     * \name
+     * getDensityCoordiLayoutInsideY
+     *
+     * \brief
+     * If the cell is out of the die,
+     * then return the value that the center of the cell coordinate which make the cell be in the die.\n
+     * This function is only for y coordinate.
+     *
+     * \param
+     * Instance, float \n
+     * float is for the target coordinated that will be adjusted. \n
+     * Instance object will be considered when the target coordinate is adjusted.
+     *
+     * \return
+     * float \n
+     * adjusted target coordinate
+     *
+     * \details
+     * This method highly refers to the code in below link. \n
+     * https://github.com/The-OpenROAD-Project/OpenROAD/blob/e0983e4988d09bcffe31590ae3d921489159fd10/src/gpl/src/nesterovBase.cpp#L1586 \n
+     * , which name is `getDensityCoordiLayoutInsideX` . \n\n
+     * The `cx`  is considered as target coordinate. This means the center location of the cell. \n
+     * If `cx` makes the cell out of the die, then adjust the target coordinate (`adjVal`) to be in the die for the cell.
+     * The adjusted target coordinate will be returned as return value. \n
+     * This function only for y coordinate.
+     *
+     * */
     float getDensityCoordiLayoutInsideY(Instance *instance, float cy);
+
+    /*!
+     * \name
+     * updateGCellDensityCenterLocation
+     *
+     * \brief
+     *
+     * \param
+     * The set of coordinates
+     *
+     * \details
+     * This method highly refers to the code in below link. \n
+     * https://github.com/The-OpenROAD-Project/OpenROAD/blob/e0983e4988d09bcffe31590ae3d921489159fd10/src/gpl/src/nesterovBase.cpp#L1352 \n
+     * , which name is `updateGCellDensityCenterLocation`. \n\n
+     * This function gets the coordinates as the parameter. \n
+     * And, the process is divided as two step.\n\n
+     * 1. Update the coordinates variables for density things of cells.
+     *    The input parameter (the set of coordinates) will be inserted into cell coordinate variables.
+     *    \n
+     * 2. Call `updateBinsGCellDensityArea` function.
+     * This function will considers the cell coordinates variables for density things,
+     * and update the bin variables
+     * (`instPlacedArea_`, `instPlacedAreaUnscaled_`, `instPlacedAreaUnscaled_`, `nonPlaceAreaUnscaled_`, and `fillerArea_`).
+     * */
     void updateGCellDensityCenterLocation(const vector<pair<float, float>> &coordinates);
     std::pair<int, int> getMinMaxIdxX(Instance *inst) const;
     std::pair<int, int> getMinMaxIdxY(Instance *inst) const;
@@ -406,7 +560,6 @@ class Chip {
     void updateDensityCoordiLayoutInside(Instance *gCell);
     void updateInitialPrevSLPCoordi();
     void initSLPStepsVars();
-
   };
 
   /*!
@@ -462,7 +615,7 @@ class Chip {
    * \author
    * Minjae Kim \n
    * GitHub: ApeachM (https://github.com/ApeachM)
- * */
+   * */
   void placement2DieSynchronously();
 
   /**\brief
