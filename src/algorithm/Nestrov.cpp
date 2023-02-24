@@ -26,11 +26,11 @@ Chip::NestrovPlacer::NestrovPlacer(odb::dbDatabase *db_database,
 
 }
 bool Chip::NestrovPlacer::initNestrovPlace() {
-  if (!is_base_initialized) {
+  if (!is_base_initialized_) {
     // refer to: https://github.com/The-OpenROAD-Project/OpenROAD/blob/402c5cff5d5dac9868f812fec69edb064a5bfbb3/src/gpl/src/nesterovBase.cpp#L1054
     // bool Replace::initNesterovPlace()
     // void NesterovBase::init()
-    is_base_initialized = true;
+    is_base_initialized_ = true;
 
     if (instance_pointers_.empty()) {
       cout << "No placeable instance - skipping placement." << endl;
@@ -57,7 +57,7 @@ bool Chip::NestrovPlacer::initNestrovPlace() {
     initBins();
 
     // initialize fft structure based on bins
-    fft_ = new gpl::FFT(binCntX_, binCntY_, binSizeX_, binSizeY_);
+    fft_ = new gpl::FFT(bin_cnt_x_, bin_cnt_y_, bin_size_x_, bin_size_y_);
 
     for (Instance *instance : instance_pointers_) {
       instance->setDensityValueAsDefault();
@@ -76,66 +76,66 @@ bool Chip::NestrovPlacer::initNestrovPlace() {
   for (int idx = 0; idx < instance_pointers_.size(); ++idx) {
     Instance *gCell = instance_pointers_.at(idx);
     updateDensityCoordiLayoutInside(gCell);
-    curSLPCoordi_[idx] = prevSLPCoordi_[idx] = curCoordi_[idx] = initCoordi_[idx] =
+    cur_SLP_coordinates_[idx] = prev_SLP_coordinates_[idx] = cur_coordinates_[idx] = init_coordinates_[idx] =
         pair<float, float>{gCell->dCx(), gCell->dCy()};
   }
   // bin
-  updateGCellDensityCenterLocation(curSLPCoordi_);
-  prevHpwl_ = getHpwl();
-  cout << "[replace] np init: InitialHPWL: " << prevHpwl_ << endl;
+  updateGCellDensityCenterLocation(cur_SLP_coordinates_);
+  prev_hpwl_ = getHpwl();
+  cout << "[replace] np init: InitialHPWL: " << prev_hpwl_ << endl;
   // FFT update
   updateDensityForceBin();
-  baseWireLengthCoef_ = initWireLengthCoef / (static_cast<float>(binSizeX_ + binSizeY_) * 0.5);
-  cout << "[replace] np init: BaseWireLengthCoef: " << baseWireLengthCoef_ << endl;
-  sumOverflow_ = static_cast<float>(overflowArea_) / static_cast<float>(nesterovInstsArea());
-  sumOverflowUnscaled_ = static_cast<float>(overflowAreaUnscaled_) / static_cast<float>(nesterovInstsArea());
-  cout << "[replace] np init: OverflowArea: " << overflowArea_ << endl;
+  base_wire_length_coefficient_ = initWireLengthCoef / (static_cast<float>(bin_size_x_ + bin_size_y_) * 0.5);
+  cout << "[replace] np init: BaseWireLengthCoef: " << base_wire_length_coefficient_ << endl;
+  sum_overflow_ = static_cast<float>(overflow_area_) / static_cast<float>(nesterovInstsArea());
+  sum_overflow_unscaled_ = static_cast<float>(overflow_area_unscaled_) / static_cast<float>(nesterovInstsArea());
+  cout << "[replace] np init: OverflowArea: " << overflow_area_ << endl;
   cout << "[replace] np init: NesterovInstArea: " << nesterovInstsArea() << endl;
-  cout << "[replace] np init: InitSumOverflow: " << sumOverflowUnscaled_ << endl;
-  updateWireLengthCoef(sumOverflow_);
-  cout << "[replace] np init: WireLengthCoef: " << wireLengthCoefX_ << endl;
+  cout << "[replace] np init: InitSumOverflow: " << sum_overflow_unscaled_ << endl;
+  updateWireLengthCoef(sum_overflow_);
+  cout << "[replace] np init: WireLengthCoef: " << wire_length_coefficient_x_ << endl;
 
   // WL update
-  updateWireLengthForceWA(wireLengthCoefX_, wireLengthCoefY_);
+  updateWireLengthForceWA(wire_length_coefficient_x_, wire_length_coefficient_y_);
 
-  // fill in curSLPSumGrads_, curSLPWireLengthGrads_, curSLPDensityGrads_
-  updateGradients(curSLPSumGrads_, curSLPWireLengthGrads_, curSLPDensityGrads_);
+  // fill in cur_SLP_sum_grads_, cur_SLP_wire_length_grads_, cur_SLP_density_grads_
+  updateGradients(cur_SLP_sum_grads_, cur_SLP_wire_length_grads_, cur_SLP_density_grads_);
 
-  if (isDiverged_) { return false; }
+  if (is_diverged_) { return false; }
 
-  // approximately fill in prevSLPCoordi_ to calculate lc vars
+  // approximately fill in prev_SLP_coordinates_ to calculate lc vars
   updateInitialPrevSLPCoordi();
 
   // bin, FFT, wlen update with prevSLPCoordi.
-  // prevSLPCoordi_ 얘 안 바뀌였나..?
-  updateGCellDensityCenterLocation(prevSLPCoordi_);
+  // prev_SLP_coordinates_ 얘 안 바뀌였나..?
+  updateGCellDensityCenterLocation(prev_SLP_coordinates_);
   updateDensityForceBin();
-  updateWireLengthForceWA(wireLengthCoefX_, wireLengthCoefY_);
+  updateWireLengthForceWA(wire_length_coefficient_x_, wire_length_coefficient_y_);
 
-  // update previSumGrads_, prevSLPWireLengthGrads_, prevSLPDensityGrads_
-  updateGradients(prevSLPSumGrads_, prevSLPWireLengthGrads_, prevSLPDensityGrads_);
+  // update previSumGrads_, prev_SLP_wire_length_grads_, prev_SLP_density_grads_
+  updateGradients(prev_SLP_sum_grads_, prev_SLP_wire_length_grads_, prev_SLP_density_grads_);
 
-  if (isDiverged_) { return false; }
+  if (is_diverged_) { return false; }
 
-  cout << "[replace] np init: WireLengthGradSum: " << wireLengthGradSum_ << endl;
-  cout << "[replace] np init: DensityGradSum: " << densityGradSum_ << endl;
-  densityPenalty_ = (wireLengthGradSum_ / densityGradSum_) * initDensityPenalty;
-  cout << "[replace] np init: InitDensityPenalty: " << densityPenalty_ << endl;
-  sumOverflow_ = static_cast<float>(overflowArea_) / static_cast<float>(nesterovInstsArea());
-  sumOverflowUnscaled_ = static_cast<float>(overflowAreaUnscaled_) / static_cast<float>(nesterovInstsArea());
-  cout << "[replace] np init: PrevSumOverflow: " << sumOverflowUnscaled_ << endl;
-  stepLength_ = getStepLength();
-  cout << "[replace] np init: InitialStepLength: " << stepLength_ << endl;
+  cout << "[replace] np init: WireLengthGradSum: " << wire_length_grad_sum_ << endl;
+  cout << "[replace] np init: DensityGradSum: " << density_grad_sum_ << endl;
+  density_penalty_ = (wire_length_grad_sum_ / density_grad_sum_) * initDensityPenalty;
+  cout << "[replace] np init: InitDensityPenalty: " << density_penalty_ << endl;
+  sum_overflow_ = static_cast<float>(overflow_area_) / static_cast<float>(nesterovInstsArea());
+  sum_overflow_unscaled_ = static_cast<float>(overflow_area_unscaled_) / static_cast<float>(nesterovInstsArea());
+  cout << "[replace] np init: PrevSumOverflow: " << sum_overflow_unscaled_ << endl;
+  step_length_ = getStepLength();
+  cout << "[replace] np init: InitialStepLength: " << step_length_ << endl;
 
-  if ((isnan(stepLength_) || isinf(stepLength_)) && recursionCntInitSLPCoef_ < maxRecursionInitSLPCoef) {
+  if ((isnan(step_length_) || isinf(step_length_)) && recursion_cnt_init_slp_coef_ < maxRecursionInitSLPCoef) {
     initialPrevCoordiUpdateCoef *= 10;
     cout << "np init: steplength = 0 detected. Rerunning Nesterov::init() with initPrevSLPCoef: "
          << initialPrevCoordiUpdateCoef << endl;
-    recursionCntInitSLPCoef_++;
+    recursion_cnt_init_slp_coef_++;
     initNestrovPlace();
   }
 
-  if (isnan(stepLength_) || isinf(stepLength_)) {
+  if (isnan(step_length_) || isinf(step_length_)) {
     cout << "RePlAce diverged at initial iteration. Re-run with a smaller init_density_penalty value." << endl;
   }
 
@@ -170,7 +170,7 @@ int Chip::NestrovPlacer::doNestrovPlace(int start_iter, bool only_one_iter) {
   // Core Nesterov Loop
   int iter = start_iter;
   for (; iter < maxNesterovIter; ++iter) {
-    // cout << "[replace-test] np: InitSumOverflow: " << sumOverflowUnscaled_ << endl;
+    // cout << "[replace-test] np: InitSumOverflow: " << sum_overflow_unscaled_ << endl;
 
     prevA = curA;
     // here, prevA is a_(k), curA is a_(k+1)
@@ -182,55 +182,55 @@ int Chip::NestrovPlacer::doNestrovPlace(int start_iter, bool only_one_iter) {
     // Back-Tracking loop
     int numBackTrak;
     for (numBackTrak = 0; numBackTrak < maxBackTrack; ++numBackTrak) {
-      // fill in nextCoordinates with given stepLength_
+      // fill in nextCoordinates with given step_length_
       // here, the instance_pointers_ includes the fillers
       for (int k = 0; k < instance_pointers_.size(); ++k) {
         pair<float, float> nextCoordi(
-            curSLPCoordi_[k].first + stepLength_ * curSLPSumGrads_[k].first,
-            curSLPCoordi_[k].second + stepLength_ * curSLPSumGrads_[k].second);
+            cur_SLP_coordinates_[k].first + step_length_ * cur_SLP_sum_grads_[k].first,
+            cur_SLP_coordinates_[k].second + step_length_ * cur_SLP_sum_grads_[k].second);
         pair<float, float> nextSLPCoordi(
-            nextCoordi.first + coeff * (nextCoordi.first - curCoordi_[k].first),
-            nextCoordi.second + coeff * (nextCoordi.second - curCoordi_[k].second));
+            nextCoordi.first + coeff * (nextCoordi.first - cur_coordinates_[k].first),
+            nextCoordi.second + coeff * (nextCoordi.second - cur_coordinates_[k].second));
         Instance *current_instance = instance_pointers_.at(k);
 
-        nextCoordi_.at(k) = pair<float, float>(
+        next_coordinates_.at(k) = pair<float, float>(
             getDensityCoordiLayoutInsideX(current_instance, nextCoordi.first),
             getDensityCoordiLayoutInsideY(current_instance, nextCoordi.second));
-        nextSLPCoordi_[k] = pair<float, float>(
+        next_SLP_coordinates_[k] = pair<float, float>(
             getDensityCoordiLayoutInsideX(current_instance, nextSLPCoordi.first),
             getDensityCoordiLayoutInsideY(current_instance, nextSLPCoordi.second));
       }
-      updateGCellDensityCenterLocation(nextSLPCoordi_);
+      updateGCellDensityCenterLocation(next_SLP_coordinates_);
       updateDensityForceBin();
-      updateWireLengthForceWA(wireLengthCoefX_, wireLengthCoefY_);
-      updateGradients(nextSLPSumGrads_, nextSLPWireLengthGrads_, nextSLPDensityGrads_);
-      if (isDiverged_) {
+      updateWireLengthForceWA(wire_length_coefficient_x_, wire_length_coefficient_y_);
+      updateGradients(next_SLP_sum_grads_, next_SLP_wire_length_grads_, next_SLP_density_grads_);
+      if (is_diverged_) {
         break;
       }
 
       float newStepLength = getStepLength();
 
       if (isnan(newStepLength) || isinf(newStepLength)) {
-        isDiverged_ = true;
-        divergeMsg_ = "RePlAce diverged at newStepLength.";
-        divergeCode_ = 305;
+        is_diverged_ = true;
+        diverge_msg_ = "RePlAce diverged at newStepLength.";
+        diverge_code_ = 305;
         break;
       }
-      if (newStepLength > stepLength_ * 0.95) {
-        stepLength_ = newStepLength;
+      if (newStepLength > step_length_ * 0.95) {
+        step_length_ = newStepLength;
         break;
       } else if (newStepLength < 0.01) {
-        stepLength_ = 0.01;
+        step_length_ = 0.01;
         break;
       } else {
-        stepLength_ = newStepLength;
+        step_length_ = newStepLength;
       }
     }
 
     // dynamic adjustment for
     // better convergence with
     // large designs
-    if (!isMaxPhiCoefChanged && sumOverflowUnscaled_ < 0.35f) {
+    if (!isMaxPhiCoefChanged && sum_overflow_unscaled_ < 0.35f) {
       isMaxPhiCoefChanged = true;
       maxPhiCoef *= 0.99;
     }
@@ -239,7 +239,7 @@ int Chip::NestrovPlacer::doNestrovPlace(int start_iter, bool only_one_iter) {
       cout << "Backtracking limit reached so a small step will be taken" << endl;
     }
 
-    if (isDiverged_) {
+    if (is_diverged_) {
       break;
     }
 
@@ -247,14 +247,14 @@ int Chip::NestrovPlacer::doNestrovPlace(int start_iter, bool only_one_iter) {
 
     if (iter == 0 || (iter + 1) % 10 == 0) {
       cout << "[NesterovSolve] Iter: " << iter + 1
-           << "\toverflow: " << sumOverflowUnscaled_
-           << "\tHPWL: " << prevHpwl_
+           << "\toverflow: " << sum_overflow_unscaled_
+           << "\tHPWL: " << prev_hpwl_
            << endl;
     }
 
-    if (minSumOverflow > sumOverflowUnscaled_) {
-      minSumOverflow = sumOverflowUnscaled_;
-      hpwlWithMinSumOverflow = prevHpwl_;
+    if (minSumOverflow > sum_overflow_unscaled_) {
+      minSumOverflow = sum_overflow_unscaled_;
+      hpwlWithMinSumOverflow = prev_hpwl_;
     }
     /*
      diverge detection on
@@ -263,41 +263,41 @@ int Chip::NestrovPlacer::doNestrovPlace(int start_iter, bool only_one_iter) {
      1) happen overflow < 20%
      2) Hpwl is growing
     */
-    if (sumOverflowUnscaled_ < 0.3f
-        && sumOverflowUnscaled_ - minSumOverflow >= 0.02f
-        && hpwlWithMinSumOverflow * 1.2f < prevHpwl_) {
-      divergeMsg_ = "RePlAce divergence detected. ";
-      divergeMsg_ += "Re-run with a smaller max_phi_cof value.";
-      divergeCode_ = 307;
-      isDiverged_ = true;
+    if (sum_overflow_unscaled_ < 0.3f
+        && sum_overflow_unscaled_ - minSumOverflow >= 0.02f
+        && hpwlWithMinSumOverflow * 1.2f < prev_hpwl_) {
+      diverge_msg_ = "RePlAce divergence detected. ";
+      diverge_msg_ += "Re-run with a smaller max_phi_cof value.";
+      diverge_code_ = 307;
+      is_diverged_ = true;
 
 
       // revert back the current density penality
-      curCoordi_ = snapshotCoordi;
-      curSLPCoordi_ = snapshotSLPCoordi;
-      curSLPSumGrads_ = snapshotSLPSumGrads;
+      cur_coordinates_ = snapshotCoordi;
+      cur_SLP_coordinates_ = snapshotSLPCoordi;
+      cur_SLP_sum_grads_ = snapshotSLPSumGrads;
       curA = snapshotA;
-      densityPenalty_ = snapshotDensityPenalty;
-      stepLength_ = snapshotStepLength;
-      wireLengthCoefX_ = snapshotWlCoefX;
-      wireLengthCoefY_ = snapshotWlCoefY;
+      density_penalty_ = snapshotDensityPenalty;
+      step_length_ = snapshotStepLength;
+      wire_length_coefficient_x_ = snapshotWlCoefX;
+      wire_length_coefficient_y_ = snapshotWlCoefY;
 
-      updateGCellDensityCenterLocation(curCoordi_);
+      updateGCellDensityCenterLocation(cur_coordinates_);
       updateDensityForceBin();
-      updateWireLengthForceWA(wireLengthCoefX_, wireLengthCoefY_);
+      updateWireLengthForceWA(wire_length_coefficient_x_, wire_length_coefficient_y_);
 
-      isDiverged_ = false;
-      divergeCode_ = 0;
-      divergeMsg_ = "";
+      is_diverged_ = false;
+      diverge_code_ = 0;
+      diverge_msg_ = "";
       isDivergeTriedRevert = true;
 
       // turn off the RD forcely
-      isRoutabilityNeed_ = false;
+      is_routability_need_ = false;
     }
     // if it reached target overflow
-    if (sumOverflowUnscaled_ <= targetOverflow) {
+    if (sum_overflow_unscaled_ <= targetOverflow) {
       iter = maxNesterovIter;
-      cout << "[NesterovSolve] Finished with Overflow: " << sumOverflowUnscaled_ << endl;
+      cout << "[NesterovSolve] Finished with Overflow: " << sum_overflow_unscaled_ << endl;
       break;
     }
 
@@ -307,8 +307,8 @@ int Chip::NestrovPlacer::doNestrovPlace(int start_iter, bool only_one_iter) {
   // in all case including diverge,
   // db should be updated.
   updateDB();
-  if (isDiverged_) {
-    cout << "log_->error(GPL, divergeCode_, divergeMsg_);" << endl;
+  if (is_diverged_) {
+    cout << "log_->error(GPL, diverge_code_, diverge_msg_);" << endl;
   }
   return iter;
 
@@ -475,26 +475,26 @@ void Chip::NestrovPlacer::initBins() {
       break;
     }
   }
-  binCntX_ = foundBinCnt;
-  binCntY_ = foundBinCnt;
-  // log_->info(GPL, 28, "BinCnt: {} {}", binCntX_, binCntY_);
-  binSizeX_ = ceil(static_cast<float>((ux_ - lx_)) / binCntX_);
-  binSizeY_ = ceil(static_cast<float>((uy_ - ly_)) / binCntY_);
-  // log_->info(GPL, 29, "BinSize: {} {}", binSizeX_, binSizeY_);
-  binStor_.resize(binCntX_ * binCntY_);
-  bins_.reserve(binCntX_ * binCntY_);
+  bin_cnt_x_ = foundBinCnt;
+  bin_cnt_y_ = foundBinCnt;
+  // log_->info(GPL, 28, "BinCnt: {} {}", bin_cnt_x_, bin_cnt_y_);
+  bin_size_x_ = ceil(static_cast<float>((ux_ - lx_)) / bin_cnt_x_);
+  bin_size_y_ = ceil(static_cast<float>((uy_ - ly_)) / bin_cnt_y_);
+  // log_->info(GPL, 29, "BinSize: {} {}", bin_size_x_, bin_size_y_);
+  binStor_.resize(bin_cnt_x_ * bin_cnt_y_);
+  bins_.reserve(bin_cnt_x_ * bin_cnt_y_);
   int x = lx_, y = ly_;
   int idxX = 0, idxY = 0;
   for (auto &bin : binStor_) {
-    int sizeX = (x + binSizeX_ > ux_) ? ux_ - x : binSizeX_;
-    int sizeY = (y + binSizeY_ > uy_) ? uy_ - y : binSizeY_;
+    int sizeX = (x + bin_size_x_ > ux_) ? ux_ - x : bin_size_x_;
+    int sizeY = (y + bin_size_y_ > uy_) ? uy_ - y : bin_size_y_;
     bin = Bin(idxX, idxY, x, y, x + sizeX, y + sizeY, target_density_);
 
     // move x, y coordinates.
-    x += binSizeX_;
+    x += bin_size_x_;
     idxX += 1;
     if (x >= ux_) {
-      y += binSizeY_;
+      y += bin_size_y_;
       x = lx_;
       idxY++;
       idxX = 0;
@@ -517,7 +517,7 @@ void Chip::NestrovPlacer::updateBinsNonPlaceArea() {
     std::pair<int, int> pairY = getMinMaxIdxY(inst);
     for (int i = pairX.first; i < pairX.second; i++) {
       for (int j = pairY.first; j < pairY.second; j++) {
-        Bin *bin = bins_[j * binCntX_ + i];
+        Bin *bin = bins_[j * bin_cnt_x_ + i];
 
         // Note that nonPlaceArea should have scale-down with
         // target density.
@@ -560,19 +560,19 @@ void Chip::NestrovPlacer::updateGCellDensityCenterLocation(const vector<pair<flo
   updateBinsGCellDensityArea(instance_pointers_);
 }
 std::pair<int, int> Chip::NestrovPlacer::getMinMaxIdxX(Instance *inst) const {
-  int lowerIdx = (inst->ly() - die_pointer_->getLowerLeftY()) / binSizeY_;
-  int upperIdx = (fastModulo((inst->uy() - lx()), binSizeY_) == 0)
-                 ? (inst->uy() - ly()) / binSizeY_
-                 : (inst->uy() - ly()) / binSizeY_ + 1;
-  return std::make_pair(std::max(lowerIdx, 0), std::min(upperIdx, binCntY_));
+  int lowerIdx = (inst->ly() - die_pointer_->getLowerLeftY()) / bin_size_y_;
+  int upperIdx = (fastModulo((inst->uy() - lx()), bin_size_y_) == 0)
+                 ? (inst->uy() - ly()) / bin_size_y_
+                 : (inst->uy() - ly()) / bin_size_y_ + 1;
+  return std::make_pair(std::max(lowerIdx, 0), std::min(upperIdx, bin_cnt_y_));
 }
 std::pair<int, int> Chip::NestrovPlacer::getMinMaxIdxY(Instance *inst) const {
-  int lowerIdx = (inst->ly() - ly()) / binSizeY_;
-  int upperIdx = (fastModulo((inst->uy() - ly()), binSizeY_) == 0)
-                 ? (inst->uy() - ly()) / binSizeY_
-                 : (inst->uy() - ly()) / binSizeY_ + 1;
+  int lowerIdx = (inst->ly() - ly()) / bin_size_y_;
+  int upperIdx = (fastModulo((inst->uy() - ly()), bin_size_y_) == 0)
+                 ? (inst->uy() - ly()) / bin_size_y_
+                 : (inst->uy() - ly()) / bin_size_y_ + 1;
 
-  return std::make_pair(std::max(lowerIdx, 0), std::min(upperIdx, binCntY_));
+  return std::make_pair(std::max(lowerIdx, 0), std::min(upperIdx, bin_cnt_y_));
 }
 int Chip::NestrovPlacer::fastModulo(const int input, const int ceil) { return input >= ceil ? input % ceil : input; }
 int64_t Chip::NestrovPlacer::getOverlapArea(const Chip::NestrovPlacer::Bin *bin, Instance *inst, int dbu_per_micron) {
@@ -661,19 +661,19 @@ void Chip::NestrovPlacer::updateDensitySize() {
   for (Instance *instance : instance_pointers_) {
     float scaleX = 0, scaleY = 0;
     float densitySizeX = 0, densitySizeY = 0;
-    if (instance->dx() < REPLACE_SQRT2 * binSizeX_) {
+    if (instance->dx() < REPLACE_SQRT2 * bin_size_x_) {
       scaleX = static_cast<float>(instance->dx())
-          / static_cast<float>(REPLACE_SQRT2 * binSizeX_);
-      densitySizeX = REPLACE_SQRT2 * static_cast<float>(binSizeX_);
+          / static_cast<float>(REPLACE_SQRT2 * bin_size_x_);
+      densitySizeX = REPLACE_SQRT2 * static_cast<float>(bin_size_x_);
     } else {
       scaleX = 1.0;
       densitySizeX = instance->dx();
     }
 
-    if (instance->dy() < REPLACE_SQRT2 * binSizeY_) {
+    if (instance->dy() < REPLACE_SQRT2 * bin_size_y_) {
       scaleY = static_cast<float>(instance->dy())
-          / static_cast<float>(REPLACE_SQRT2 * binSizeY_);
-      densitySizeY = REPLACE_SQRT2 * static_cast<float>(binSizeY_);
+          / static_cast<float>(REPLACE_SQRT2 * bin_size_y_);
+      densitySizeY = REPLACE_SQRT2 * static_cast<float>(bin_size_y_);
     } else {
       scaleY = 1.0;
       densitySizeY = instance->dy();
@@ -693,8 +693,8 @@ void Chip::NestrovPlacer::updateDensityForceBin() {
   fft_->doFFT();
 
   // update electroPhi and electroForce
-  // update sumPhi_ for nesterov loop
-  sumPhi_ = 0;
+  // update sum_phi_ for nesterov loop
+  sum_phi_ = 0;
   for (auto &bin : bins_) {
     auto eForcePair = fft_->getElectroForce(bin->x(), bin->y());
     bin->setElectroForce(eForcePair.first, eForcePair.second);
@@ -702,7 +702,7 @@ void Chip::NestrovPlacer::updateDensityForceBin() {
     float electroPhi = fft_->getElectroPhi(bin->x(), bin->y());
     bin->setElectroPhi(electroPhi);
 
-    sumPhi_ += electroPhi * static_cast<float>(bin->nonPlaceArea() + bin->instPlacedArea() + bin->fillerArea());
+    sum_phi_ += electroPhi * static_cast<float>(bin->nonPlaceArea() + bin->instPlacedArea() + bin->fillerArea());
   }
 
 }
@@ -749,28 +749,28 @@ void Chip::NestrovPlacer::updateWireLengthForceWA(float wlCoeffX, float wlCoeffY
       float expMaxY = static_cast<float>(gPin->cy() - gNet->uy()) * wlCoeffY;
 
       // min x
-      if (expMinX > minWireLengthForceBar) {
+      if (expMinX > min_wire_length_force_bar_) {
         gPin->setMinExpSumX(fastExp(expMinX));
         gNet->addWaExpMinSumX(gPin->minExpSumX());
         gNet->addWaXExpMinSumX(gPin->cx() * gPin->minExpSumX());
       }
 
       // max x
-      if (expMaxX > minWireLengthForceBar) {
+      if (expMaxX > min_wire_length_force_bar_) {
         gPin->setMaxExpSumX(fastExp(expMaxX));
         gNet->addWaExpMaxSumX(gPin->maxExpSumX());
         gNet->addWaXExpMaxSumX(gPin->cx() * gPin->maxExpSumX());
       }
 
       // min y
-      if (expMinY > minWireLengthForceBar) {
+      if (expMinY > min_wire_length_force_bar_) {
         gPin->setMinExpSumY(fastExp(expMinY));
         gNet->addWaExpMinSumY(gPin->minExpSumY());
         gNet->addWaYExpMinSumY(gPin->cy() * gPin->minExpSumY());
       }
 
       // max y
-      if (expMaxY > minWireLengthForceBar) {
+      if (expMaxY > min_wire_length_force_bar_) {
         gPin->setMaxExpSumY(fastExp(expMaxY));
         gNet->addWaExpMaxSumY(gPin->maxExpSumY());
         gNet->addWaYExpMaxSumY(gPin->cy() * gPin->maxExpSumY());
@@ -784,15 +784,15 @@ float Chip::NestrovPlacer::nesterovInstsArea() const {
 }
 void Chip::NestrovPlacer::updateWireLengthCoef(float overflow) {
   if (overflow > 1.0) {
-    wireLengthCoefX_ = wireLengthCoefY_ = 0.1;
+    wire_length_coefficient_x_ = wire_length_coefficient_y_ = 0.1;
   } else if (overflow < 0.1) {
-    wireLengthCoefX_ = wireLengthCoefY_ = 10.0;
+    wire_length_coefficient_x_ = wire_length_coefficient_y_ = 10.0;
   } else {
-    wireLengthCoefX_ = wireLengthCoefY_
+    wire_length_coefficient_x_ = wire_length_coefficient_y_
         = 1.0 / pow(10.0, (overflow - 0.1) * 20 / 9.0 - 1.0);
   }
-  wireLengthCoefX_ *= baseWireLengthCoef_;
-  wireLengthCoefY_ *= baseWireLengthCoef_;
+  wire_length_coefficient_x_ *= base_wire_length_coefficient_;
+  wire_length_coefficient_y_ *= base_wire_length_coefficient_;
 }
 float Chip::NestrovPlacer::getPhiCoef(float scaledDiffHpwl) {
   float retCoef = (scaledDiffHpwl < 0)
@@ -812,47 +812,47 @@ int64_t Chip::NestrovPlacer::getHpwl() {
 }
 void Chip::NestrovPlacer::updateNextIter() {
   // swap vector pointers
-  std::swap(prevSLPCoordi_, curSLPCoordi_);
-  std::swap(prevSLPWireLengthGrads_, curSLPWireLengthGrads_);
-  std::swap(prevSLPDensityGrads_, curSLPDensityGrads_);
-  std::swap(prevSLPSumGrads_, curSLPSumGrads_);
+  std::swap(prev_SLP_coordinates_, cur_SLP_coordinates_);
+  std::swap(prev_SLP_wire_length_grads_, cur_SLP_wire_length_grads_);
+  std::swap(prev_SLP_density_grads_, cur_SLP_density_grads_);
+  std::swap(prev_SLP_sum_grads_, cur_SLP_sum_grads_);
 
   // Prevent locked instances from moving
   const auto &gCells = instance_pointers_;
   for (size_t k = 0; k < gCells.size(); ++k) {
     if (gCells[k]->isInstance() && gCells[k]->isLocked()) {
-      nextSLPCoordi_[k] = curSLPCoordi_[k];
-      nextSLPWireLengthGrads_[k] = curSLPWireLengthGrads_[k];
-      nextSLPDensityGrads_[k] = curSLPDensityGrads_[k];
-      nextSLPSumGrads_[k] = curSLPSumGrads_[k];
+      next_SLP_coordinates_[k] = cur_SLP_coordinates_[k];
+      next_SLP_wire_length_grads_[k] = cur_SLP_wire_length_grads_[k];
+      next_SLP_density_grads_[k] = cur_SLP_density_grads_[k];
+      next_SLP_sum_grads_[k] = cur_SLP_sum_grads_[k];
 
-      nextCoordi_[k] = curCoordi_[k];
+      next_coordinates_[k] = cur_coordinates_[k];
     }
   }
 
-  std::swap(curSLPCoordi_, nextSLPCoordi_);
-  std::swap(curSLPWireLengthGrads_, nextSLPWireLengthGrads_);
-  std::swap(curSLPDensityGrads_, nextSLPDensityGrads_);
-  std::swap(curSLPSumGrads_, nextSLPSumGrads_);
+  std::swap(cur_SLP_coordinates_, next_SLP_coordinates_);
+  std::swap(cur_SLP_wire_length_grads_, next_SLP_wire_length_grads_);
+  std::swap(cur_SLP_density_grads_, next_SLP_density_grads_);
+  std::swap(cur_SLP_sum_grads_, next_SLP_sum_grads_);
 
-  std::swap(curCoordi_, nextCoordi_);
+  std::swap(cur_coordinates_, next_coordinates_);
 
-  sumOverflow_ = static_cast<float>(overflowArea_) / static_cast<float>(nesterovInstsArea());
+  sum_overflow_ = static_cast<float>(overflow_area_) / static_cast<float>(nesterovInstsArea());
 
-  sumOverflowUnscaled_ = static_cast<float>(overflowAreaUnscaled_) / static_cast<float>(nesterovInstsArea());
+  sum_overflow_unscaled_ = static_cast<float>(overflow_area_unscaled_) / static_cast<float>(nesterovInstsArea());
 
-  updateWireLengthCoef(sumOverflow_);
+  updateWireLengthCoef(sum_overflow_);
   int64_t hpwl = getHpwl();
 
-  float phiCoef = getPhiCoef(static_cast<float>(hpwl - prevHpwl_) / referenceHpwl);
+  float phiCoef = getPhiCoef(static_cast<float>(hpwl - prev_hpwl_) / referenceHpwl);
 
-  prevHpwl_ = hpwl;
-  densityPenalty_ *= phiCoef;
+  prev_hpwl_ = hpwl;
+  density_penalty_ *= phiCoef;
 
 /*
       // for routability densityPenalty recovery
       if (rb_->numCall() == 0) {
-        densityPenaltyStor_.push_back(densityPenalty_);
+        density_penalty_storage_.push_back(density_penalty_);
       }
 */
 }
@@ -873,21 +873,21 @@ pair<float, float> Chip::NestrovPlacer::getDensityPreconditioner(Instance *gCell
 
 }
 std::pair<int, int> Chip::NestrovPlacer::getDensityMinMaxIdxX(Instance *gcell) {
-  int lowerIdx = (gcell->dLx() - lx()) / binSizeX_;
-  int upperIdx = (fastModulo((gcell->dUx() - lx()), binSizeX_) == 0)
-                 ? (gcell->dUx() - lx()) / binSizeX_
-                 : (gcell->dUx() - lx()) / binSizeX_ + 1;
+  int lowerIdx = (gcell->dLx() - lx()) / bin_size_x_;
+  int upperIdx = (fastModulo((gcell->dUx() - lx()), bin_size_x_) == 0)
+                 ? (gcell->dUx() - lx()) / bin_size_x_
+                 : (gcell->dUx() - lx()) / bin_size_x_ + 1;
 
-  upperIdx = std::min(upperIdx, binCntX_);
+  upperIdx = std::min(upperIdx, bin_cnt_x_);
   return std::make_pair(lowerIdx, upperIdx);
 }
 std::pair<int, int> Chip::NestrovPlacer::getDensityMinMaxIdxY(Instance *gcell) {
-  int lowerIdx = (gcell->dLy() - ly()) / binSizeY_;
-  int upperIdx = (fastModulo((gcell->dUy() - ly()), binSizeY_) == 0)
-                 ? (gcell->dUy() - ly()) / binSizeY_
-                 : (gcell->dUy() - ly()) / binSizeY_ + 1;
+  int lowerIdx = (gcell->dLy() - ly()) / bin_size_y_;
+  int upperIdx = (fastModulo((gcell->dUy() - ly()), bin_size_y_) == 0)
+                 ? (gcell->dUy() - ly()) / bin_size_y_
+                 : (gcell->dUy() - ly()) / bin_size_y_ + 1;
 
-  upperIdx = std::min(upperIdx, binCntY_);
+  upperIdx = std::min(upperIdx, bin_cnt_y_);
   return std::make_pair(lowerIdx, upperIdx);
 }
 float Chip::NestrovPlacer::getOverlapDensityArea(Chip::NestrovPlacer::Bin *bin, Instance *cell) {
@@ -910,7 +910,7 @@ pair<float, float> Chip::NestrovPlacer::getDensityGradient(Instance *gCell) {
 
   for (int i = pairX.first; i < pairX.second; i++) {
     for (int j = pairY.first; j < pairY.second; j++) {
-      Bin *bin = bins_.at(j * binCntX_ + i);
+      Bin *bin = bins_.at(j * bin_cnt_x_ + i);
       float overlapArea
           = getOverlapDensityArea(bin, gCell) * gCell->densityScale();
 
@@ -924,37 +924,37 @@ pair<float, float> Chip::NestrovPlacer::getDensityGradient(Instance *gCell) {
 void Chip::NestrovPlacer::updateGradients(vector<pair<float, float>> &sumGrads,
                                           vector<pair<float, float>> &wireLengthGrads,
                                           vector<pair<float, float>> &densityGrads) {
-  wireLengthGradSum_ = 0;
-  densityGradSum_ = 0;
+  wire_length_grad_sum_ = 0;
+  density_grad_sum_ = 0;
 
   float gradSum = 0;
 
   for (size_t i = 0; i < instance_pointers_.size(); i++) {
     Instance *gCell = instance_pointers_.at(i);
-    wireLengthGrads[i] = getWireLengthGradientWA(gCell, wireLengthCoefX_, wireLengthCoefY_);
+    wireLengthGrads[i] = getWireLengthGradientWA(gCell, wire_length_coefficient_x_, wire_length_coefficient_y_);
     densityGrads[i] = getDensityGradient(gCell);
 
     // Different compiler has different results on the following formula.
-    // e.g. wireLengthGradSum_ += fabs(~~.x) + fabs(~~.y);
+    // e.g. wire_length_grad_sum_ += fabs(~~.x) + fabs(~~.y);
     //
     // To prevent instability problem,
     // I partitioned the fabs(~~.x) + fabs(~~.y) as two terms.
     //
-    wireLengthGradSum_ += fabs(wireLengthGrads[i].first);
-    wireLengthGradSum_ += fabs(wireLengthGrads[i].second);
+    wire_length_grad_sum_ += fabs(wireLengthGrads[i].first);
+    wire_length_grad_sum_ += fabs(wireLengthGrads[i].second);
 
-    densityGradSum_ += fabs(densityGrads[i].first);
-    densityGradSum_ += fabs(densityGrads[i].second);
+    density_grad_sum_ += fabs(densityGrads[i].first);
+    density_grad_sum_ += fabs(densityGrads[i].second);
 
-    sumGrads[i].first = wireLengthGrads[i].first + densityPenalty_ * densityGrads[i].first;
-    sumGrads[i].second = wireLengthGrads[i].second + densityPenalty_ * densityGrads[i].second;
+    sumGrads[i].first = wireLengthGrads[i].first + density_penalty_ * densityGrads[i].first;
+    sumGrads[i].second = wireLengthGrads[i].second + density_penalty_ * densityGrads[i].second;
 
     pair<float, float> wireLengthPreCondi = getWireLengthPreconditioner(gCell);
     pair<float, float> densityPrecondi = getDensityPreconditioner(gCell);
 
     pair<float, float> sumPrecondi(
-        wireLengthPreCondi.first + densityPenalty_ * densityPrecondi.first,
-        wireLengthPreCondi.second + densityPenalty_ * densityPrecondi.second);
+        wireLengthPreCondi.first + density_penalty_ * densityPrecondi.first,
+        wireLengthPreCondi.second + density_penalty_ * densityPrecondi.second);
 
     if (sumPrecondi.first <= minPreconditioner) {
       sumPrecondi.first = minPreconditioner;
@@ -971,31 +971,31 @@ void Chip::NestrovPlacer::updateGradients(vector<pair<float, float>> &sumGrads,
   }
 
   // sometimes wirelength gradient is zero when design is too small
-  if (wireLengthGradSum_ == 0
-      && recursionCntWlCoef_ < maxRecursionInitSLPCoef) {
-    wireLengthCoefX_ *= 0.5;
-    wireLengthCoefY_ *= 0.5;
-    baseWireLengthCoef_ *= 0.5;
+  if (wire_length_grad_sum_ == 0
+      && recursion_cnt_wl_coef_ < maxRecursionInitSLPCoef) {
+    wire_length_coefficient_x_ *= 0.5;
+    wire_length_coefficient_y_ *= 0.5;
+    base_wire_length_coefficient_ *= 0.5;
 
     // update WL forces
-    updateWireLengthForceWA(wireLengthCoefX_, wireLengthCoefY_);
+    updateWireLengthForceWA(wire_length_coefficient_x_, wire_length_coefficient_y_);
 
     // recursive call again with smaller wirelength coef
-    recursionCntWlCoef_++;
+    recursion_cnt_wl_coef_++;
   }
 
   // divergence detection on
   // Wirelength / density gradient calculation
-  if (isnan(wireLengthGradSum_) || isinf(wireLengthGradSum_)
-      || isnan(densityGradSum_) || isinf(densityGradSum_)) {
-    isDiverged_ = true;
-    divergeMsg_ = "RePlAce diverged at wire/density gradient Sum.";
-    divergeCode_ = 306;
+  if (isnan(wire_length_grad_sum_) || isinf(wire_length_grad_sum_)
+      || isnan(density_grad_sum_) || isinf(density_grad_sum_)) {
+    is_diverged_ = true;
+    diverge_msg_ = "RePlAce diverged at wire/density gradient Sum.";
+    diverge_code_ = 306;
   }
 }
 float Chip::NestrovPlacer::getStepLength() {
-  float coordiDistance = getDistance(prevSLPCoordi_, curSLPCoordi_);
-  float gradDistance = getDistance(prevSLPSumGrads_, curSLPSumGrads_);
+  float coordiDistance = getDistance(prev_SLP_coordinates_, cur_SLP_coordinates_);
+  float gradDistance = getDistance(prev_SLP_sum_grads_, cur_SLP_sum_grads_);
   return coordiDistance / gradDistance;
 }
 float Chip::NestrovPlacer::getDistance(vector<pair<float, float>> a, vector<pair<float, float>> b) {
@@ -1077,21 +1077,21 @@ pair<float, float> Chip::NestrovPlacer::getWireLengthGradientPinWA(Pin *gPin, fl
 }
 void Chip::NestrovPlacer::initSLPStepsVars() {
   const int instance_num = instance_pointers_.size();
-  curSLPCoordi_.resize(instance_num);
-  curSLPWireLengthGrads_.resize(instance_num);
-  curSLPDensityGrads_.resize(instance_num);
-  curSLPSumGrads_.resize(instance_num);
-  nextSLPCoordi_.resize(instance_num);
-  nextSLPWireLengthGrads_.resize(instance_num);
-  nextSLPDensityGrads_.resize(instance_num);
-  nextSLPSumGrads_.resize(instance_num);
-  prevSLPCoordi_.resize(instance_num);
-  prevSLPWireLengthGrads_.resize(instance_num);
-  prevSLPDensityGrads_.resize(instance_num);
-  prevSLPSumGrads_.resize(instance_num);
-  curCoordi_.resize(instance_num);
-  nextCoordi_.resize(instance_num);
-  initCoordi_.resize(instance_num);
+  cur_SLP_coordinates_.resize(instance_num);
+  cur_SLP_wire_length_grads_.resize(instance_num);
+  cur_SLP_density_grads_.resize(instance_num);
+  cur_SLP_sum_grads_.resize(instance_num);
+  next_SLP_coordinates_.resize(instance_num);
+  next_SLP_wire_length_grads_.resize(instance_num);
+  next_SLP_density_grads_.resize(instance_num);
+  next_SLP_sum_grads_.resize(instance_num);
+  prev_SLP_coordinates_.resize(instance_num);
+  prev_SLP_wire_length_grads_.resize(instance_num);
+  prev_SLP_density_grads_.resize(instance_num);
+  prev_SLP_sum_grads_.resize(instance_num);
+  cur_coordinates_.resize(instance_num);
+  next_coordinates_.resize(instance_num);
+  init_coordinates_.resize(instance_num);
 }
 void Chip::NestrovPlacer::updateBinsGCellDensityArea(vector<Instance *> cells) {
   // clear the Bin-area info
@@ -1114,7 +1114,7 @@ void Chip::NestrovPlacer::updateBinsGCellDensityArea(vector<Instance *> cells) {
       if (cell->isMacroInstance()) {
         for (int i = pairX.first; i < pairX.second; i++) {
           for (int j = pairY.first; j < pairY.second; j++) {
-            Bin *bin = bins_[j * binCntX_ + i];
+            Bin *bin = bins_[j * bin_cnt_x_ + i];
 
             const float scaledAvea = getOverlapDensityArea(bin, cell)
                 * cell->densityScale()
@@ -1128,7 +1128,7 @@ void Chip::NestrovPlacer::updateBinsGCellDensityArea(vector<Instance *> cells) {
       else if (cell->isStdInstance()) {
         for (int i = pairX.first; i < pairX.second; i++) {
           for (int j = pairY.first; j < pairY.second; j++) {
-            Bin *bin = bins_[j * binCntX_ + i];
+            Bin *bin = bins_[j * bin_cnt_x_ + i];
             const float scaledArea
                 = getOverlapDensityArea(bin, cell) * cell->densityScale();
             bin->addInstPlacedArea(scaledArea);
@@ -1139,7 +1139,7 @@ void Chip::NestrovPlacer::updateBinsGCellDensityArea(vector<Instance *> cells) {
     } else if (cell->isFiller()) {
       for (int i = pairX.first; i < pairX.second; i++) {
         for (int j = pairY.first; j < pairY.second; j++) {
-          Bin *bin = bins_[j * binCntX_ + i];
+          Bin *bin = bins_[j * bin_cnt_x_ + i];
           bin->addFillerArea(getOverlapDensityArea(bin, cell)
                                  * cell->densityScale());
         }
@@ -1147,8 +1147,8 @@ void Chip::NestrovPlacer::updateBinsGCellDensityArea(vector<Instance *> cells) {
     }
   }
 
-  overflowArea_ = 0;
-  overflowAreaUnscaled_ = 0;
+  overflow_area_ = 0;
+  overflow_area_unscaled_ = 0;
   // update density and overflowArea
   // for nesterov use and FFT library
   for (auto &bin : bins_) {
@@ -1157,11 +1157,11 @@ void Chip::NestrovPlacer::updateBinsGCellDensityArea(vector<Instance *> cells) {
     bin->setDensity((static_cast<float>(bin->instPlacedArea())
         + static_cast<float>(bin->fillerArea()) + static_cast<float>(bin->nonPlaceArea())) / scaledBinArea);
 
-    overflowArea_ += std::max(0.0f,
-                              static_cast<float>(bin->instPlacedArea()) + static_cast<float>(bin->nonPlaceArea())
+    overflow_area_ += std::max(0.0f,
+                               static_cast<float>(bin->instPlacedArea()) + static_cast<float>(bin->nonPlaceArea())
                                   - scaledBinArea);
 
-    overflowAreaUnscaled_ += std::max(
+    overflow_area_unscaled_ += std::max(
         0.0f,
         static_cast<float>(bin->instPlacedAreaUnscaled())
             + static_cast<float>(bin->nonPlaceAreaUnscaled()) - scaledBinArea);
@@ -1199,17 +1199,17 @@ void Chip::NestrovPlacer::updateInitialPrevSLPCoordi() {
     Instance *curGCell = instance_pointers_.at(i);
 
     float prevCoordiX
-        = curSLPCoordi_[i].first
-            - initialPrevCoordiUpdateCoef * curSLPSumGrads_[i].first;
+        = cur_SLP_coordinates_[i].first
+            - initialPrevCoordiUpdateCoef * cur_SLP_sum_grads_[i].first;
 
     float prevCoordiY
-        = curSLPCoordi_[i].second
-            - initialPrevCoordiUpdateCoef * curSLPSumGrads_[i].second;
+        = cur_SLP_coordinates_[i].second
+            - initialPrevCoordiUpdateCoef * cur_SLP_sum_grads_[i].second;
 
     pair<float, float> newCoordi(getDensityCoordiLayoutInsideX(curGCell, prevCoordiX),
                                  getDensityCoordiLayoutInsideY(curGCell, prevCoordiY));
 
-    prevSLPCoordi_[i] = newCoordi;
+    prev_SLP_coordinates_[i] = newCoordi;
   }
 
 }

@@ -55,7 +55,7 @@ class FFT
   float getElectroPhi(int x, int y) const;
 
  private:
-  // 2D array; width: binCntX_, height: binCntY_;
+  // 2D array; width: bin_cnt_x_, height: bin_cnt_y_;
   // No hope to use Vector at this moment...
   float** binDensity_;
   float** electroPhi_;
@@ -66,16 +66,16 @@ class FFT
   // length:  max(binCntX, binCntY) * 3 / 2
   std::vector<float> csTable_;
 
-  // wx. length:  binCntX_
+  // wx. length:  bin_cnt_x_
   std::vector<float> wx_;
   std::vector<float> wxSquare_;
 
-  // wy. length:  binCntY_
+  // wy. length:  bin_cnt_y_
   std::vector<float> wy_;
   std::vector<float> wySquare_;
 
   // work area for bit reversal (prev: ip)
-  // length: round(sqrt( max(binCntX_, binCntY_) )) + 2
+  // length: round(sqrt( max(bin_cnt_x_, bin_cnt_y_) )) + 2
   std::vector<int> workArea_;
 
   int binCntX_;

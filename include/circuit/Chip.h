@@ -258,88 +258,88 @@ class Chip {
     int64_t movable_area_ = 0;
     int64_t total_filler_area_ = 0;
 
-    float sumPhi_{};
+    float sum_phi_{};
     float target_density_{};
     float uniform_target_density_{};
 
     bool use_uniform_target_density_ = false;
     bool seed_fix = true;
 
-    int binCntX_ = 0;
-    int binCntY_ = 0;
-    int binSizeX_ = 0;
-    int binSizeY_ = 0;
+    int bin_cnt_x_ = 0;
+    int bin_cnt_y_ = 0;
+    int bin_size_x_ = 0;
+    int bin_size_y_ = 0;
 
-    int64_t overflowArea_ = 0;
-    int64_t overflowAreaUnscaled_ = 0;
+    int64_t overflow_area_ = 0;
+    int64_t overflow_area_unscaled_ = 0;
 
-    float minWireLengthForceBar = -300;
+    float min_wire_length_force_bar_ = -300;
 
     gpl::FFT *fft_{};
 
     // SLP is Step Length Prediction.
     //
     // y_st, y_dst, y_wdst, w_pdst
-    std::vector<pair<float, float>> curSLPCoordi_;
-    std::vector<pair<float, float>> curSLPWireLengthGrads_;
-    std::vector<pair<float, float>> curSLPDensityGrads_;
-    std::vector<pair<float, float>> curSLPSumGrads_;
+    std::vector<pair<float, float>> cur_SLP_coordinates_;
+    std::vector<pair<float, float>> cur_SLP_wire_length_grads_;
+    std::vector<pair<float, float>> cur_SLP_density_grads_;
+    std::vector<pair<float, float>> cur_SLP_sum_grads_;
 
     // y0_st, y0_dst, y0_wdst, y0_pdst
-    std::vector<pair<float, float>> nextSLPCoordi_;
-    std::vector<pair<float, float>> nextSLPWireLengthGrads_;
-    std::vector<pair<float, float>> nextSLPDensityGrads_;
-    std::vector<pair<float, float>> nextSLPSumGrads_;
+    std::vector<pair<float, float>> next_SLP_coordinates_;
+    std::vector<pair<float, float>> next_SLP_wire_length_grads_;
+    std::vector<pair<float, float>> next_SLP_density_grads_;
+    std::vector<pair<float, float>> next_SLP_sum_grads_;
 
     // z_st, z_dst, z_wdst, z_pdst
-    std::vector<pair<float, float>> prevSLPCoordi_;
-    std::vector<pair<float, float>> prevSLPWireLengthGrads_;
-    std::vector<pair<float, float>> prevSLPDensityGrads_;
-    std::vector<pair<float, float>> prevSLPSumGrads_;
+    std::vector<pair<float, float>> prev_SLP_coordinates_;
+    std::vector<pair<float, float>> prev_SLP_wire_length_grads_;
+    std::vector<pair<float, float>> prev_SLP_density_grads_;
+    std::vector<pair<float, float>> prev_SLP_sum_grads_;
 
     // x_st and x0_st
-    std::vector<pair<float, float>> curCoordi_;
-    std::vector<pair<float, float>> nextCoordi_;
+    std::vector<pair<float, float>> cur_coordinates_;
+    std::vector<pair<float, float>> next_coordinates_;
 
     // save initial coordinates -- needed for RD
-    std::vector<pair<float, float>> initCoordi_;
+    std::vector<pair<float, float>> init_coordinates_;
 
     // densityPenalty stor
-    std::vector<float> densityPenaltyStor_;
+    std::vector<float> density_penalty_storage_;
 
-    float wireLengthGradSum_{};
-    float densityGradSum_{};
+    float wire_length_grad_sum_{};
+    float density_grad_sum_{};
 
     // alpha
-    float stepLength_{};
+    float step_length_{};
 
     // opt_phi_cof
-    float densityPenalty_{};
+    float density_penalty_{};
 
     // base_wcof
-    float baseWireLengthCoef_{};
+    float base_wire_length_coefficient_{};
 
     // wlen_cof
-    float wireLengthCoefX_{};
-    float wireLengthCoefY_{};
+    float wire_length_coefficient_x_{};
+    float wire_length_coefficient_y_{};
 
     // phi is described in ePlace paper.
-    float sumOverflow_{};
-    float sumOverflowUnscaled_{};
+    float sum_overflow_{};
+    float sum_overflow_unscaled_{};
 
     // half-parameter-wire-length
-    int64_t prevHpwl_{};
+    int64_t prev_hpwl_{};
 
-    string divergeMsg_;
-    float isDiverged_{false};
-    float isRoutabilityNeed_{};
+    string diverge_msg_;
+    float is_diverged_{false};
+    float is_routability_need_{};
 
-    int divergeCode_{};
+    int diverge_code_{};
 
-    int recursionCntWlCoef_{};
-    int recursionCntInitSLPCoef_{0};
+    int recursion_cnt_wl_coef_{};
+    int recursion_cnt_init_slp_coef_{0};
 
-    bool is_base_initialized = false;
+    bool is_base_initialized_ = false;
 
    public:
     NestrovPlacer(odb::dbDatabase *db_database,
@@ -522,14 +522,40 @@ class Chip {
      * (`instPlacedArea_`, `instPlacedAreaUnscaled_`, `instPlacedAreaUnscaled_`, `nonPlaceAreaUnscaled_`, and `fillerArea_`).
      * */
     void updateGCellDensityCenterLocation(const vector<pair<float, float>> &coordinates);
+
+    /*!
+     *
+     * */
     std::pair<int, int> getMinMaxIdxX(Instance *inst) const;
     std::pair<int, int> getMinMaxIdxY(Instance *inst) const;
     // TODO: need to be examined
+    /*!
+     * \return
+     * x coordinate of lower left for die
+     * */
     int lx() const { return die_pointer_->getLowerLeftX(); }
+
+    /*!
+     * \return
+     * y coordinate of lower left for die
+     * */
     int ly() const { return die_pointer_->getLowerLeftY(); }
+    /*!
+     * \return
+     * x coordinate of upper right for die
+     * */
     int ux() const { return die_pointer_->getUpperRightX(); }
+    /*!
+     * \return
+     * y coordinate of upper right die
+     * */
     int uy() const { return die_pointer_->getUpperRightY(); }
+
     static int fastModulo(int input, const int ceil);
+    /*!
+     * \return
+     * the overlapped area between bin and instance
+     * */
     static int64_t getOverlapArea(const Bin *bin, Instance *inst, int dbu_per_micron);
     static float calculateBiVariateNormalCDF(biNormalParameters i);
     static int64_t getOverlapAreaUnscaled(const Bin *bin, Instance *inst);
