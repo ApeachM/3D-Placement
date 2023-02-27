@@ -36,3 +36,6 @@ make
 
 [Minjae Kim](https://github.com/ApeachM) in POSTECH
 Email: kmj0824@postech.ac.kr
+
+[SoonHyun Kwon](https://github.com/kwonsh01) in POSTECH
+Email: shyun010302@postech.ac.kr
