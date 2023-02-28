@@ -37,223 +37,8 @@
 
 namespace VLSI_backend {
 class Chip::NesterovPlacer {
-  class Bin {
-   private:
-    // index
-    int x_;
-    int y_;
-
-    // coordinate
-    int lx_;
-    int ly_;
-    int ux_;
-    int uy_;
-
-    int64_t nonPlaceArea_;
-    int64_t instPlacedArea_;
-
-    int64_t instPlacedAreaUnscaled_;
-    int64_t nonPlaceAreaUnscaled_;
-    int64_t fillerArea_;
-
-    float density_;
-    float targetDensity_;  // will enable bin-wise density screening
-    float electroPhi_;
-    float electroForceX_;
-    float electroForceY_;
-
-   public:
-    Bin();
-    Bin(int x, int y, int lx, int ly, int ux, int uy, float targetDensity);
-
-    ~Bin();
-
-    int x() const;
-    int y() const;
-
-    int lx() const;
-    int ly() const;
-    int ux() const;
-    int uy() const;
-    int cx() const;
-    int cy() const;
-    int dx() const;
-    int dy() const;
-
-    float electroPhi() const;
-    float electroForceX() const;
-    float electroForceY() const;
-    float targetDensity() const;
-    float density() const;
-
-    void setDensity(float density);
-    void setTargetDensity(float density);
-    void setElectroForce(float electroForceX, float electroForceY);
-    void setElectroPhi(float phi);
-
-    void setNonPlaceArea(int64_t area);
-    void setInstPlacedArea(int64_t area);
-    void setFillerArea(int64_t area);
-
-    void setNonPlaceAreaUnscaled(int64_t area);
-    void setInstPlacedAreaUnscaled(int64_t area);
-
-    void addNonPlaceArea(int64_t area);
-    void addInstPlacedArea(int64_t area);
-    void addFillerArea(int64_t area);
-
-    void addNonPlaceAreaUnscaled(int64_t area);
-    void addInstPlacedAreaUnscaled(int64_t area);
-
-    const int64_t binArea() const;
-    const int64_t nonPlaceArea() const { return nonPlaceArea_; }
-    const int64_t instPlacedArea() const { return instPlacedArea_; }
-    const int64_t nonPlaceAreaUnscaled() const { return nonPlaceAreaUnscaled_; }
-    const int64_t instPlacedAreaUnscaled() const { return instPlacedAreaUnscaled_; }
-
-    const int64_t fillerArea() const { return fillerArea_; }
-  };
-  class biNormalParameters {
-   public:
-    float meanX;
-    float meanY;
-    float sigmaX;
-    float sigmaY;
-    float lx;
-    float ly;
-    float ux;
-    float uy;
-  };
-
- private:
-  odb::dbDatabase *db_database_;
-  std::vector<Instance *> instance_pointers_;
-  std::vector<Instance *> dummyInsts_;
-  std::vector<Instance *> nonPlaceInsts_;
-  std::vector<Net *> net_pointers_;
-  std::vector<Pin *> pin_pointers_;  // This vector includes instance pin pointers and pad pin pointers
-  std::vector<Pin *> pad_pointers_;
-  std::vector<Bin *> bins_;
-  Die *die_pointer_ = nullptr;
-
-  // real data storage
-  std::vector<Instance> fillers_;
-  std::vector<Bin> binStor_;
-
-  // class variables for nestrov place
-  int maxNesterovIter = 5000;
-  int maxBackTrack = 10;
-  float initDensityPenalty = 0.00008;           // INIT_LAMBDA
-  float initWireLengthCoef = 0.25;           // base_wcof
-  float targetOverflow = 0.1;               // overflow
-  float minPhiCoef = 0.95;                   // pcof_min
-  float maxPhiCoef = 1.05;                   // pcof_max
-  float minPreconditioner = 1.0;            // MIN_PRE
-  float initialPrevCoordiUpdateCoef = 100;  // z_ref_alpha
-  float referenceHpwl = 446000000;                // refDeltaHpwl
-  float routabilityCheckOverflow = 0.20;
-
-  float curA = 1.0;
-  float prevA;
-
-  static const int maxRecursionWlCoef{10};
-  static const int maxRecursionInitSLPCoef{10};
-
-  int filler_width_{}, filler_height_{};
-
-  int64_t place_instances_area_ = 0;
-  int64_t non_place_instances_area_ = 0;
-
-  int64_t std_instances_area_ = 0;
-  int64_t macro_instances_area_ = 0;
-
-  int64_t white_space_area_ = 0;
-  int64_t movable_area_ = 0;
-  int64_t total_filler_area_ = 0;
-
-  float sum_phi_{};
-  float target_density_{};
-  float uniform_target_density_{};
-
-  bool use_uniform_target_density_ = false;
-  bool seed_fix = true;
-
-  int bin_cnt_x_ = 0;
-  int bin_cnt_y_ = 0;
-  int bin_size_x_ = 0;
-  int bin_size_y_ = 0;
-
-  int64_t overflow_area_ = 0;
-  int64_t overflow_area_unscaled_ = 0;
-
-  float min_wire_length_force_bar_ = -300;
-
-  gpl::FFT *fft_{};
-
-  // SLP is Step Length Prediction.
-  //
-  // y_st, y_dst, y_wdst, w_pdst
-  std::vector<pair<float, float>> cur_SLP_coordinates_;
-  std::vector<pair<float, float>> cur_SLP_wire_length_grads_;
-  std::vector<pair<float, float>> cur_SLP_density_grads_;
-  std::vector<pair<float, float>> cur_SLP_sum_grads_;
-
-  // y0_st, y0_dst, y0_wdst, y0_pdst
-  std::vector<pair<float, float>> next_SLP_coordinates_;
-  std::vector<pair<float, float>> next_SLP_wire_length_grads_;
-  std::vector<pair<float, float>> next_SLP_density_grads_;
-  std::vector<pair<float, float>> next_SLP_sum_grads_;
-
-  // z_st, z_dst, z_wdst, z_pdst
-  std::vector<pair<float, float>> prev_SLP_coordinates_;
-  std::vector<pair<float, float>> prev_SLP_wire_length_grads_;
-  std::vector<pair<float, float>> prev_SLP_density_grads_;
-  std::vector<pair<float, float>> prev_SLP_sum_grads_;
-
-  // x_st and x0_st
-  std::vector<pair<float, float>> cur_coordinates_;
-  std::vector<pair<float, float>> next_coordinates_;
-
-  // save initial coordinates -- needed for RD
-  std::vector<pair<float, float>> init_coordinates_;
-
-  // densityPenalty stor
-  std::vector<float> density_penalty_storage_;
-
-  float wire_length_grad_sum_{};
-  float density_grad_sum_{};
-
-  // alpha
-  float step_length_{};
-
-  // opt_phi_cof
-  float density_penalty_{};
-
-  // base_wcof
-  float base_wire_length_coefficient_{};
-
-  // wlen_cof
-  float wire_length_coefficient_x_{};
-  float wire_length_coefficient_y_{};
-
-  // phi is described in ePlace paper.
-  float sum_overflow_{};
-  float sum_overflow_unscaled_{};
-
-  // half-parameter-wire-length
-  int64_t prev_hpwl_{};
-
-  string diverge_msg_;
-  float is_diverged_{false};
-  float is_routability_need_{};
-
-  int diverge_code_{};
-
-  int recursion_cnt_wl_coef_{};
-  int recursion_cnt_init_slp_coef_{0};
-
-  bool is_base_initialized_ = false;
-
+  class Bin;
+  class biNormalParameters;
  public:
   NesterovPlacer(odb::dbDatabase *db_database,
                  std::vector<Instance *> instance_pointers,
@@ -499,8 +284,225 @@ class Chip::NesterovPlacer {
   void updateDensityCoordiLayoutInside(Instance *gCell);
   void updateInitialPrevSLPCoordi();
   void initSLPStepsVars();
+
+ private:
+  odb::dbDatabase *db_database_;
+  std::vector<Instance *> instance_pointers_;
+  std::vector<Instance *> dummyInsts_;
+  std::vector<Instance *> nonPlaceInsts_;
+  std::vector<Net *> net_pointers_;
+  std::vector<Pin *> pin_pointers_;  // This vector includes instance pin pointers and pad pin pointers
+  std::vector<Pin *> pad_pointers_;
+  std::vector<Bin *> bins_;
+  Die *die_pointer_ = nullptr;
+
+  // real data storage
+  std::vector<Instance> fillers_;
+  std::vector<Bin> binStor_;
+
+  // class variables for nestrov place
+  int maxNesterovIter = 5000;
+  int maxBackTrack = 10;
+  float initDensityPenalty = 0.00008;           // INIT_LAMBDA
+  float initWireLengthCoef = 0.25;           // base_wcof
+  float targetOverflow = 0.1;               // overflow
+  float minPhiCoef = 0.95;                   // pcof_min
+  float maxPhiCoef = 1.05;                   // pcof_max
+  float minPreconditioner = 1.0;            // MIN_PRE
+  float initialPrevCoordiUpdateCoef = 100;  // z_ref_alpha
+  float referenceHpwl = 446000000;                // refDeltaHpwl
+  float routabilityCheckOverflow = 0.20;
+
+  float curA = 1.0;
+  float prevA;
+
+  static const int maxRecursionWlCoef{10};
+  static const int maxRecursionInitSLPCoef{10};
+
+  int filler_width_{}, filler_height_{};
+
+  int64_t place_instances_area_ = 0;
+  int64_t non_place_instances_area_ = 0;
+
+  int64_t std_instances_area_ = 0;
+  int64_t macro_instances_area_ = 0;
+
+  int64_t white_space_area_ = 0;
+  int64_t movable_area_ = 0;
+  int64_t total_filler_area_ = 0;
+
+  float sum_phi_{};
+  float target_density_{};
+  float uniform_target_density_{};
+
+  bool use_uniform_target_density_ = false;
+  bool seed_fix = true;
+
+  int bin_cnt_x_ = 0;
+  int bin_cnt_y_ = 0;
+  int bin_size_x_ = 0;
+  int bin_size_y_ = 0;
+
+  int64_t overflow_area_ = 0;
+  int64_t overflow_area_unscaled_ = 0;
+
+  float min_wire_length_force_bar_ = -300;
+
+  gpl::FFT *fft_{};
+
+  // SLP is Step Length Prediction.
+  //
+  // y_st, y_dst, y_wdst, w_pdst
+  std::vector<pair<float, float>> cur_SLP_coordinates_;
+  std::vector<pair<float, float>> cur_SLP_wire_length_grads_;
+  std::vector<pair<float, float>> cur_SLP_density_grads_;
+  std::vector<pair<float, float>> cur_SLP_sum_grads_;
+
+  // y0_st, y0_dst, y0_wdst, y0_pdst
+  std::vector<pair<float, float>> next_SLP_coordinates_;
+  std::vector<pair<float, float>> next_SLP_wire_length_grads_;
+  std::vector<pair<float, float>> next_SLP_density_grads_;
+  std::vector<pair<float, float>> next_SLP_sum_grads_;
+
+  // z_st, z_dst, z_wdst, z_pdst
+  std::vector<pair<float, float>> prev_SLP_coordinates_;
+  std::vector<pair<float, float>> prev_SLP_wire_length_grads_;
+  std::vector<pair<float, float>> prev_SLP_density_grads_;
+  std::vector<pair<float, float>> prev_SLP_sum_grads_;
+
+  // x_st and x0_st
+  std::vector<pair<float, float>> cur_coordinates_;
+  std::vector<pair<float, float>> next_coordinates_;
+
+  // save initial coordinates -- needed for RD
+  std::vector<pair<float, float>> init_coordinates_;
+
+  // densityPenalty stor
+  std::vector<float> density_penalty_storage_;
+
+  float wire_length_grad_sum_{};
+  float density_grad_sum_{};
+
+  // alpha
+  float step_length_{};
+
+  // opt_phi_cof
+  float density_penalty_{};
+
+  // base_wcof
+  float base_wire_length_coefficient_{};
+
+  // wlen_cof
+  float wire_length_coefficient_x_{};
+  float wire_length_coefficient_y_{};
+
+  // phi is described in ePlace paper.
+  float sum_overflow_{};
+  float sum_overflow_unscaled_{};
+
+  // half-parameter-wire-length
+  int64_t prev_hpwl_{};
+
+  string diverge_msg_;
+  float is_diverged_{false};
+  float is_routability_need_{};
+
+  int diverge_code_{};
+
+  int recursion_cnt_wl_coef_{};
+  int recursion_cnt_init_slp_coef_{0};
+
+  bool is_base_initialized_ = false;
+
 };
 
+class Chip::NesterovPlacer::Bin {
+ private:
+  // index
+  int x_;
+  int y_;
+
+  // coordinate
+  int lx_;
+  int ly_;
+  int ux_;
+  int uy_;
+
+  int64_t nonPlaceArea_;
+  int64_t instPlacedArea_;
+
+  int64_t instPlacedAreaUnscaled_;
+  int64_t nonPlaceAreaUnscaled_;
+  int64_t fillerArea_;
+
+  float density_;
+  float targetDensity_;  // will enable bin-wise density screening
+  float electroPhi_;
+  float electroForceX_;
+  float electroForceY_;
+
+ public:
+  Bin();
+  Bin(int x, int y, int lx, int ly, int ux, int uy, float targetDensity);
+
+  ~Bin();
+
+  int x() const;
+  int y() const;
+
+  int lx() const;
+  int ly() const;
+  int ux() const;
+  int uy() const;
+  int cx() const;
+  int cy() const;
+  int dx() const;
+  int dy() const;
+
+  float electroPhi() const;
+  float electroForceX() const;
+  float electroForceY() const;
+  float targetDensity() const;
+  float density() const;
+
+  void setDensity(float density);
+  void setTargetDensity(float density);
+  void setElectroForce(float electroForceX, float electroForceY);
+  void setElectroPhi(float phi);
+
+  void setNonPlaceArea(int64_t area);
+  void setInstPlacedArea(int64_t area);
+  void setFillerArea(int64_t area);
+
+  void setNonPlaceAreaUnscaled(int64_t area);
+  void setInstPlacedAreaUnscaled(int64_t area);
+
+  void addNonPlaceArea(int64_t area);
+  void addInstPlacedArea(int64_t area);
+  void addFillerArea(int64_t area);
+
+  void addNonPlaceAreaUnscaled(int64_t area);
+  void addInstPlacedAreaUnscaled(int64_t area);
+
+  const int64_t binArea() const;
+  const int64_t nonPlaceArea() const { return nonPlaceArea_; }
+  const int64_t instPlacedArea() const { return instPlacedArea_; }
+  const int64_t nonPlaceAreaUnscaled() const { return nonPlaceAreaUnscaled_; }
+  const int64_t instPlacedAreaUnscaled() const { return instPlacedAreaUnscaled_; }
+
+  const int64_t fillerArea() const { return fillerArea_; }
+};
+class Chip::NesterovPlacer::biNormalParameters {
+ public:
+  float meanX;
+  float meanY;
+  float sigmaX;
+  float sigmaY;
+  float lx;
+  float ly;
+  float ux;
+  float uy;
+};
 }
 
 #endif //INC_3D_PLACEMENT_INCLUDE_ALGORITHM_NESTEROVPLACER_H_

@@ -36,6 +36,21 @@
 #include "Chip.h"
 namespace VLSI_backend {
 class Chip::InitialPlacer {
+ public:
+  InitialPlacer(std::vector<Instance *> instance_pointers,
+                std::vector<Net *> net_pointers,
+                std::vector<Pin *> pin_pointers,
+                std::vector<Pin *> pad_pointers,
+                std::vector<Die *> die_pointers);
+  void placeInstancesCenter();
+  void updatePinInfo();
+  void setPlaceIDs();
+  void createSparseMatrix();
+  pair<float, float> cpuSparseSolve();
+  int max_iter_ = 0;  // in OpenROAD, the default value is 20
+  Eigen::VectorXf instLocVecX_, fixedInstForceVecX_;
+  Eigen::VectorXf instLocVecY_, fixedInstForceVecY_;
+  SMatrix placeInstForceMatrixX_, placeInstForceMatrixY_;
  private:
   int max_fan_out_ = 200;
   float net_weight_scale_ = 800.0;
@@ -46,21 +61,6 @@ class Chip::InitialPlacer {
   std::vector<Pin *> pin_pointers_;  // This vector includes instance pin pointers and pad pin pointers
   std::vector<Pin *> pad_pointers_;
   std::vector<Die *> die_pointers_;
- public:
-  int max_iter_ = 0;  // in OpenROAD, the default value is 20
-  InitialPlacer(std::vector<Instance *> instance_pointers,
-                std::vector<Net *> net_pointers,
-                std::vector<Pin *> pin_pointers,
-                std::vector<Pin *> pad_pointers,
-                std::vector<Die *> die_pointers);
-  Eigen::VectorXf instLocVecX_, fixedInstForceVecX_;
-  Eigen::VectorXf instLocVecY_, fixedInstForceVecY_;
-  SMatrix placeInstForceMatrixX_, placeInstForceMatrixY_;
-  void placeInstancesCenter();
-  void updatePinInfo();
-  void setPlaceIDs();
-  void createSparseMatrix();
-  pair<float, float> cpuSparseSolve();
 };
 }
 #endif //INC_3D_PLACEMENT_INCLUDE_ALGORITHM_INITIALPLACER_H_

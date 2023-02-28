@@ -80,24 +80,44 @@ static float fastExp(float a);
  * GitHub: ApeachM (https://github.com/ApeachM)
  * */
 class Chip {
- protected:
-  Parser parser_;
-  data_storage data_storage_;
-  data_mapping data_mapping_;
-
-  std::vector<Instance *> instance_pointers_;
-  std::vector<Net *> net_pointers_;
-  std::vector<Pin *> pin_pointers_;  // This vector includes instance pin pointers and pad pin pointers
-  std::vector<Pin *> pad_pointers_;
-  std::vector<Die *> die_pointers_;
-
-  int num_technologies_ = 0;
-  int lib_cell_num_ = 0;
-  int util_ = 100;
-
   /* Placers */
   class InitialPlacer;
   class NesterovPlacer;
+
+ public:
+  Chip() = default;
+  ~Chip() = default;
+  /*!
+   * \brief
+   * Core method
+   * \details
+   * 1. do replace in pseudo die \n
+   * 2. partition into two dies
+   * 3. do placement synchronously
+   * \author
+   * Minjae Kim \n
+   * GitHub: ApeachM (https://github.com/ApeachM)
+   * */
+  void do3DPlace();
+
+  /*!
+   * \brief
+   * Read and Write functions
+   * \author
+   * Minjae Kim \n
+   * GitHub: ApeachM (https://github.com/ApeachM)
+   * */
+  void parse(const string &lef_name, const string &def_name);
+  void parse_iccad(const string &lef_name, const string &def_name);
+  void write(const string &out_file_name);
+
+  // etc
+  void dbTutorial() const;
+
+ protected:
+  // Data initialization
+  void init();
+
   /*!
    * \author
    * Minjae Kim \n
@@ -178,38 +198,20 @@ class Chip {
    * */
   ulong getHPWL();
 
-  // Data initialization
-  void init();
+  Parser parser_;
+  data_storage data_storage_;
+  data_mapping data_mapping_;
 
- public:
-  Chip() = default;
-  ~Chip() = default;
-  /*!
-   * \brief
-   * Core method
-   * \details
-   * 1. do replace in pseudo die \n
-   * 2. partition into two dies
-   * 3. do placement synchronously
-   * \author
-   * Minjae Kim \n
-   * GitHub: ApeachM (https://github.com/ApeachM)
-   * */
-  void do3DPlace();
+  std::vector<Instance *> instance_pointers_;
+  std::vector<Net *> net_pointers_;
+  std::vector<Pin *> pin_pointers_;  // This vector includes instance pin pointers and pad pin pointers
+  std::vector<Pin *> pad_pointers_;
+  std::vector<Die *> die_pointers_;
 
-  /*!
-   * \brief
-   * Read and Write functions
-   * \author
-   * Minjae Kim \n
-   * GitHub: ApeachM (https://github.com/ApeachM)
-   * */
-  void parse(const string &lef_name, const string &def_name);
-  void parse_iccad(const string &lef_name, const string &def_name);
-  void write(const string &out_file_name);
+  int num_technologies_ = 0;
+  int lib_cell_num_ = 0;
+  int util_ = 100;
 
-  // etc
-  void dbTutorial() const;
 };
 
 } // VLSI_backend
