@@ -1,6 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // Creator: Minjae Kim of CSDL, POSTECH
 // Email:   kmj0824@postech.ac.kr
+// GitHub:  ApeachM
 //
 // BSD 3-Clause License
 //
@@ -30,50 +31,36 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 ///////////////////////////////////////////////////////////////////////////////
-#include "NesterovPlacer.h"
-#include "InitialPlacer.h"
-using namespace std;
-
+#ifndef INC_3D_PLACEMENT_INCLUDE_ALGORITHM_INITIALPLACER_H_
+#define INC_3D_PLACEMENT_INCLUDE_ALGORITHM_INITIALPLACER_H_
+#include "Chip.h"
 namespace VLSI_backend {
-void Chip::setTargetDensity(vector<double> densities) {
-  if (densities.size() != die_pointers_.size())
-    assert(0);
-  for (int i = 0; i < densities.size(); ++i) {
-    die_pointers_.at(i)->setDensity(densities.at(i));
-  }
+class Chip::InitialPlacer {
+ private:
+  int max_fan_out_ = 200;
+  float net_weight_scale_ = 800.0;
+  int min_diff_length_ = 1500;
+  int max_solver_iter_ = 100;
+  std::vector<Instance *> instance_pointers_;
+  std::vector<Net *> net_pointers_;
+  std::vector<Pin *> pin_pointers_;  // This vector includes instance pin pointers and pad pin pointers
+  std::vector<Pin *> pad_pointers_;
+  std::vector<Die *> die_pointers_;
+ public:
+  int max_iter_ = 0;  // in OpenROAD, the default value is 20
+  InitialPlacer(std::vector<Instance *> instance_pointers,
+                std::vector<Net *> net_pointers,
+                std::vector<Pin *> pin_pointers,
+                std::vector<Pin *> pad_pointers,
+                std::vector<Die *> die_pointers);
+  Eigen::VectorXf instLocVecX_, fixedInstForceVecX_;
+  Eigen::VectorXf instLocVecY_, fixedInstForceVecY_;
+  SMatrix placeInstForceMatrixX_, placeInstForceMatrixY_;
+  void placeInstancesCenter();
+  void updatePinInfo();
+  void setPlaceIDs();
+  void createSparseMatrix();
+  pair<float, float> cpuSparseSolve();
+};
 }
-void Chip::doInitialPlace() {
-  // This function is from below link
-  // https://github.com/The-OpenROAD-Project/OpenROAD/blob/977c0794af50e0d3ed993d324b0adead87e32782/src/gpl/src/initialPlace.cpp#L82
-  InitialPlacer initial_placer(
-      this->instance_pointers_,
-      this->net_pointers_,
-      this->pin_pointers_,
-      this->pad_pointers_,
-      this->die_pointers_);
-
-  initial_placer.placeInstancesCenter();
-  initial_placer.setPlaceIDs();
-  for (int iter = 0; iter < initial_placer.max_iter_; ++iter) {
-    initial_placer.updatePinInfo();
-    initial_placer.createSparseMatrix();
-    pair<float, float> error = initial_placer.cpuSparseSolve();
-    float error_max = max(error.first, error.second);
-    cout << "[InitialPlace] Iter: " << iter << "\tHPWL: " << getHPWL() << " CG residual: " << error_max << endl;
-    if (error_max < 1e-5 && iter >= 5)
-      break;
-  }
-}
-void Chip::doNestrovPlace() {
-  NesterovPlacer nestrov_placer(
-      this->parser_.db_database_,
-      this->instance_pointers_,
-      this->net_pointers_,
-      this->pin_pointers_,
-      this->pad_pointers_,
-      this->die_pointers_.at(0));
-  nestrov_placer.initNestrovPlace();
-  nestrov_placer.doNestrovPlace(0);
-}
-
-} // VLSI_backend
+#endif //INC_3D_PLACEMENT_INCLUDE_ALGORITHM_INITIALPLACER_H_

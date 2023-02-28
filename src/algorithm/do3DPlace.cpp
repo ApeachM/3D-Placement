@@ -30,8 +30,8 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 ///////////////////////////////////////////////////////////////////////////////
-
-#include "Chip.h"
+#include "NesterovPlacer.h"
+#include "InitialPlacer.h"
 #include <random>
 #include <algorithm>
 namespace VLSI_backend {

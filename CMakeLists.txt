@@ -24,11 +24,11 @@ set(SOURCES
 
         src/etc/dbTutorial.cpp
         src/algorithm/Nestrov.cpp
-        )
+        include/algorithm/NesterovPlacer.h include/algorithm/InitialPlacer.h)
 
 set(INCLUDE_DIRS
         #${PROJECT_SOURCE_DIR}/include
-        #${PROJECT_SOURCE_DIR}/include/algorithm
+        ${PROJECT_SOURCE_DIR}/include/algorithm
         ${PROJECT_SOURCE_DIR}/include/circuit
         ${PROJECT_SOURCE_DIR}/include/dataStructures
         ${PROJECT_SOURCE_DIR}/include/tool
