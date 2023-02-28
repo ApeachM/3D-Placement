@@ -5,12 +5,12 @@
 using namespace std;
 
 namespace VLSI_backend {
-Chip::NestrovPlacer::NestrovPlacer(odb::dbDatabase *db_database,
-                                   std::vector<Instance *> instance_pointers,
-                                   std::vector<Net *> net_pointers,
-                                   std::vector<Pin *> pin_pointers,
-                                   std::vector<Pin *> pad_pointers,
-                                   Die *die_pointer) {
+Chip::NesterovPlacer::NesterovPlacer(odb::dbDatabase *db_database,
+                                     std::vector<Instance *> instance_pointers,
+                                     std::vector<Net *> net_pointers,
+                                     std::vector<Pin *> pin_pointers,
+                                     std::vector<Pin *> pad_pointers,
+                                     Die *die_pointer) {
   db_database_ = db_database;
   // TODO: should check move whether method is proper or not.
   instance_pointers_ = std::move(instance_pointers);
@@ -25,7 +25,7 @@ Chip::NestrovPlacer::NestrovPlacer(odb::dbDatabase *db_database,
     initDensityPenalty = 0.01;
 
 }
-bool Chip::NestrovPlacer::initNestrovPlace() {
+bool Chip::NesterovPlacer::initNestrovPlace() {
   if (!is_base_initialized_) {
     // refer to: https://github.com/The-OpenROAD-Project/OpenROAD/blob/402c5cff5d5dac9868f812fec69edb064a5bfbb3/src/gpl/src/nesterovBase.cpp#L1054
     // bool Replace::initNesterovPlace()
@@ -77,7 +77,7 @@ bool Chip::NestrovPlacer::initNestrovPlace() {
     Instance *gCell = instance_pointers_.at(idx);
     updateDensityCoordiLayoutInside(gCell);
     cur_SLP_coordinates_[idx] = prev_SLP_coordinates_[idx] = cur_coordinates_[idx] = init_coordinates_[idx] =
-        pair<float, float>{gCell->dCx(), gCell->dCy()};
+        pair<float, float>{gCell->getDensityCenterX(), gCell->getDensityCenterY()};
   }
   // bin
   updateGCellDensityCenterLocation(cur_SLP_coordinates_);
@@ -140,7 +140,7 @@ bool Chip::NestrovPlacer::initNestrovPlace() {
   }
 
 }
-int Chip::NestrovPlacer::doNestrovPlace(int start_iter, bool only_one_iter) {
+int Chip::NesterovPlacer::doNestrovPlace(int start_iter, bool only_one_iter) {
   // refer: https://github.com/The-OpenROAD-Project/OpenROAD/blob/a5e786eb65f40abfb7004b18312d519dac95cc33/src/gpl/src/nesterovPlace.cpp#L482
   // int NesterovPlace::doNesterovPlace(int start_iter)
 
@@ -314,7 +314,7 @@ int Chip::NestrovPlacer::doNestrovPlace(int start_iter, bool only_one_iter) {
 
 }
 
-void Chip::NestrovPlacer::setInstancesArea() {
+void Chip::NesterovPlacer::setInstancesArea() {
   // refer to: https://github.com/The-OpenROAD-Project/OpenROAD/blob/a5e786eb65f40abfb7004b18312d519dac95cc33/src/gpl/src/placerBase.cpp#L798
   // void PlacerBase::init()
   for (Instance *instance : instance_pointers_) {
@@ -353,43 +353,43 @@ void Chip::NestrovPlacer::setInstancesArea() {
     }
   }
 }
-void Chip::NestrovPlacer::initFillerCells() {
+void Chip::NesterovPlacer::initFillerCells() {
   // extract average dx/dy in range (10%, 90%)
-  vector<int> dx_stor;
-  vector<int> dy_stor;
-  dx_stor.reserve(instance_pointers_.size());
-  dy_stor.reserve(instance_pointers_.size());
+  vector<int> width_storage;
+  vector<int> height_storage;
+  width_storage.reserve(instance_pointers_.size());
+  height_storage.reserve(instance_pointers_.size());
   for (Instance *instance : instance_pointers_) {
-    dx_stor.push_back(static_cast<int>(instance->getWidth()));
-    dy_stor.push_back(static_cast<int>(instance->getHeight()));
+    width_storage.push_back(static_cast<int>(instance->getWidth()));
+    height_storage.push_back(static_cast<int>(instance->getHeight()));
   }
 
   // sort
-  std::sort(dx_stor.begin(), dx_stor.end());
-  std::sort(dy_stor.begin(), dy_stor.end());
+  std::sort(width_storage.begin(), width_storage.end());
+  std::sort(height_storage.begin(), height_storage.end());
 
   // average from (10 - 90%)
-  int64_t dx_sum = 0, dy_sum = 0;
+  int64_t width_sum = 0, height_sum = 0;
 
-  int min_idx = static_cast<int>(static_cast<float>(dx_stor.size()) * 0.05);
-  int max_idx = static_cast<int>(static_cast<float>(dx_stor.size()) * 0.95);
+  int min_idx = static_cast<int>(static_cast<float>(width_storage.size()) * 0.05);
+  int max_idx = static_cast<int>(static_cast<float>(width_storage.size()) * 0.95);
 
   // when #instances are too small,
   // extracts average values in whole ranges.
   if (min_idx == max_idx) {
     min_idx = 0;
-    max_idx = static_cast<int>(dx_stor.size());
+    max_idx = static_cast<int>(width_storage.size());
   }
 
   for (int i = min_idx; i < max_idx; i++) {
-    dx_sum += dx_stor[i];
-    dy_sum += dy_stor[i];
+    width_sum += width_storage[i];
+    height_sum += height_storage[i];
   }
 
-  // the avgDx and avgDy will be used as filler cells
+  // the avg width and avg height will be used as filler cells
   // width and height
-  filler_width_ = static_cast<int>(dx_sum / (max_idx - min_idx));
-  filler_height_ = static_cast<int>(dy_sum / (max_idx - min_idx));
+  filler_width_ = static_cast<int>(width_sum / (max_idx - min_idx));
+  filler_height_ = static_cast<int>(height_sum / (max_idx - min_idx));
 
   int64_t core_area = die_pointer_->getArea();
 
@@ -445,7 +445,7 @@ void Chip::NestrovPlacer::initFillerCells() {
   }
 
 }
-void Chip::NestrovPlacer::initBins() {
+void Chip::NesterovPlacer::initBins() {
   // refer to: https://github.com/The-OpenROAD-Project/OpenROAD/blob/402c5cff5d5dac9868f812fec69edb064a5bfbb3/src/gpl/src/nesterovBase.cpp#L723
   // void BinGrid::initBins()
   int ux_ = die_pointer_->getUpperRightX();
@@ -506,7 +506,7 @@ void Chip::NestrovPlacer::initBins() {
   // only initialized once
   updateBinsNonPlaceArea();
 }
-void Chip::NestrovPlacer::updateBinsNonPlaceArea() {
+void Chip::NesterovPlacer::updateBinsNonPlaceArea() {
   for (auto &bin : bins_) {
     bin->setNonPlaceArea(0);
     bin->setNonPlaceAreaUnscaled(0);
@@ -530,43 +530,43 @@ void Chip::NestrovPlacer::updateBinsNonPlaceArea() {
     }
   }
 }
-float Chip::NestrovPlacer::getDensityCoordiLayoutInsideX(Instance *instance, float cx) {
+float Chip::NesterovPlacer::getDensityCoordiLayoutInsideX(Instance *instance, float cx) {
   float adjVal = cx;  // adjusted value
   // will change base on each assigned binGrids.
-  if (cx - instance->dDx() / 2 < die_pointer_->getLowerLeftX()) {
-    adjVal = die_pointer_->getLowerLeftX() + instance->dDx() / 2;
+  if (cx - instance->getDensityDeltaX() / 2 < die_pointer_->getLowerLeftX()) {
+    adjVal = die_pointer_->getLowerLeftX() + instance->getDensityDeltaX() / 2;
   }
-  if (cx + instance->dDx() / 2 > die_pointer_->getUpperRightX()) {
-    adjVal = die_pointer_->getUpperRightX() - instance->dDx() / 2;
+  if (cx + instance->getDensityDeltaX() / 2 > die_pointer_->getUpperRightX()) {
+    adjVal = die_pointer_->getUpperRightX() - instance->getDensityDeltaX() / 2;
   }
   return adjVal;
 }
-float Chip::NestrovPlacer::getDensityCoordiLayoutInsideY(Instance *instance, float cy) {
+float Chip::NesterovPlacer::getDensityCoordiLayoutInsideY(Instance *instance, float cy) {
   float adjVal = cy;  // adjusted value
   // will change base on each assigned binGrids.
-  if (cy - instance->dDy() / 2 < die_pointer_->getLowerLeftY()) {
-    adjVal = die_pointer_->getLowerLeftY() + instance->dDy() / 2;
+  if (cy - instance->getDensityDeltaY() / 2 < die_pointer_->getLowerLeftY()) {
+    adjVal = die_pointer_->getLowerLeftY() + instance->getDensityDeltaY() / 2;
   }
-  if (cy + instance->dDy() / 2 > die_pointer_->getUpperRightY()) {
-    adjVal = die_pointer_->getUpperRightY() - instance->dDy() / 2;
+  if (cy + instance->getDensityDeltaY() / 2 > die_pointer_->getUpperRightY()) {
+    adjVal = die_pointer_->getUpperRightY() - instance->getDensityDeltaY() / 2;
   }
   return adjVal;
 }
-void Chip::NestrovPlacer::updateGCellDensityCenterLocation(const vector<pair<float, float>> &coordinates) {
+void Chip::NesterovPlacer::updateGCellDensityCenterLocation(const vector<pair<float, float>> &coordinates) {
   for (int idx = 0; idx < coordinates.size(); ++idx) {
     pair<float, float> coordinate = coordinates.at(idx);
     instance_pointers_.at(idx)->setDensityCenterLocation(coordinate.first, coordinate.second);
   }
   updateBinsGCellDensityArea(instance_pointers_);
 }
-std::pair<int, int> Chip::NestrovPlacer::getMinMaxIdxX(Instance *inst) const {
+std::pair<int, int> Chip::NesterovPlacer::getMinMaxIdxX(Instance *inst) const {
   int lowerIdx = (inst->ly() - die_pointer_->getLowerLeftY()) / bin_size_y_;
   int upperIdx = (fastModulo((inst->uy() - lx()), bin_size_y_) == 0)
                  ? (inst->uy() - ly()) / bin_size_y_
                  : (inst->uy() - ly()) / bin_size_y_ + 1;
   return std::make_pair(std::max(lowerIdx, 0), std::min(upperIdx, bin_cnt_y_));
 }
-std::pair<int, int> Chip::NestrovPlacer::getMinMaxIdxY(Instance *inst) const {
+std::pair<int, int> Chip::NesterovPlacer::getMinMaxIdxY(Instance *inst) const {
   int lowerIdx = (inst->ly() - ly()) / bin_size_y_;
   int upperIdx = (fastModulo((inst->uy() - ly()), bin_size_y_) == 0)
                  ? (inst->uy() - ly()) / bin_size_y_
@@ -574,8 +574,8 @@ std::pair<int, int> Chip::NestrovPlacer::getMinMaxIdxY(Instance *inst) const {
 
   return std::make_pair(std::max(lowerIdx, 0), std::min(upperIdx, bin_cnt_y_));
 }
-int Chip::NestrovPlacer::fastModulo(const int input, const int ceil) { return input >= ceil ? input % ceil : input; }
-int64_t Chip::NestrovPlacer::getOverlapArea(const Chip::NestrovPlacer::Bin *bin, Instance *inst, int dbu_per_micron) {
+int Chip::NesterovPlacer::fastModulo(const int input, const int ceil) { return input >= ceil ? input % ceil : input; }
+int64_t Chip::NesterovPlacer::getOverlapArea(const Chip::NesterovPlacer::Bin *bin, Instance *inst, int dbu_per_micron) {
   int rectLx = max(bin->lx(), inst->lx()), rectLy = max(bin->ly(), inst->ly()),
       rectUx = min(bin->ux(), inst->ux()), rectUy = min(bin->uy(), inst->uy());
 
@@ -624,7 +624,7 @@ int64_t Chip::NestrovPlacer::getOverlapArea(const Chip::NestrovPlacer::Bin *bin,
         * static_cast<float>(rectUy - rectLy);
   }
 }
-float Chip::NestrovPlacer::calculateBiVariateNormalCDF(Chip::NestrovPlacer::biNormalParameters i) {
+float Chip::NesterovPlacer::calculateBiVariateNormalCDF(Chip::NesterovPlacer::biNormalParameters i) {
   /*!\brief
   A function that does 2D integration to the density function of a
   bivariate normal distribution with 0 correlation.
@@ -646,7 +646,7 @@ float Chip::NestrovPlacer::calculateBiVariateNormalCDF(Chip::NestrovPlacer::biNo
       * (erf(x1) * erf(y1) + erf(x2) * erf(y2) - erf(x1) * erf(y2)
           - erf(x2) * erf(y1));
 }
-int64_t Chip::NestrovPlacer::getOverlapAreaUnscaled(const Chip::NestrovPlacer::Bin *bin, Instance *inst) {
+int64_t Chip::NesterovPlacer::getOverlapAreaUnscaled(const Chip::NesterovPlacer::Bin *bin, Instance *inst) {
   int rectLx = max(bin->lx(), inst->lx()), rectLy = max(bin->ly(), inst->ly()),
       rectUx = min(bin->ux(), inst->ux()), rectUy = min(bin->uy(), inst->uy());
 
@@ -657,33 +657,32 @@ int64_t Chip::NestrovPlacer::getOverlapAreaUnscaled(const Chip::NestrovPlacer::B
         * static_cast<int64_t>(rectUy - rectLy);
   }
 }
-void Chip::NestrovPlacer::updateDensitySize() {
+void Chip::NesterovPlacer::updateDensitySize() {
   for (Instance *instance : instance_pointers_) {
-    float scaleX = 0, scaleY = 0;
-    float densitySizeX = 0, densitySizeY = 0;
+    float scale_x = 0, scale_y = 0;
+    float density_width = 0, density_height = 0;
     if (instance->dx() < REPLACE_SQRT2 * bin_size_x_) {
-      scaleX = static_cast<float>(instance->dx())
-          / static_cast<float>(REPLACE_SQRT2 * bin_size_x_);
-      densitySizeX = REPLACE_SQRT2 * static_cast<float>(bin_size_x_);
+      scale_x = static_cast<float>(instance->dx()) / static_cast<float>(REPLACE_SQRT2 * bin_size_x_);
+      density_width = REPLACE_SQRT2 * static_cast<float>(bin_size_x_);
     } else {
-      scaleX = 1.0;
-      densitySizeX = instance->dx();
+      scale_x = 1.0;
+      density_width = instance->dx();
     }
 
     if (instance->dy() < REPLACE_SQRT2 * bin_size_y_) {
-      scaleY = static_cast<float>(instance->dy())
+      scale_y = static_cast<float>(instance->dy())
           / static_cast<float>(REPLACE_SQRT2 * bin_size_y_);
-      densitySizeY = REPLACE_SQRT2 * static_cast<float>(bin_size_y_);
+      density_height = REPLACE_SQRT2 * static_cast<float>(bin_size_y_);
     } else {
-      scaleY = 1.0;
-      densitySizeY = instance->dy();
+      scale_y = 1.0;
+      density_height = instance->dy();
     }
 
-    instance->setDensitySize(densitySizeX, densitySizeY);
-    instance->setDensityScale(scaleX * scaleY);
+    instance->setDensitySize(density_width, density_height);
+    instance->setDensityScale(scale_x * scale_y);
   }
 }
-void Chip::NestrovPlacer::updateDensityForceBin() {
+void Chip::NesterovPlacer::updateDensityForceBin() {
   // copy density to utilize FFT
   for (auto &bin : bins_) {
     fft_->updateDensity(bin->x(), bin->y(), bin->density());
@@ -706,7 +705,7 @@ void Chip::NestrovPlacer::updateDensityForceBin() {
   }
 
 }
-void Chip::NestrovPlacer::updateWireLengthForceWA(float wlCoeffX, float wlCoeffY) {
+void Chip::NesterovPlacer::updateWireLengthForceWA(float wlCoeffX, float wlCoeffY) {
   // clear all WA variables.
   for (Net *gNet : net_pointers_) {
     gNet->clearWaVars();
@@ -779,10 +778,10 @@ void Chip::NestrovPlacer::updateWireLengthForceWA(float wlCoeffX, float wlCoeffY
   }
 
 }
-float Chip::NestrovPlacer::nesterovInstsArea() const {
+float Chip::NesterovPlacer::nesterovInstsArea() const {
   return std_instances_area_ + static_cast<int64_t>(round(macro_instances_area_ * target_density_));
 }
-void Chip::NestrovPlacer::updateWireLengthCoef(float overflow) {
+void Chip::NesterovPlacer::updateWireLengthCoef(float overflow) {
   if (overflow > 1.0) {
     wire_length_coefficient_x_ = wire_length_coefficient_y_ = 0.1;
   } else if (overflow < 0.1) {
@@ -794,7 +793,7 @@ void Chip::NestrovPlacer::updateWireLengthCoef(float overflow) {
   wire_length_coefficient_x_ *= base_wire_length_coefficient_;
   wire_length_coefficient_y_ *= base_wire_length_coefficient_;
 }
-float Chip::NestrovPlacer::getPhiCoef(float scaledDiffHpwl) {
+float Chip::NesterovPlacer::getPhiCoef(float scaledDiffHpwl) {
   float retCoef = (scaledDiffHpwl < 0)
                   ? maxPhiCoef
                   : maxPhiCoef
@@ -802,7 +801,7 @@ float Chip::NestrovPlacer::getPhiCoef(float scaledDiffHpwl) {
   retCoef = std::max(minPhiCoef, retCoef);
   return retCoef;
 }
-int64_t Chip::NestrovPlacer::getHpwl() {
+int64_t Chip::NesterovPlacer::getHpwl() {
   int64_t hpwl = 0;
   for (auto &gNet : net_pointers_) {
     gNet->updateBox(this->die_pointer_->getDieId());
@@ -810,7 +809,7 @@ int64_t Chip::NestrovPlacer::getHpwl() {
   }
   return hpwl;
 }
-void Chip::NestrovPlacer::updateNextIter() {
+void Chip::NesterovPlacer::updateNextIter() {
   // swap vector pointers
   std::swap(prev_SLP_coordinates_, cur_SLP_coordinates_);
   std::swap(prev_SLP_wire_length_grads_, cur_SLP_wire_length_grads_);
@@ -856,7 +855,7 @@ void Chip::NestrovPlacer::updateNextIter() {
       }
 */
 }
-pair<float, float> Chip::NestrovPlacer::getWireLengthPreconditioner(Instance *instance) {
+pair<float, float> Chip::NesterovPlacer::getWireLengthPreconditioner(Instance *instance) {
   // original function: getWireLengthPreconditioner
   int binding_nums = 0;
   for (Pin *pin : instance->getPins()) {
@@ -865,14 +864,14 @@ pair<float, float> Chip::NestrovPlacer::getWireLengthPreconditioner(Instance *in
   }
   return pair<float, float>{static_cast<float>(binding_nums), static_cast<float>(binding_nums)};
 }
-pair<float, float> Chip::NestrovPlacer::getDensityPreconditioner(Instance *gCell) {
+pair<float, float> Chip::NesterovPlacer::getDensityPreconditioner(Instance *gCell) {
   float areaVal
       = static_cast<float>(gCell->dx()) * static_cast<float>(gCell->dy());
 
   return pair<float, float>{areaVal, areaVal};
 
 }
-std::pair<int, int> Chip::NestrovPlacer::getDensityMinMaxIdxX(Instance *gcell) {
+std::pair<int, int> Chip::NesterovPlacer::getDensityMinMaxIdxX(Instance *gcell) {
   int lowerIdx = (gcell->dLx() - lx()) / bin_size_x_;
   int upperIdx = (fastModulo((gcell->dUx() - lx()), bin_size_x_) == 0)
                  ? (gcell->dUx() - lx()) / bin_size_x_
@@ -881,7 +880,7 @@ std::pair<int, int> Chip::NestrovPlacer::getDensityMinMaxIdxX(Instance *gcell) {
   upperIdx = std::min(upperIdx, bin_cnt_x_);
   return std::make_pair(lowerIdx, upperIdx);
 }
-std::pair<int, int> Chip::NestrovPlacer::getDensityMinMaxIdxY(Instance *gcell) {
+std::pair<int, int> Chip::NesterovPlacer::getDensityMinMaxIdxY(Instance *gcell) {
   int lowerIdx = (gcell->dLy() - ly()) / bin_size_y_;
   int upperIdx = (fastModulo((gcell->dUy() - ly()), bin_size_y_) == 0)
                  ? (gcell->dUy() - ly()) / bin_size_y_
@@ -890,7 +889,7 @@ std::pair<int, int> Chip::NestrovPlacer::getDensityMinMaxIdxY(Instance *gcell) {
   upperIdx = std::min(upperIdx, bin_cnt_y_);
   return std::make_pair(lowerIdx, upperIdx);
 }
-float Chip::NestrovPlacer::getOverlapDensityArea(Chip::NestrovPlacer::Bin *bin, Instance *cell) {
+float Chip::NesterovPlacer::getOverlapDensityArea(Chip::NesterovPlacer::Bin *bin, Instance *cell) {
   int rectLx = max(bin->lx(), static_cast<int>(cell->dLx()));
   int rectLy = max(bin->ly(), static_cast<int>(cell->dLy()));
   int rectUx = min(bin->ux(), static_cast<int>(cell->dUx()));
@@ -902,7 +901,7 @@ float Chip::NestrovPlacer::getOverlapDensityArea(Chip::NestrovPlacer::Bin *bin, 
         * static_cast<float>(rectUy - rectLy);
   }
 }
-pair<float, float> Chip::NestrovPlacer::getDensityGradient(Instance *gCell) {
+pair<float, float> Chip::NesterovPlacer::getDensityGradient(Instance *gCell) {
   std::pair<int, int> pairX = getDensityMinMaxIdxX(gCell);
   std::pair<int, int> pairY = getDensityMinMaxIdxY(gCell);
 
@@ -921,9 +920,9 @@ pair<float, float> Chip::NestrovPlacer::getDensityGradient(Instance *gCell) {
   return electroForce;
 
 }
-void Chip::NestrovPlacer::updateGradients(vector<pair<float, float>> &sumGrads,
-                                          vector<pair<float, float>> &wireLengthGrads,
-                                          vector<pair<float, float>> &densityGrads) {
+void Chip::NesterovPlacer::updateGradients(vector<pair<float, float>> &sumGrads,
+                                           vector<pair<float, float>> &wireLengthGrads,
+                                           vector<pair<float, float>> &densityGrads) {
   wire_length_grad_sum_ = 0;
   density_grad_sum_ = 0;
 
@@ -993,12 +992,12 @@ void Chip::NestrovPlacer::updateGradients(vector<pair<float, float>> &sumGrads,
     diverge_code_ = 306;
   }
 }
-float Chip::NestrovPlacer::getStepLength() {
+float Chip::NesterovPlacer::getStepLength() {
   float coordiDistance = getDistance(prev_SLP_coordinates_, cur_SLP_coordinates_);
   float gradDistance = getDistance(prev_SLP_sum_grads_, cur_SLP_sum_grads_);
   return coordiDistance / gradDistance;
 }
-float Chip::NestrovPlacer::getDistance(vector<pair<float, float>> a, vector<pair<float, float>> b) {
+float Chip::NesterovPlacer::getDistance(vector<pair<float, float>> a, vector<pair<float, float>> b) {
   float sumDistance = 0.0f;
   for (size_t i = 0; i < a.size(); i++) {
     sumDistance += (a[i].first - b[i].first) * (a[i].first - b[i].first);
@@ -1007,7 +1006,7 @@ float Chip::NestrovPlacer::getDistance(vector<pair<float, float>> a, vector<pair
 
   return sqrt(sumDistance / (2.0 * a.size()));
 }
-pair<float, float> Chip::NestrovPlacer::getWireLengthGradientWA(Instance *gCell, float wlCoeffX, float wlCoeffY) const {
+pair<float, float> Chip::NesterovPlacer::getWireLengthGradientWA(Instance *gCell, float wlCoeffX, float wlCoeffY) const {
   pair<float, float> gradientPair;
 
   for (auto &gPin : gCell->getPins()) {
@@ -1028,7 +1027,7 @@ pair<float, float> Chip::NestrovPlacer::getWireLengthGradientWA(Instance *gCell,
   // return sum
   return gradientPair;
 }
-pair<float, float> Chip::NestrovPlacer::getWireLengthGradientPinWA(Pin *gPin, float wlCoeffX, float wlCoeffY) {
+pair<float, float> Chip::NesterovPlacer::getWireLengthGradientPinWA(Pin *gPin, float wlCoeffX, float wlCoeffY) {
   float gradientMinX = 0, gradientMinY = 0;
   float gradientMaxX = 0, gradientMaxY = 0;
 
@@ -1075,7 +1074,7 @@ pair<float, float> Chip::NestrovPlacer::getWireLengthGradientPinWA(Pin *gPin, fl
 
   return pair<float, float>{gradientMinX - gradientMaxX, gradientMinY - gradientMaxY};
 }
-void Chip::NestrovPlacer::initSLPStepsVars() {
+void Chip::NesterovPlacer::initSLPStepsVars() {
   const int instance_num = instance_pointers_.size();
   cur_SLP_coordinates_.resize(instance_num);
   cur_SLP_wire_length_grads_.resize(instance_num);
@@ -1093,7 +1092,7 @@ void Chip::NestrovPlacer::initSLPStepsVars() {
   next_coordinates_.resize(instance_num);
   init_coordinates_.resize(instance_num);
 }
-void Chip::NestrovPlacer::updateBinsGCellDensityArea(vector<Instance *> cells) {
+void Chip::NesterovPlacer::updateBinsGCellDensityArea(vector<Instance *> cells) {
   // clear the Bin-area info
   for (auto &bin : bins_) {
     bin->setInstPlacedArea(0);
@@ -1159,7 +1158,7 @@ void Chip::NestrovPlacer::updateBinsGCellDensityArea(vector<Instance *> cells) {
 
     overflow_area_ += std::max(0.0f,
                                static_cast<float>(bin->instPlacedArea()) + static_cast<float>(bin->nonPlaceArea())
-                                  - scaledBinArea);
+                                   - scaledBinArea);
 
     overflow_area_unscaled_ += std::max(
         0.0f,
@@ -1167,12 +1166,12 @@ void Chip::NestrovPlacer::updateBinsGCellDensityArea(vector<Instance *> cells) {
             + static_cast<float>(bin->nonPlaceAreaUnscaled()) - scaledBinArea);
   }
 }
-void Chip::NestrovPlacer::setDensityValuesAsDefault() {
+void Chip::NesterovPlacer::setDensityValuesAsDefault() {
   for (Instance *instance : instance_pointers_) {
     instance->setDensityValueAsDefault();
   }
 }
-void Chip::NestrovPlacer::updateDensityCoordiLayoutInside(Instance *gCell) {
+void Chip::NesterovPlacer::updateDensityCoordiLayoutInside(Instance *gCell) {
   float targetLx = gCell->dLx();
   float targetLy = gCell->dLy();
 
@@ -1184,17 +1183,17 @@ void Chip::NestrovPlacer::updateDensityCoordiLayoutInside(Instance *gCell) {
     targetLy = ly();
   }
 
-  if (targetLx + gCell->dDx() > ux()) {
-    targetLx = ux() - gCell->dDx();
+  if (targetLx + gCell->getDensityDeltaX() > ux()) {
+    targetLx = ux() - gCell->getDensityDeltaX();
   }
 
-  if (targetLy + gCell->dDy() > uy()) {
-    targetLy = uy() - gCell->dDy();
+  if (targetLy + gCell->getDensityDeltaY() > uy()) {
+    targetLy = uy() - gCell->getDensityDeltaY();
   }
   gCell->setDensityLocation(targetLx, targetLy);
 
 }
-void Chip::NestrovPlacer::updateInitialPrevSLPCoordi() {
+void Chip::NesterovPlacer::updateInitialPrevSLPCoordi() {
   for (size_t i = 0; i < instance_pointers_.size(); i++) {
     Instance *curGCell = instance_pointers_.at(i);
 
@@ -1213,12 +1212,12 @@ void Chip::NestrovPlacer::updateInitialPrevSLPCoordi() {
   }
 
 }
-void Chip::NestrovPlacer::updateDB() {
+void Chip::NesterovPlacer::updateDB() {
   for (Instance *instance : instance_pointers_) {
-    instance->setCoordinate(instance->dCx(), instance->dCy());
+    instance->setCoordinate(instance->getDensityCenterX(), instance->getDensityCenterY());
   }
 }
-int Chip::NestrovPlacer::getMaxNesterovIter() const {
+int Chip::NesterovPlacer::getMaxNesterovIter() const {
   return maxNesterovIter;
 }
 float fastExp(float a) {

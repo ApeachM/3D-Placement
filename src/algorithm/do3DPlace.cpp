@@ -36,13 +36,6 @@
 #include <algorithm>
 namespace VLSI_backend {
 void Chip::normalPlacement() {
-  /* top die util setting manually in code level */
-  vector<double> densities;
-  densities.push_back(0.7);
-  densities.push_back(1.0);
-  densities.push_back(1.0);
-  setTargetDensity(densities);
-
   doInitialPlace();
   doNestrovPlace();
 }
@@ -205,7 +198,7 @@ void Chip::placement2DieSynchronously() {
 
 
   /////////////////////////////////////////////////////////////////////////
-  NestrovPlacer nestrov_placer1(
+  NesterovPlacer nestrov_placer1(
       this->parser_.db_database_,
       dieVar1.instance_pointers,
       dieVar1.net_pointers_,
@@ -213,7 +206,7 @@ void Chip::placement2DieSynchronously() {
       dieVar1.pad_pointers_,
       this->die_pointers_.at(1)
   );
-  NestrovPlacer nestrov_placer2(
+  NesterovPlacer nestrov_placer2(
       this->parser_.db_database_,
       dieVar2.instance_pointers,
       dieVar2.net_pointers_,
@@ -242,6 +235,15 @@ void Chip::placement2DieSynchronously() {
 }
 
 void Chip::do3DPlace() {
+
+  // 0. target density setting
+  /* manually setting in code level */
+  vector<double> densities;
+  densities.push_back(0.7);
+  densities.push_back(1.0);
+  densities.push_back(1.0);
+  setTargetDensity(densities);
+
   // 1. do3DPlace the cells in the pseudo die
   this->normalPlacement();
 

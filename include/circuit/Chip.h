@@ -123,7 +123,7 @@ class Chip {
     void createSparseMatrix();
     pair<float, float> cpuSparseSolve();
   };
-  class NestrovPlacer {
+  class NesterovPlacer {
     class Bin {
      private:
       // index
@@ -342,12 +342,12 @@ class Chip {
     bool is_base_initialized_ = false;
 
    public:
-    NestrovPlacer(odb::dbDatabase *db_database,
-                  std::vector<Instance *> instance_pointers,
-                  std::vector<Net *> net_pointers,
-                  std::vector<Pin *> pin_pointers,
-                  std::vector<Pin *> pad_pointers,
-                  Die *die_pointer);
+    NesterovPlacer(odb::dbDatabase *db_database,
+                   std::vector<Instance *> instance_pointers,
+                   std::vector<Net *> net_pointers,
+                   std::vector<Pin *> pin_pointers,
+                   std::vector<Pin *> pad_pointers,
+                   Die *die_pointer);
     bool initNestrovPlace();
     /*!
      * \brief
@@ -478,13 +478,13 @@ class Chip {
      * This function is only for y coordinate.
      *
      * \param
-     * Instance, float \n
-     * float is for the target coordinated that will be adjusted. \n
-     * Instance object will be considered when the target coordinate is adjusted.
+     * instance This instance object will be considered when the target coordinate is adjusted.
+     *
+     * \param
+     * cy This float variable is for the target coordinated that will be adjusted. \n
      *
      * \return
-     * float \n
-     * adjusted target coordinate
+     * adjusted target coordinate for y axis
      *
      * \details
      * This method highly refers to the code in below link. \n
@@ -505,7 +505,7 @@ class Chip {
      * \brief
      *
      * \param
-     * The set of coordinates
+     * coordinates This coordinates will apply on each cell coordinate for electrical density
      *
      * \details
      * This method highly refers to the code in below link. \n
@@ -587,7 +587,7 @@ class Chip {
     void updateInitialPrevSLPCoordi();
     void initSLPStepsVars();
   };
-
+  class Test;
   /*!
    * \author
    * Minjae Kim \n

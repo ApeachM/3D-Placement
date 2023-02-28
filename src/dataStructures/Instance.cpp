@@ -221,8 +221,8 @@ void Instance::setDensityLocation(float dLx, float dLy) {
   dLy_ = dLy;
 }
 void Instance::setDensityCenterLocation(int dCx, int dCy) {
-  const int halfDDx = dDx() / 2;
-  const int halfDDy = dDy() / 2;
+  const int halfDDx = getDensityDeltaX() / 2;
+  const int halfDDy = getDensityDeltaY() / 2;
 
   dLx_ = dCx - halfDDx;
   dLy_ = dCy - halfDDy;
@@ -251,14 +251,13 @@ bool Instance::isFixed() {
   }
   return false;
 }
-void Instance::setDensitySize(int dDx, int dDy) {
-  const uint dCenterX = dCx();
-  const uint dCenterY = dCy();
-
-  dLx_ = dCenterX - dDx / 2;
-  dLy_ = dCenterY - dDy / 2;
-  dUx_ = dCenterX + dDx / 2;
-  dUy_ = dCenterY + dDy / 2;
+void Instance::setDensitySize(float density_width, float density_height) {
+  const uint density_center_x = getDensityCenterX();
+  const uint density_center_y = getDensityCenterY();
+  dLx_ = static_cast<int>(density_center_x - density_width / 2);
+  dLy_ = static_cast<int>(density_center_y - density_height / 2);
+  dUx_ = static_cast<int>(density_center_x + density_width / 2);
+  dUy_ = static_cast<int>(density_center_y + density_height / 2);
 }
 int Instance::getDieId() const {
   return die_id_;

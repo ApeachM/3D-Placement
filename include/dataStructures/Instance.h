@@ -197,12 +197,10 @@ class Instance {
   void setGradientX(float gradient_x);
   float getGradientY() const;
   void setGradientY(float gradient_y);
-  int dCx() const { return (dUx_ + dLx_) / 2; }
-  int dCy() const { return (dUy_ + dLy_) / 2; }
-  int dDx() const { return dUx_ - dLx_; }
-  int dDy() const { return dUy_ - dLy_; }
-  int dDx() { return dUx_ - dLx_; }
-  int dDy() { return dUy_ - dLy_; }
+  int getDensityCenterX() const { return (dUx_ + dLx_) / 2; }
+  int getDensityCenterY() const { return (dUy_ + dLy_) / 2; }
+  int getDensityDeltaX() const { return dUx_ - dLx_; }
+  int getDensityDeltaY() const { return dUy_ - dLy_; }
   int lx() { return getCoordinate().first; }
   int ly() { return getCoordinate().second; }
   int ux() { return getCoordinate().first + getWidth(); }
@@ -214,7 +212,7 @@ class Instance {
   void setDensityValueAsDefault();
   bool isMacro() const { return is_macro_; }
   bool isLocked() const { return is_locked_; }
-  void setDensitySize(int dDx, int dDy);
+  void setDensitySize(float density_width, float density_height);
   bool isMacroInstance();
   bool isStdInstance();
   bool isFiller();

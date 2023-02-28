@@ -64,7 +64,7 @@ void Chip::doInitialPlace() {
   }
 }
 void Chip::doNestrovPlace() {
-  NestrovPlacer nestrov_placer(
+  NesterovPlacer nestrov_placer(
       this->parser_.db_database_,
       this->instance_pointers_,
       this->net_pointers_,

@@ -136,10 +136,10 @@ class Pin {
 
   void initDensityCoordinate();
   void updateDensityLocation(Instance *instance) {
-    // why is this "instance->dCx + offsetCx"?
+    // why is this "instance->getDensityCenterX + offsetCx"?
     // shouldn't it be "instance->dLy + offsetCx"?
-    cx_ = instance->dCx() + offsetCx_;
-    cy_ = instance->dCy() + offsetCy_;
+    cx_ = instance->getDensityCenterX() + offsetCx_;
+    cy_ = instance->getDensityCenterY() + offsetCy_;
   }
 
   // clear WA(Weighted Average) variables.

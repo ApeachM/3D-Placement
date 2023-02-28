@@ -34,7 +34,7 @@
 #include "Chip.h"
 
 namespace VLSI_backend {
-Chip::NestrovPlacer::Bin::Bin()
+Chip::NesterovPlacer::Bin::Bin()
     : x_(0),
       y_(0),
       lx_(0),
@@ -53,7 +53,7 @@ Chip::NestrovPlacer::Bin::Bin()
       electroForceY_(0) {
 }
 
-Chip::NestrovPlacer::Bin::Bin(int x, int y, int lx, int ly, int ux, int uy, float targetDensity)
+Chip::NesterovPlacer::Bin::Bin(int x, int y, int lx, int ly, int ux, int uy, float targetDensity)
     : Bin() {
   x_ = x;
   y_ = y;
@@ -64,7 +64,7 @@ Chip::NestrovPlacer::Bin::Bin(int x, int y, int lx, int ly, int ux, int uy, floa
   targetDensity_ = targetDensity;
 }
 
-Chip::NestrovPlacer::Bin::~Bin() {
+Chip::NesterovPlacer::Bin::~Bin() {
   x_ = y_ = 0;
   lx_ = ly_ = ux_ = uy_ = 0;
   nonPlaceArea_ = instPlacedArea_ = fillerArea_ = nonPlaceAreaUnscaled_
@@ -73,124 +73,124 @@ Chip::NestrovPlacer::Bin::~Bin() {
   density_ = targetDensity_ = 0;
 }
 
-const int64_t Chip::NestrovPlacer::Bin::binArea() const {
+const int64_t Chip::NesterovPlacer::Bin::binArea() const {
   return static_cast<int64_t>(dx()) * static_cast<int64_t>(dy());
 }
 
-float Chip::NestrovPlacer::Bin::density() const {
+float Chip::NesterovPlacer::Bin::density() const {
   return density_;
 }
 
-float Chip::NestrovPlacer::Bin::targetDensity() const {
+float Chip::NesterovPlacer::Bin::targetDensity() const {
   return targetDensity_;
 }
 
-float Chip::NestrovPlacer::Bin::electroForceX() const {
+float Chip::NesterovPlacer::Bin::electroForceX() const {
   return electroForceX_;
 }
 
-float Chip::NestrovPlacer::Bin::electroForceY() const {
+float Chip::NesterovPlacer::Bin::electroForceY() const {
   return electroForceY_;
 }
 
-float Chip::NestrovPlacer::Bin::electroPhi() const {
+float Chip::NesterovPlacer::Bin::electroPhi() const {
   return electroPhi_;
 }
 
-void Chip::NestrovPlacer::Bin::setDensity(float density) {
+void Chip::NesterovPlacer::Bin::setDensity(float density) {
   density_ = density;
 }
 
-void Chip::NestrovPlacer::Bin::setTargetDensity(float density) {
+void Chip::NesterovPlacer::Bin::setTargetDensity(float density) {
   targetDensity_ = density;
 }
 
-void Chip::NestrovPlacer::Bin::setElectroForce(float electroForceX, float electroForceY) {
+void Chip::NesterovPlacer::Bin::setElectroForce(float electroForceX, float electroForceY) {
   electroForceX_ = electroForceX;
   electroForceY_ = electroForceY;
 }
 
-void Chip::NestrovPlacer::Bin::setElectroPhi(float phi) {
+void Chip::NesterovPlacer::Bin::setElectroPhi(float phi) {
   electroPhi_ = phi;
 }
 
-int Chip::NestrovPlacer::Bin::x() const {
+int Chip::NesterovPlacer::Bin::x() const {
   return x_;
 }
 
-int Chip::NestrovPlacer::Bin::y() const {
+int Chip::NesterovPlacer::Bin::y() const {
   return y_;
 }
 
-int Chip::NestrovPlacer::Bin::lx() const {
+int Chip::NesterovPlacer::Bin::lx() const {
   return lx_;
 }
 
-int Chip::NestrovPlacer::Bin::ly() const {
+int Chip::NesterovPlacer::Bin::ly() const {
   return ly_;
 }
 
-int Chip::NestrovPlacer::Bin::ux() const {
+int Chip::NesterovPlacer::Bin::ux() const {
   return ux_;
 }
 
-int Chip::NestrovPlacer::Bin::uy() const {
+int Chip::NesterovPlacer::Bin::uy() const {
   return uy_;
 }
 
-int Chip::NestrovPlacer::Bin::cx() const {
+int Chip::NesterovPlacer::Bin::cx() const {
   return (ux_ + lx_) / 2;
 }
 
-int Chip::NestrovPlacer::Bin::cy() const {
+int Chip::NesterovPlacer::Bin::cy() const {
   return (uy_ + ly_) / 2;
 }
 
-int Chip::NestrovPlacer::Bin::dx() const {
+int Chip::NesterovPlacer::Bin::dx() const {
   return (ux_ - lx_);
 }
 
-int Chip::NestrovPlacer::Bin::dy() const {
+int Chip::NesterovPlacer::Bin::dy() const {
   return (uy_ - ly_);
 }
 
-void Chip::NestrovPlacer::Bin::setNonPlaceArea(int64_t area) {
+void Chip::NesterovPlacer::Bin::setNonPlaceArea(int64_t area) {
   nonPlaceArea_ = area;
 }
 
-void Chip::NestrovPlacer::Bin::setNonPlaceAreaUnscaled(int64_t area) {
+void Chip::NesterovPlacer::Bin::setNonPlaceAreaUnscaled(int64_t area) {
   nonPlaceAreaUnscaled_ = area;
 }
 
-void Chip::NestrovPlacer::Bin::setInstPlacedArea(int64_t area) {
+void Chip::NesterovPlacer::Bin::setInstPlacedArea(int64_t area) {
   instPlacedArea_ = area;
 }
 
-void Chip::NestrovPlacer::Bin::setInstPlacedAreaUnscaled(int64_t area) {
+void Chip::NesterovPlacer::Bin::setInstPlacedAreaUnscaled(int64_t area) {
   instPlacedAreaUnscaled_ = area;
 }
 
-void Chip::NestrovPlacer::Bin::setFillerArea(int64_t area) {
+void Chip::NesterovPlacer::Bin::setFillerArea(int64_t area) {
   fillerArea_ = area;
 }
 
-void Chip::NestrovPlacer::Bin::addNonPlaceArea(int64_t area) {
+void Chip::NesterovPlacer::Bin::addNonPlaceArea(int64_t area) {
   nonPlaceArea_ += area;
 }
 
-void Chip::NestrovPlacer::Bin::addInstPlacedArea(int64_t area) {
+void Chip::NesterovPlacer::Bin::addInstPlacedArea(int64_t area) {
   instPlacedArea_ += area;
 }
 
-void Chip::NestrovPlacer::Bin::addNonPlaceAreaUnscaled(int64_t area) {
+void Chip::NesterovPlacer::Bin::addNonPlaceAreaUnscaled(int64_t area) {
   nonPlaceAreaUnscaled_ += area;
 }
 
-void Chip::NestrovPlacer::Bin::addInstPlacedAreaUnscaled(int64_t area) {
+void Chip::NesterovPlacer::Bin::addInstPlacedAreaUnscaled(int64_t area) {
   instPlacedAreaUnscaled_ += area;
 }
 
-void Chip::NestrovPlacer::Bin::addFillerArea(int64_t area) {
+void Chip::NesterovPlacer::Bin::addFillerArea(int64_t area) {
   fillerArea_ += area;
 }
 
