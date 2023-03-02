@@ -35,10 +35,10 @@
 namespace VLSI_backend {
 using namespace std;
 __attribute__((unused)) void Chip::dbTutorial() const {
-  cout << this->parser_.db_database_->getChip()->getBlock()->getBBox()->getDX() << endl;
+  cout << this->db_database_->getChip()->getBlock()->getBBox()->getDX() << endl;
 
 
-  dbBlock *block = parser_.db_database_->getChip()->getBlock();
+  dbBlock *block = db_database_->getChip()->getBlock();
   for (int i = 0; i < 4; ++i) {
     cout << endl;
   }

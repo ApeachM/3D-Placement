@@ -85,7 +85,12 @@ class Chip {
   class NesterovPlacer;
 
  public:
-  Chip() = default;
+  Chip(){
+    db_database_ = odb::dbDatabase::create();
+    db_database_top_ = odb::dbDatabase::create();
+    db_database_bottom_ = odb::dbDatabase::create();
+    parser_.db_database_ = db_database_;
+  }
   ~Chip() = default;
   /*!
    * \brief
@@ -108,7 +113,22 @@ class Chip {
    * GitHub: ApeachM (https://github.com/ApeachM)
    * */
   void parse(const string &lef_name, const string &def_name);
-  void parse_iccad(const string &lef_name, const string &def_name);
+
+  /*!
+   * \brief
+   * This code parses the input data of ICCAD 2022 contest.
+   *
+   * \details
+   * This code highly refers to https://github.com/csdl-projects/ICCAD2022/blob/main/src/utils/Parser.cpp \n
+   * The input file is from http://iccad-contest.org/Problems.html \n
+   * The bench name is case1, case2, ... hidden_case1, hidden_case2, .... \n
+   * In one bench, the information about tech info(lef info) and netlist info.
+   *
+   * \author
+   * Minjae Kim \n
+   * GitHub: ApeachM (https://github.com/ApeachM)
+   * */
+  void input_file_name(const string &lef_name);
   void write(const string &out_file_name);
 
   // etc
@@ -198,9 +218,13 @@ class Chip {
    * */
   ulong getHPWL();
 
+  odb::dbDatabase *db_database_{};
+  odb::dbDatabase *db_database_top_{};
+  odb::dbDatabase *db_database_bottom_{};
+
   Parser parser_;
   data_storage data_storage_;
-  data_mapping data_mapping_;
+  // data_mapping data_mapping_;
 
   std::vector<Instance *> instance_pointers_;
   std::vector<Net *> net_pointers_;

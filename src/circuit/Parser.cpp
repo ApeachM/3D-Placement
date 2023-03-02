@@ -53,9 +53,6 @@ odb::defout::Version Parser::stringToDefVersion(const string &version) {
     return odb::defout::Version::DEF_5_8;
 }
 
-Parser::Parser() {
-  db_database_ = odb::dbDatabase::create();
-}
 void Parser::readLef(const string &filename) const {
   odb::lefin lef_reader(db_database_, false);
   odb::dbLib *lib = lef_reader.createTechAndLib("nangate", filename.c_str());

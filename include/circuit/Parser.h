@@ -49,7 +49,6 @@ class Parser {
 
  public:
   odb::dbDatabase *db_database_{};
-  Parser();
 
   void readLef(const string &filename) const;
   void readDef(const string &filename) const;

@@ -16,14 +16,14 @@ set(SOURCES
 
         src/algorithm/do3DPlace.cpp
         src/algorithm/normalPlace.cpp
-        src/algorithm/initialPlace.cpp
+        src/algorithm/InitialPlacer.cpp
 
         src/tool/fft.cpp
         src/tool/fftsg.cpp
         src/tool/fftsg2d.cpp
 
         src/etc/dbTutorial.cpp
-        src/algorithm/Nestrov.cpp
+        src/algorithm/NesterovPlacer.cpp
         include/algorithm/NesterovPlacer.h include/algorithm/InitialPlacer.h)
 
 set(INCLUDE_DIRS

@@ -31,6 +31,7 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 ///////////////////////////////////////////////////////////////////////////////
+#include <fstream>
 #include "Chip.h"
 
 using namespace std;
@@ -42,9 +43,20 @@ void Chip::parse(const string &lef_name, const string &def_name) {
   this->init();
 }
 void Chip::init() {
-  dbBlock *block = parser_.db_database_->getChip()->getBlock();
+  /// this is for connection between the objects in initialization
+  struct data_mapping {
+    std::unordered_map<dbInst *, Instance *> inst_map;
+    std::unordered_map<dbNet *, Net *> net_map;
+    /// mapping for terminals on instance (pins on cell)
+    std::unordered_map<dbITerm *, Pin *> pin_map_i;
+    /// mapping for terminals on blocks (includes fixed pins on die)
+    std::unordered_map<dbBTerm *, Pin *> pin_map_b;
+  };
+
+  dbBlock *block = db_database_->getChip()->getBlock();
   dbSet<dbInst> db_instances = block->getInsts();
   dbSet<dbNet> db_nets = block->getNets();
+  data_mapping mapping;
 
   /*!
    * @brief
@@ -60,19 +72,16 @@ void Chip::init() {
   // 1. make real data for instances
   for (odb::dbInst *db_inst : db_instances) {
     Instance instance(db_inst);
-    instance.setDataStorage(&data_storage_);
-    instance.setDataMapping(&data_mapping_);
     data_storage_.instances.push_back(instance);
   }
-  // 2-3. make pointer set and map from db_instance to instance pointer.
-  // Additionally: set the cell id
+  // 2-3. make pointer set into instance pointer.
+  // Additionally: set the cell ID
   for (int i = 0; i < data_storage_.instances.size(); ++i) {
     Instance *instance = &data_storage_.instances.at(i);
     instance_pointers_.push_back(instance);
-    data_mapping_.inst_map[instance->getDbInst()] = instance;
     instance->setId(i);
+    mapping.inst_map[instance->getDbInst()] = instance;
   }
-
 
   /*!
    * @brief
@@ -86,27 +95,23 @@ void Chip::init() {
   for (auto instance : instance_pointers_) {
     for (dbITerm *db_i_term : instance->getDbInst()->getITerms()) {
       Pin pin(db_i_term);
-      pin.setDataStorage(&data_storage_);
-      pin.setDataMapping(&data_mapping_);
       data_storage_.pins.push_back(pin);
     }
   }
   // 1-2. Block terminals
   for (dbBTerm *db_b_term : block->getBTerms()) {
     Pin pin(db_b_term);
-    pin.setDataStorage(&data_storage_);
-    pin.setDataMapping(&data_mapping_);
     data_storage_.pins.push_back(pin);
   }
 
-  // 2. make pointer set and map from db_pin to pin pointer
+  // 2. make pointer set into pin_pointers
   for (auto &pin : data_storage_.pins) {
     Pin *pin_pointer = &pin;
     pin_pointers_.push_back(pin_pointer);
     if (pin_pointer->isInstancePin()) {
-      data_mapping_.pin_map_i[pin_pointer->getDbITerm()] = pin_pointer;
+      mapping.pin_map_i[pin_pointer->getDbITerm()] = pin_pointer;
     } else if (pin_pointer->isBlockPin()) {
-      data_mapping_.pin_map_b[pin_pointer->getDbBTerm()] = pin_pointer;
+      mapping.pin_map_b[pin_pointer->getDbBTerm()] = pin_pointer;
       pad_pointers_.push_back(pin_pointer);
     }
   }
@@ -123,16 +128,14 @@ void Chip::init() {
   // 1. make real data
   for (odb::dbNet *db_net : db_nets) {
     Net net(db_net);
-    net.setDataStorage(&data_storage_);
-    net.setDataMapping(&data_mapping_);
     data_storage_.nets.push_back(net);
   }
   // 2. make pointer set and map from db_net to net pointer
   for (auto &net : data_storage_.nets) {
-    net_pointers_.push_back(&net);
-    data_mapping_.net_map[net.getDbNet()] = &net;
+    Net *net_pointer = &net;
+    net_pointers_.push_back(net_pointer);
+    mapping.net_map[net_pointer->getDbNet()] = net_pointer;
   }
-
 
   /// Die setting
   // TODO: check whether this is valid
@@ -148,6 +151,62 @@ void Chip::init() {
     die_pointers_.push_back(&data_storage_.dies.at(i));
   }
 
+  /// connect between [instance - pin - net]
+  // instance -> pins  &&  instance -> nets
+  for (Instance *instance : instance_pointers_) {
+    vector<Net *> nets;
+    vector<Pin *> pins;
+    for (dbITerm *db_i_term : instance->getDbInst()->getITerms()) {
+      Net *net = mapping.net_map[db_i_term->getNet()];
+      Pin *pin = mapping.pin_map_i[db_i_term];
+      nets.push_back(net);
+      pins.push_back(pin);
+    }
+    instance->setConnectedNets(nets);
+    instance->setConnectedPins(pins);
+  }
+
+  // pin -> instance  &&  pin -> net
+  for (Pin *pin : pin_pointers_) {
+    Instance *connected_instance;
+    Net *connected_net;
+    if (pin->isBlockPin()) {
+      connected_instance = nullptr;
+      connected_net = mapping.net_map[pin->getDbBTerm()->getNet()];
+    } else if (pin->isInstancePin()) {
+      connected_instance = mapping.inst_map[pin->getDbITerm()->getInst()];
+      connected_net = mapping.net_map[pin->getDbITerm()->getNet()];
+    }
+    pin->setConnectedInstance(connected_instance);
+    pin->setConnectedNet(connected_net);
+  }
+
+  // net -> instances  &&  net -> pins
+  for (Net *net : net_pointers_) {
+    vector<Instance *> instances;
+    vector<Pin *> pins;
+    for (dbITerm *i_term : net->getDbNet()->getITerms()) {
+      Instance *instance = mapping.inst_map[i_term->getInst()];
+      Pin *pin = mapping.pin_map_i[i_term];
+      instances.push_back(instance);
+      pins.push_back(pin);
+    }
+    for (dbBTerm *b_term : net->getDbNet()->getBTerms()) {
+      Pin *pin = mapping.pin_map_b[b_term];
+      pins.push_back(pin);
+    }
+    net->setConnectedInstances(instances);
+    net->setConnectedPins(pins);
+  }
+
+  /* Warning! Never use `push_back` method for `data_storage_.[something]` after this line.
+  *
+  * Recommend: If you want to call `push_back` for `data_storage_.[something]` inevitably,
+  * then just make another data_storage for objects and
+  * push back their pointers into `~_pointers` (i.e. instance_pointers).
+  * Then there will be no problem.
+  * */
+
 }
 void Chip::write(const string &out_file_name) {
   parser_.writeDef(out_file_name);
@@ -159,7 +218,32 @@ ulong Chip::getHPWL() {
   }
   return HPWL;
 }
-void Chip::parse_iccad(const string &lef_name, const string &def_name) {
+void Chip::input_file_name(const string &input_file_name) {
+  // open input file
+  ifstream input_file(input_file_name);
+  if (input_file.fail()) {
+    cerr << "Cannot open the input file: " << input_file_name << endl;
+    exit(1);
+  }
+
+  // parsing start //
+
+  // temporal variables
+  string info, name1, name2;
+  int n1, n2, n3, n4, n5;
+
+  // check the number of Technologies
+  // Syntax of input file: NumTechnologies <technologyCount>
+  input_file >> info >> n1;
+  assert(info == "NumTechnologies");
+  this->num_technologies_ = n1;
+
+}
+int Chip::getUnitOfMicro() const {
+  return db_database_->getTech()->getDbUnitsPerMicron();
+}
+
+} // VLSI_backend
 /*
   // open input file
   ifstream input_file(input_file_name);
@@ -350,9 +434,3 @@ void Chip::parse_iccad(const string &lef_name, const string &def_name) {
     }
   }
 */
-}
-int Chip::getUnitOfMicro() const {
-  return parser_.db_database_->getTech()->getDbUnitsPerMicron();
-}
-
-} // VLSI_backend

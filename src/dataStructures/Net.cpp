@@ -46,21 +46,11 @@ dbNet *Net::getDbNet() const {
     std::cout << "Invalid access to dbNet from net" << std::endl;
   return db_net_;
 }
-void Net::setDataMapping(data_mapping *data_mapping) {
-  if (data_mapping_ == nullptr)
-    data_mapping_ = data_mapping;
-}
-void Net::setDataStorage(data_storage *data_storage) {
-  if (data_storage_ == nullptr)
-    data_storage_ = data_storage;
-}
 vector<Pin *> Net::getConnectedPins() {
+  // TODO: can be more simplified?
   vector<Pin *> pins;
-  for (dbITerm *db_i_term : db_net_->getITerms()) {
-    pins.push_back(data_mapping_->pin_map_i[db_i_term]);
-  }
-  for (dbBTerm *db_b_term : db_net_->getBTerms()) {
-    pins.push_back(data_mapping_->pin_map_b[db_b_term]);
+  for (Pin* pin: connected_pins_) {
+    pins.push_back(pin);
   }
   if (isIntersected()) {
     pins.push_back(hybrid_bond_pin_);
@@ -168,5 +158,14 @@ void Net::setHybridBondPin(Pin *hybrid_bond_pin) {
   if (intersected_ == false)
     assert(0);
   hybrid_bond_pin_ = hybrid_bond_pin;
+}
+void Net::setConnectedPins(const vector<Pin *> &connected_pins) {
+  connected_pins_ = connected_pins;
+}
+const vector<Instance *> &Net::getConnectedInstances() const {
+  return connected_instances_;
+}
+void Net::setConnectedInstances(const vector<Instance *> &connected_instances) {
+  connected_instances_ = connected_instances;
 }
 } // VLSI_backend

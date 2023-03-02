@@ -55,15 +55,5 @@ struct data_storage {
   std::vector<Instance> hybrid_bonds; // set this object as Instance for placing compatibility
   std::vector<Pin> hybrid_bond_pins; // one hybrid bond has one `hybrid_bond_pin`.
 };
-
-/// data mapping from db to data_storage
-struct data_mapping {
-  std::unordered_map<dbInst *, Instance *> inst_map;
-  std::unordered_map<dbNet *, Net *> net_map;
-  /// mapping for terminals on instance (pins on cell)
-  std::unordered_map<dbITerm *, Pin *> pin_map_i;
-  /// mapping for terminals on blocks (includes fixed pins on die)
-  std::unordered_map<dbBTerm *, Pin *> pin_map_b;
-};
 }
 #endif //PLACER_INCLUDE_DATASTRUCTURES_STRUCTURES_H_

@@ -32,6 +32,7 @@
 // POSSIBILITY OF SUCH DAMAGE.
 ///////////////////////////////////////////////////////////////////////////////
 #include "Chip.h"
+#include "Instance.h"
 
 namespace VLSI_backend {
 
@@ -40,12 +41,6 @@ string Instance::getName() {
 }
 string Instance::getLibName() {
   return libName_;
-}
-void Instance::setDataStorage(data_storage *data_storage) {
-  data_storage_ = data_storage;
-}
-void Instance::setDataMapping(data_mapping *data_mapping) {
-  data_mapping_ = data_mapping;
 }
 dbInst *Instance::getDbInst() const {
   if (db_inst_ == nullptr)
@@ -57,14 +52,14 @@ std::vector<Pin *> Instance::getPins() {
   if (db_inst_ != nullptr) {
     // if this is not a filler
     // TODO
-    //   consider block pins
-    for (dbITerm *db_i_term : db_inst_->getITerms()) {
-      Pin *pin = data_mapping_->pin_map_i[db_i_term];
+    //    can be more simplified?
+    for (Pin* pin: connected_pins_) {
       pins.push_back(pin);
     }
   }
   if (is_hybrid_bond_){
-
+    // TODO
+    //    should be need any code?
   }
   return pins;
 }
@@ -78,22 +73,6 @@ Instance::Instance(odb::dbInst *db_inst) {
   position_.second = getCoordinate().second;
   width_ = db_inst_->getMaster()->getWidth();
   height_ = db_inst_->getMaster()->getHeight();
-  dLx_ = position_.first;
-  dLy_ = position_.second;
-  dUx_ = dLx_ + width_;
-  dUy_ = dLy_ + height_;
-}
-Instance::Instance(odb::dbInst *db_inst, data_storage *data_storage, data_mapping *data_mapping) {
-  db_database_ = db_inst->getDb();
-  data_storage_ = data_storage;
-  data_mapping_ = data_mapping;
-
-  db_inst_ = db_inst;
-  name_ = db_inst->getName();
-  libName_ = db_inst->getMaster()->getName();
-  is_macro_ = db_inst_->getMaster()->getType().isBlock();
-  position_.first = getCoordinate().first;
-  position_.second = getCoordinate().second;
   dLx_ = position_.first;
   dLy_ = position_.second;
   dUx_ = dLx_ + width_;
@@ -278,6 +257,12 @@ void Instance::setHybridBondPin(Pin *hybrid_bond_pin) {
   if (!hybrid_bond_pin->isHybridBondPin())
     assert(0); // This pin is not a pin for hybrid bond.
   hybrid_bond_pin_ = hybrid_bond_pin;
+}
+void Instance::setConnectedPins(vector<Pin *> connected_pins) {
+  connected_pins_ = connected_pins;
+}
+void Instance::setConnectedNets(vector<Net *> connected_nets) {
+  connected_nets_ = connected_nets;
 }
 
 } // VLSI_backend

@@ -66,11 +66,10 @@ class Chip::NesterovPlacer {
    * Set area counting variables by iterating the all instances
    *
    * \details
-   * This method highly refers to https://github.com/The-OpenROAD-Project/OpenROAD/blob/a5e786eb65f40abfb7004b18312d519dac95cc33/src/gpl/src/placerBase.cpp#L798 \n
-   * , which is name of `void PlacerBase::init()`.\n\n
-   *
    * The set variables are next: `place_instances_area_`, `macro_instances_area_`, and `std_instances_area_`. \n
-   * This code should be called at initialization of Nestrov.
+   * This code should be called at initialization of Nestrov.\n\n
+   * This method highly refers to https://github.com/The-OpenROAD-Project/OpenROAD/blob/a5e786eb65f40abfb7004b18312d519dac95cc33/src/gpl/src/placerBase.cpp#L798 \n
+   * , which is name of `void PlacerBase::init()`.
    * */
   void setInstancesArea();
 
@@ -82,12 +81,12 @@ class Chip::NesterovPlacer {
    * This method initialize the fillers.
    *
    * \details
-   * This method highly refers to the code in below link. \n
-   * https://github.com/The-OpenROAD-Project/OpenROAD/blob/402c5cff5d5dac9868f812fec69edb064a5bfbb3/src/gpl/src/nesterovBase.cpp#L1184 \n
-   * , which name is `void NesterovBase::initFillerGCells()`. \n\n
    * This method set the filler width and heights, and the number of the fillers.
    * The number of the fillers considers the area of die, target density, and the area of filler, etc. \n
-   * After setting them, this function sets the filler coordinates randomly.
+   * After setting them, this function sets the filler coordinates randomly.\n\n
+   * This method highly refers to the code in below link. \n
+   * https://github.com/The-OpenROAD-Project/OpenROAD/blob/402c5cff5d5dac9868f812fec69edb064a5bfbb3/src/gpl/src/nesterovBase.cpp#L1184 \n
+   * , which name is `void NesterovBase::initFillerGCells()`.
    *
    * \pre
    * You should call `setInstancesArea()` method before calling this code.
@@ -102,14 +101,14 @@ class Chip::NesterovPlacer {
    * This methods initializes the bins.
    *
    * \details
-   * This method highly refers to the code in below link. \n
-   * https://github.com/The-OpenROAD-Project/OpenROAD/blob/402c5cff5d5dac9868f812fec69edb064a5bfbb3/src/gpl/src/nesterovBase.cpp#L723 \n
-   * , which name is `void BinGrid::initBins()`. \n\n
    * The \c Bin is for defining the gradient vectors.
    * Using bin notion, the complexity is reasonably highly deduced keeping the result reasonable.\n
    * In this function, the number of bins and the size of bins is determined. \n
    * And in the `updateBinsNonPlaceArea()` function, get the overlapped area with each bin and each instances. \n
-   * How many cells is overlapped with the bin determine the charge amounts in the bin.
+   * How many cells is overlapped with the bin determine the charge amounts in the bin.\n\n
+   * This method highly refers to the code in below link. \n
+   * https://github.com/The-OpenROAD-Project/OpenROAD/blob/402c5cff5d5dac9868f812fec69edb064a5bfbb3/src/gpl/src/nesterovBase.cpp#L723 \n
+   * , which name is `void BinGrid::initBins()`.
    *
    * \pre
    * You should call `setInstancesArea()` and `initFillerCells()` methods before calling this code.
@@ -124,11 +123,11 @@ class Chip::NesterovPlacer {
    * Set the non place area for each bin
    *
    * \details
+   * This function should be called only in `initBins()` function. \n
+   * Here, the function sets the value for how many cells is overlapped with the each bins.\n\n
    * This method highly refers to the code in below link. \n
    * https://github.com/The-OpenROAD-Project/OpenROAD/blob/402c5cff5d5dac9868f812fec69edb064a5bfbb3/src/gpl/src/nesterovBase.cpp#L806 \n
-   * , which name is `void BinGrid::updateBinsNonPlaceArea()`. \n\n
-   * This function should be called only in `initBins()` function. \n
-   * Here, the function sets the value for how many cells is overlapped with the each bins.
+   * , which name is `void BinGrid::updateBinsNonPlaceArea()`.
    *
    * \pre
    * You should call `setInstancesArea()` and `initFillerCells()` methods before calling this code,
@@ -155,14 +154,13 @@ class Chip::NesterovPlacer {
    * adjusted target coordinate
    *
    * \details
-   * This method highly refers to the code in below link. \n
-   * https://github.com/The-OpenROAD-Project/OpenROAD/blob/e0983e4988d09bcffe31590ae3d921489159fd10/src/gpl/src/nesterovBase.cpp#L1586 \n
-   * , which name is `getDensityCoordiLayoutInsideX` . \n\n
    * The `cx`  is considered as target coordinate. This means the center location of the cell. \n
    * If `cx` makes the cell out of the die, then adjust the target coordinate (`adjVal`) to be in the die for the cell.
    * The adjusted target coordinate will be returned as return value. \n
-   * This function only for x coordinate.
-   *
+   * This function only for x coordinate. \n\n
+   * This method highly refers to the code in below link. \n
+   * https://github.com/The-OpenROAD-Project/OpenROAD/blob/e0983e4988d09bcffe31590ae3d921489159fd10/src/gpl/src/nesterovBase.cpp#L1586 \n
+   * , which name is `getDensityCoordiLayoutInsideX` .
    * */
   float getDensityCoordiLayoutInsideX(Instance *instance, float cx);
 
@@ -222,9 +220,16 @@ class Chip::NesterovPlacer {
   void updateGCellDensityCenterLocation(const vector<pair<float, float>> &coordinates);
 
   /*!
-   *
+   * \name
+   * getMinMaxIdxX
+   * \details
    * */
   std::pair<int, int> getMinMaxIdxX(Instance *inst) const;
+  /*!
+   * \name
+   * getMinMaxIdxY
+   * \details
+   * */
   std::pair<int, int> getMinMaxIdxY(Instance *inst) const;
   // TODO: need to be examined
   /*!
@@ -251,12 +256,37 @@ class Chip::NesterovPlacer {
 
   static int fastModulo(int input, const int ceil);
   /*!
+   * \name
+   * getOverlapArea
    * \return
    * the overlapped area between bin and instance
    * */
   static int64_t getOverlapArea(const Bin *bin, Instance *inst, int dbu_per_micron);
-  static float calculateBiVariateNormalCDF(biNormalParameters i);
   static int64_t getOverlapAreaUnscaled(const Bin *bin, Instance *inst);
+  /*!
+   * \name
+   * calculateBiVariateNormalCDF
+   * \brief
+   *
+   * \details
+   *   A function that does 2D integration to the density function of a
+   *   bivariate normal distribution with 0 correlation.
+   *   Essentially, the function being integrated is the product
+   *   of 2 1D probability density functions (for x and y). The means and standard
+   *   deviation of the probablity density functions are parametarized. In this
+   *   function, I am using the closed-form solution of the integration. The limits
+   *   of integration are lx->ux and ly->uy For reference: the equation that is
+   *   being integrated is:
+   *   (1/(2*pi*sigmaX*sigmaY))*e^(-(y-meanY)^2/(2*sigmaY*sigmaY))*e^(-(x-meanX)^2/(2*sigmaX*sigmaX))
+   * \pre
+   * This is called in only getOverlapArea function
+   * */
+  static float calculateBiVariateNormalCDF(biNormalParameters i);
+  /*!
+   * \name
+   * updateDensitySize
+   *
+   * */
   void updateDensitySize();
   void updateDensityForceBin();
   void updateWireLengthForceWA(float wlCoeffX, float wlCoeffY);

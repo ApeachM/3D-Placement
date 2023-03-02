@@ -199,7 +199,7 @@ void Chip::placement2DieSynchronously() {
 
   /////////////////////////////////////////////////////////////////////////
   NesterovPlacer nestrov_placer1(
-      this->parser_.db_database_,
+      this->db_database_,
       dieVar1.instance_pointers,
       dieVar1.net_pointers_,
       dieVar1.pin_pointers_,
@@ -207,7 +207,7 @@ void Chip::placement2DieSynchronously() {
       this->die_pointers_.at(1)
   );
   NesterovPlacer nestrov_placer2(
-      this->parser_.db_database_,
+      this->db_database_,
       dieVar2.instance_pointers,
       dieVar2.net_pointers_,
       dieVar2.pin_pointers_,

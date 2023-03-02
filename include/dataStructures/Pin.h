@@ -45,8 +45,8 @@ class Pin {
   odb::dbITerm *db_i_term_ = nullptr;
   odb::dbBTerm *db_b_term_ = nullptr;
 
-  data_storage *data_storage_ = nullptr;
-  data_mapping *data_mapping_ = nullptr;
+  Instance* connected_instance = nullptr;
+  Net* connected_net = nullptr;
 
   bool min_pin_x_field_ = true;
   bool min_pin_y_field_ = true;
@@ -90,9 +90,6 @@ class Pin {
   Pin() = default;
   explicit Pin(odb::dbITerm *db_iterm);
   explicit Pin(odb::dbBTerm *db_b_term);
-  /// methods for Chip.init()
-  void setDataStorage(data_storage *data_storage);
-  void setDataMapping(data_mapping *data_mapping);
   dbITerm *getDbITerm() const;
   dbBTerm *getDbBTerm() const;
   /// return boolean whether it is instance pin or not
@@ -120,6 +117,11 @@ class Pin {
   /// \details
   /// the returned coordinate will be the center of the box (pin shape)
   pair<int, int> getCoordinate();;
+
+  Instance *getConnectedInstance() const;
+  void setConnectedInstance(Instance *connected_instance);
+  Net *getConnectedNet() const;
+  void setConnectedNet(Net *connected_net);
 
   void setMinPinXField(bool min_pin_x_field);
   void setMinPinYField(bool min_pin_y_field);

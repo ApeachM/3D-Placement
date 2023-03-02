@@ -44,80 +44,12 @@ using namespace std;
 class Pin;
 class Instance;
 class Net {
- private:
-  odb::dbDatabase *db_database_ = nullptr;
-  odb::dbNet *db_net_ = nullptr;
-  data_storage *data_storage_ = nullptr;
-  data_mapping *data_mapping_ = nullptr;
-
-  std::string name_;
-
-  int lx_;
-  int ly_;
-  int ux_;
-  int uy_;
-
-  float timingWeight_ = 1;
-  float customWeight_ = 1;
-
-  /*
-   weighted average WL model stor for better indexing
-   Please check the equation (4) in the ePlace-MS paper.
-
-   WA: weighted Average
-   saving four variable will be helpful for
-   calculating the WA gradients/wirelengths.
-
-   gamma: modeling accuracy.
-  */
-
-  /*
-   X forces.
-
-   waExpMinSumX_: store sigma {exp(x_i/gamma)}
-   waXExpMinSumX_: store signa {x_i*exp(e_i/gamma)}
-   waExpMaxSumX_ : store sigma {exp(-x_i/gamma)}
-   waXExpMaxSumX_: store sigma {x_i*exp(-x_i/gamma)}
-  */
-  float waExpMinSumX_ = 0;
-  float waXExpMinSumX_ = 0;
-
-  float waExpMaxSumX_ = 0;
-  float waXExpMaxSumX_ = 0;
-
-  /*
-   Y forces.
-
-   waExpMinSumY_: store sigma {exp(y_i/gamma)}
-   waYExpMinSumY_: store signa {y_i*exp(e_i/gamma)}
-   waExpMaxSumY_ : store sigma {exp(-y_i/gamma)}
-   waYExpMaxSumY_: store sigma {y_i*exp(-y_i/gamma)}
-  */
-  float waExpMinSumY_ = 0;
-  float waYExpMinSumY_ = 0;
-
-  float waExpMaxSumY_ = 0;
-  float waYExpMaxSumY_ = 0;
-
-  unsigned char isDontCare_: 1;
-
-  // if this net has been shared by two die, then we pretend it is intersected_
-  bool intersected_ = false;
-  // if this net is on the die1 or die2, then this value will be 1 or 2, respectively.
-  // if this net is intersected, then this value will be -1.
-  // if this net is on virtual, then this value will be zero.
-  int die_id_ = 0;
-  // this should be nullptr only when `intersected_` is false
-  Pin* hybrid_bond_pin_ = nullptr;
-
  public:
   /// Constructors
   Net() = default;
   explicit Net(odb::dbNet *db_net);
   /// methods for Chip.init()
   dbNet *getDbNet() const;
-  void setDataMapping(data_mapping *data_mapping);
-  void setDataStorage(data_storage *data_storage);
 
   /// get net name
   string getName();
@@ -181,6 +113,76 @@ class Net {
   void setDieId(int die_id);
   Pin *getHybridBondPin() const;
   void setHybridBondPin(Pin *hybrid_bond_pin);
+
+  void setConnectedPins(const vector<Pin *> &connected_pins);
+  const vector<Instance *> &getConnectedInstances() const;
+  void setConnectedInstances(const vector<Instance *> &connected_instances);
+
+ private:
+  odb::dbDatabase *db_database_ = nullptr;
+  odb::dbNet *db_net_ = nullptr;
+
+  vector<Pin*> connected_pins_;
+  vector<Instance*> connected_instances_;
+
+  std::string name_;
+
+  int lx_;
+  int ly_;
+  int ux_;
+  int uy_;
+
+  float timingWeight_ = 1;
+  float customWeight_ = 1;
+
+  /*
+   weighted average WL model stor for better indexing
+   Please check the equation (4) in the ePlace-MS paper.
+
+   WA: weighted Average
+   saving four variable will be helpful for
+   calculating the WA gradients/wirelengths.
+
+   gamma: modeling accuracy.
+  */
+
+  /*
+   X forces.
+   waExpMinSumX_: store sigma {exp(x_i/gamma)}
+   waXExpMinSumX_: store signa {x_i*exp(e_i/gamma)}
+   waExpMaxSumX_ : store sigma {exp(-x_i/gamma)}
+   waXExpMaxSumX_: store sigma {x_i*exp(-x_i/gamma)}
+  */
+  float waExpMinSumX_ = 0;
+  float waXExpMinSumX_ = 0;
+
+  float waExpMaxSumX_ = 0;
+  float waXExpMaxSumX_ = 0;
+
+  /*
+   Y forces.
+   waExpMinSumY_: store sigma {exp(y_i/gamma)}
+   waYExpMinSumY_: store signa {y_i*exp(e_i/gamma)}
+   waExpMaxSumY_ : store sigma {exp(-y_i/gamma)}
+   waYExpMaxSumY_: store sigma {y_i*exp(-y_i/gamma)}
+  */
+  float waExpMinSumY_ = 0;
+  float waYExpMinSumY_ = 0;
+
+  float waExpMaxSumY_ = 0;
+  float waYExpMaxSumY_ = 0;
+
+  unsigned char isDontCare_: 1;
+
+  // if this net has been shared by two die, then we pretend it is intersected_
+  bool intersected_ = false;
+  // if this net is on the die1 or die2, then this value will be 1 or 2, respectively.
+  // if this net is intersected, then this value will be -1.
+  // if this net is on virtual, then this value will be zero.
+  int die_id_ = 0;
+  // this should be nullptr only when `intersected_` is false
+  Pin* hybrid_bond_pin_ = nullptr;
+
 };
 
 }

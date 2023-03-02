@@ -139,6 +139,7 @@ bool Chip::NesterovPlacer::initNestrovPlace() {
     cout << "RePlAce diverged at initial iteration. Re-run with a smaller init_density_penalty value." << endl;
   }
 
+  return true;
 }
 int Chip::NesterovPlacer::doNestrovPlace(int start_iter, bool only_one_iter) {
   // refer: https://github.com/The-OpenROAD-Project/OpenROAD/blob/a5e786eb65f40abfb7004b18312d519dac95cc33/src/gpl/src/nesterovPlace.cpp#L482
@@ -625,17 +626,6 @@ int64_t Chip::NesterovPlacer::getOverlapArea(const Chip::NesterovPlacer::Bin *bi
   }
 }
 float Chip::NesterovPlacer::calculateBiVariateNormalCDF(Chip::NesterovPlacer::biNormalParameters i) {
-  /*!\brief
-  A function that does 2D integration to the density function of a
-  bivariate normal distribution with 0 correlation.
-  Essentially, the function being integrated is the product
-  of 2 1D probability density functions (for x and y). The means and standard
-  deviation of the probablity density functions are parametarized. In this
-  function, I am using the closed-form solution of the integration. The limits
-  of integration are lx->ux and ly->uy For reference: the equation that is
-  being integrated is:
-       (1/(2*pi*sigmaX*sigmaY))*e^(-(y-meanY)^2/(2*sigmaY*sigmaY))*e^(-(x-meanX)^2/(2*sigmaX*sigmaX))
-  */
   const float x1 = (i.meanX - i.lx) / (sqrt(2) * i.sigmaX);
   const float x2 = (i.meanX - i.ux) / (sqrt(2) * i.sigmaX);
 

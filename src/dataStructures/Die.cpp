@@ -32,7 +32,7 @@
 // POSSIBILITY OF SUCH DAMAGE.
 ///////////////////////////////////////////////////////////////////////////////
 
-#include "Die.h"
+#include "Chip.h"
 
 namespace VLSI_backend {
 

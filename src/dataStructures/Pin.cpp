@@ -44,14 +44,6 @@ Pin::Pin(odb::dbBTerm *db_b_term) {
   db_b_term_ = db_b_term;
   parent_ = db_b_term_->getDb();
 }
-void Pin::setDataStorage(data_storage *data_storage) {
-  if (data_storage_ == nullptr)
-    data_storage_ = data_storage;
-}
-void Pin::setDataMapping(data_mapping *data_mapping) {
-  if (data_mapping_ == nullptr)
-    data_mapping_ = data_mapping;
-}
 dbITerm *Pin::getDbITerm() const {
   return db_i_term_;
 }
@@ -71,12 +63,10 @@ bool Pin::isBlockPin() {
     return false;
 }
 Net *Pin::getNet() {
-  if (isInstancePin()) {
-    return data_mapping_->net_map[db_i_term_->getNet()];
-  } else if (isBlockPin()) {
-    return data_mapping_->net_map[db_b_term_->getNet()];
-  } else if (isHybridBondPin()) {
+  if (isHybridBondPin()) {
     return intersected_net_;
+  } else {
+    return connected_net;
   }
 }
 string Pin::getSignalType() {
@@ -110,7 +100,7 @@ pair<int, int> Pin::getCoordinate() {
 }
 Instance *Pin::getInstance() {
   if (isInstancePin())
-    return data_mapping_->inst_map[db_i_term_->getInst()];
+    return connected_instance;
   else if (isHybridBondPin()) {
     return hybrid_bond_;
   } else
@@ -189,5 +179,17 @@ Instance *Pin::getHybridBond() const {
 }
 void Pin::setHybridBond(Instance *hybrid_bond) {
   hybrid_bond_ = hybrid_bond;
+}
+Instance *Pin::getConnectedInstance() const {
+  return connected_instance;
+}
+void Pin::setConnectedInstance(Instance *connected_instance) {
+  Pin::connected_instance = connected_instance;
+}
+Net *Pin::getConnectedNet() const {
+  return connected_net;
+}
+void Pin::setConnectedNet(Net *connected_net) {
+  Pin::connected_net = connected_net;
 }
 } // VLSI_backend
