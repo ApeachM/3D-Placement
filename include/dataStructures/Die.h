@@ -40,21 +40,29 @@ namespace VLSI_backend {
 using namespace odb;
 class Die {
  private:
+  dbDatabase *db_database_ = nullptr;
   dbBlock *db_block_ = nullptr;
+  dbTech *db_tech_ = nullptr;
+  dbTechLayer *db_tech_layer_ = nullptr;
+  dbLib *db_lib_ = nullptr;
+  dbChip *db_chip_ = nullptr;
+
   Rect die_shape_{};
 
   float density_ = 1.0;
 
   uint width_ = 0;
-  uint height_ = 0 ;
+  uint height_ = 0;
 
   int die_id_ = 0;
+  string tech_name_;
+  int lib_num_ = 0;
 
  public:
   Die() = default;
   explicit Die(dbBlock *db_block);
   void setDbBlock(dbBlock *db_block);
-  void setDieSize(uint width , uint height);
+  void setDieSize(uint width, uint height);
   uint getWidth();
   uint getHeight();
 
@@ -62,21 +70,36 @@ class Die {
   float getDensity() const;
   void setDensity(double density);
 
-  int getLowerLeftX(){
+  int getLowerLeftX() {
     return die_shape_.ll().getX();
   }
-  int getLowerLeftY(){
+  int getLowerLeftY() {
     return die_shape_.ll().getY();
   }
-  int getUpperRightX(){
+  int getUpperRightX() {
     return die_shape_.ur().getX();
   }
-  int getUpperRightY(){
+  int getUpperRightY() {
     return die_shape_.ur().getY();
   }
 
   int getDieId() const;
   void setDieId(int die_id);
+  dbDatabase *getDbDatabase() const;
+  void setDbDatabase(dbDatabase *db_database);
+  dbBlock *getDbBlock() const;
+  dbTech *getDbTech() const;
+  void setDbTech(dbTech *db_tech);
+  dbTechLayer *getDbTechLayer() const;
+  void setDbTechLayer(dbTechLayer *db_tech_layer);
+  dbLib *getDbLib() const;
+  void setDbLib(dbLib *db_lib);
+  dbChip *getDbChip() const;
+  void setDbChip(dbChip *db_chip);
+  const string &getTechName() const;
+  void setTechName(const string &tech_name);
+  int getLibNum() const;
+  void setLibNum(int lib_num);
 
 };
 

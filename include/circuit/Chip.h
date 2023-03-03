@@ -85,12 +85,7 @@ class Chip {
   class NesterovPlacer;
 
  public:
-  Chip(){
-    db_database_ = odb::dbDatabase::create();
-    db_database_top_ = odb::dbDatabase::create();
-    db_database_bottom_ = odb::dbDatabase::create();
-    parser_.db_database_ = db_database_;
-  }
+  Chip();
   ~Chip() = default;
   /*!
    * \brief
@@ -128,8 +123,9 @@ class Chip {
    * Minjae Kim \n
    * GitHub: ApeachM (https://github.com/ApeachM)
    * */
-  void input_file_name(const string &lef_name);
+  void parseICCAD(const string &input_file_name);
   void write(const string &out_file_name);
+  void test();
 
   // etc
   void dbTutorial() const;
@@ -219,8 +215,6 @@ class Chip {
   ulong getHPWL();
 
   odb::dbDatabase *db_database_{};
-  odb::dbDatabase *db_database_top_{};
-  odb::dbDatabase *db_database_bottom_{};
 
   Parser parser_;
   data_storage data_storage_;

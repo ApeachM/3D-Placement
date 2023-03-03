@@ -37,6 +37,10 @@
 using namespace std;
 
 namespace VLSI_backend {
+Chip::Chip() {
+  db_database_ = odb::dbDatabase::create();
+  parser_.db_database_ = db_database_;
+}
 void Chip::parse(const string &lef_name, const string &def_name) {
   parser_.readLef(lef_name);
   parser_.readDef(def_name);
@@ -218,7 +222,29 @@ ulong Chip::getHPWL() {
   }
   return HPWL;
 }
-void Chip::input_file_name(const string &input_file_name) {
+void Chip::test() {
+  die_pointers_.at(0)->setDbDatabase(odb::dbDatabase::create());
+  die_pointers_.at(1)->setDbDatabase(odb::dbDatabase::create());
+
+  dbDatabase *top_die_db = die_pointers_.at(0)->getDbDatabase();
+  dbDatabase *bottom_die_db = die_pointers_.at(1)->getDbDatabase();
+
+  cout << db_database_->getChip()->getId() << endl;
+  cout << db_database_->getTech()->getLefVersion() << endl << endl;
+
+  cout << top_die_db->getTech() << endl;
+  dbTech *top_db_tech = dbTech::create(top_die_db);
+  dbTechLayer *layer = dbTechLayer::create(top_db_tech, "Layer1", dbTechLayerType::MASTERSLICE);
+  dbLib *lib = dbLib::create(top_die_db, "topDie", ',');
+  dbChip *chip = dbChip::create(top_die_db);
+  dbBlock *block = dbBlock::create(chip, "simple_block");
+
+  //
+
+
+}
+
+void Chip::parseICCAD(const string &input_file_name) {
   // open input file
   ifstream input_file(input_file_name);
   if (input_file.fail()) {
@@ -236,8 +262,78 @@ void Chip::input_file_name(const string &input_file_name) {
   // Syntax of input file: NumTechnologies <technologyCount>
   input_file >> info >> n1;
   assert(info == "NumTechnologies");
-  this->num_technologies_ = n1;
+  num_technologies_ = n1;
 
+  // Make Dies as much as technologies
+  // one for pseudo die
+  for (int i = 0; i < num_technologies_ + 1; ++i) {
+    Die die;
+    data_storage_.dies.push_back(die);
+  }
+  for (int i = 0; i < n1 + 1; ++i) {
+    die_pointers_.push_back(&data_storage_.dies.at(i));
+  }
+
+
+  /////////////////////////////////// lef parsing for each tier ///////////////////////////////////////
+  for (int i = 0; i < num_technologies_; ++i) {
+    // Syntax: Tech <techName> <libCellCount>
+    input_file >> info >> name1 >> n1;
+    assert(info == "Tech");
+
+    // Tech tech(name1, n1);
+    dbDatabase *db_database = die_pointers_.at(i)->getDbDatabase();
+    dbTech *db_tech = dbTech::create(db_database);
+    dbTechLayer *db_tech_layer = dbTechLayer::create(db_tech, "Layer1", dbTechLayerType::MASTERSLICE);
+    dbLib *db_lib = dbLib::create(db_database, info.c_str(), ',');
+    dbChip *db_chip = dbChip::create(db_database);
+    dbBlock *db_block = dbBlock::create(db_chip, (to_string(i) + "th Die Block").c_str());
+
+    die_pointers_.at(i)->setDbTech(db_tech);
+    die_pointers_.at(i)->setDbTechLayer(db_tech_layer);
+    die_pointers_.at(i)->setDbLib(db_lib);
+    die_pointers_.at(i)->setDbChip(db_chip);
+    die_pointers_.at(i)->setDbBlock(db_block);
+    die_pointers_.at(i)->setLibNum(n1);
+
+    // read LibCells in one tech
+    for (int j = 0; j < die_pointers_.at(i)->getLibNum(); j++) {
+      // Syntax: LibCell <libCellName> <libCellSizeX> <libCellSizeY> <pinCount>
+      input_file >> info >> name1 >> n1 >> n2 >> n3;
+      assert(info == "LibCell");
+
+      // (refer to `dbDatabase* createMaster2X1()` submodule/OpenDB/tests/cpp/helper.cpp)
+      dbMaster *master = dbMaster::create(db_lib, name1.c_str());
+      master->setWidth(n1);
+      master->setHeight(n2);
+      master->setType(dbMasterType::CORE);
+
+      // read pins in one LibCell
+      for (int k = 0; k < n3; ++k) {
+        // Syntax: Pin <pinName> <pinLocationX> <pinLocationY>
+        input_file >> info >> name1 >> n4 >> n5;
+        assert(info == "Pin");
+
+        // (refer to `void lefin::pin` function in submodule/OpenDB/src/lefin/lefin.cpp)
+        dbIoType io_type = dbIoType::INOUT;  // There's no information in this contest benchmarks.
+        dbSigType sig_type = dbSigType::SIGNAL;  // There's no information in this contest benchmarks.
+        dbMTerm *master_terminal = dbMTerm::create(master, name1.c_str(), io_type, sig_type);
+        dbMPin *db_m_pin = dbMPin::create(master_terminal);
+
+        // (refer to `bool lefin::addGeoms` function in submodule/OpenDB/src/lefin/lefin.cpp in case of `lefiGeomRectE`)
+        // TODO: should check the unit.
+        dbBox::create(db_m_pin, db_tech_layer, n4, n5, n4 + 1, n5 + 1);
+      }
+    }
+
+    // Syntax: DieSize <lowerLeftX> <lowerLeftY> <upperRightX> <upperRightY>
+    input_file >> info >> n1 >> n2 >> n3 >> n4;
+    assert(info == "DieSize");
+    for (int j = 0; j < num_technologies_+1; ++j) {
+
+    }
+
+  }
 }
 int Chip::getUnitOfMicro() const {
   return db_database_->getTech()->getDbUnitsPerMicron();
