@@ -46,8 +46,8 @@ class Instance {
   odb::dbDatabase *db_database_ = nullptr;
   odb::dbInst *db_inst_ = nullptr;
 
-  string name_;
-  string libName_;
+  string name_ = "";
+  string libName_ = "";
   int id_{};
   int die_id_ = 0;
   bool is_macro_ = false;
@@ -88,6 +88,12 @@ class Instance {
   /// return the library name of the cell
   /// example: DFF_X1
   string getLibName();
+
+  /*!
+   * \pre
+   * `setLibname()` && `setDbDatabase()`
+   * */
+  void setLibrary(dbMaster *master);
 
   /*!
    * \brief
@@ -218,6 +224,10 @@ class Instance {
   void setHybridBondPin(Pin *hybrid_bond_pin);
   void setConnectedPins(vector<Pin *> connected_pins);
   void setConnectedNets(vector<Net *> connected_nets);
+  void setInstName(const string &name);
+  void setLibName(const string &lib_name);
+  dbDatabase *getDbDatabase() const;
+  void setDbDatabase(dbDatabase *db_database);
 };
 
 }

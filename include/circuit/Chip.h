@@ -214,6 +214,15 @@ class Chip {
    * */
   ulong getHPWL();
 
+  int getInstanceNumber() const;
+  void setInstanceNumber(int instance_number);
+  int getNetNumber() const;
+  void setNetNumber(int net_number);
+ public:
+  dbDatabase *getDbDatabase() const;
+  void setDbDatabase(dbDatabase *db_database);
+ protected:
+
   odb::dbDatabase *db_database_{};
 
   Parser parser_;
@@ -227,8 +236,14 @@ class Chip {
   std::vector<Die *> die_pointers_;
 
   int num_technologies_ = 0;
-  int lib_cell_num_ = 0;
-  int util_ = 100;
+
+  // hybrid size and spacing
+  int hybrid_size_x_ = 0;
+  int hybrid_size_y_ = 0;
+  int hybrid_spacing_ = 0;
+
+  int instance_number_ = 0;
+  int net_number_ = 0;
 
 };
 

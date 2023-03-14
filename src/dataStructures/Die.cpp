@@ -33,6 +33,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include "Chip.h"
+#include "Die.h"
 
 namespace VLSI_backend {
 
@@ -56,7 +57,6 @@ uint Die::getArea() {
   return die_shape_.area();
 }
 void Die::setDieSize(uint width, uint height) {
-  // TODO: set the size of dbBlock, and call setDbBlock
   width_ = width;
   height_ = height;
 }
@@ -116,5 +116,18 @@ int Die::getLibNum() const {
 }
 void Die::setLibNum(int lib_num) {
   lib_num_ = lib_num;
+}
+int Die::getMaxUtil() const {
+  return max_util_;
+}
+void Die::setMaxUtil(int max_util) {
+  max_util_ = max_util;
+}
+void Die::setRowInfo(int start_x, int start_y, int row_width, int row_height, int repeat_count) {
+  row_info_.start_x_ = start_x;
+  row_info_.start_y_ = start_y;
+  row_info_.row_width_ = row_width;
+  row_info_.row_height_ = row_height;
+  row_info_.repeat_count_ = repeat_count;
 }
 } // VLSI_backend

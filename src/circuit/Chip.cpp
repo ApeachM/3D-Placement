@@ -223,35 +223,118 @@ ulong Chip::getHPWL() {
   return HPWL;
 }
 void Chip::test() {
-  die_pointers_.at(0)->setDbDatabase(odb::dbDatabase::create());
-  die_pointers_.at(1)->setDbDatabase(odb::dbDatabase::create());
+  dbDatabase *die_db = odb::dbDatabase::create();
+  setDbDatabase(die_db);
 
-  dbDatabase *top_die_db = die_pointers_.at(0)->getDbDatabase();
-  dbDatabase *bottom_die_db = die_pointers_.at(1)->getDbDatabase();
+  // create simple db
+  cout << die_db->getTech() << endl;
 
-  cout << db_database_->getChip()->getId() << endl;
-  cout << db_database_->getTech()->getLefVersion() << endl << endl;
-
-  cout << top_die_db->getTech() << endl;
-  dbTech *top_db_tech = dbTech::create(top_die_db);
-  dbTechLayer *layer = dbTechLayer::create(top_db_tech, "Layer1", dbTechLayerType::MASTERSLICE);
-  dbLib *lib = dbLib::create(top_die_db, "topDie", ',');
-  dbChip *chip = dbChip::create(top_die_db);
+  dbTech *db_tech = dbTech::create(die_db);
+  dbTechLayer *layer = dbTechLayer::create(db_tech, "pseudoLayer1", dbTechLayerType::MASTERSLICE);
+  dbLib *lib = dbLib::create(die_db, "lib", ',');
+  dbChip *chip = dbChip::create(die_db);
   dbBlock *block = dbBlock::create(chip, "simple_block");
 
-  //
+  dbMaster *master_and2 = dbMaster::create(lib, "and2");
+  master_and2->setWidth(30);
+  master_and2->setHeight(40);
+  master_and2->setType(dbMasterType::CORE);
+  dbMTerm *master_terminal_a = dbMTerm::create(master_and2, "a", dbIoType::INOUT, dbSigType::SIGNAL);
+  dbMTerm *master_terminal_b = dbMTerm::create(master_and2, "b", dbIoType::INPUT, dbSigType::SIGNAL);
+  dbMTerm *master_terminal_o = dbMTerm::create(master_and2, "o", dbIoType::OUTPUT, dbSigType::SIGNAL);
+  dbMPin *m_pin_a = dbMPin::create(master_terminal_a);
+  dbMPin *m_pin_b = dbMPin::create(master_terminal_b);
+  dbMPin *m_pin_o = dbMPin::create(master_terminal_o);
+  dbBox::create(m_pin_a, layer, 1, 2, 3, 4);
+  dbBox::create(m_pin_b, layer, 10, 20, 11, 21);
+  dbBox::create(m_pin_o, layer, 20, 30, 21, 31);
+  master_and2->setFrozen();
 
+  dbMaster *master_or2 = dbMaster::create(lib, "or");
+  master_or2->setWidth(40);
+  master_or2->setHeight(50);
+  master_or2->setType(dbMasterType::CORE);
+  master_terminal_a = dbMTerm::create(master_or2, "a", dbIoType::INOUT, dbSigType::SIGNAL);
+  master_terminal_b = dbMTerm::create(master_or2, "b", dbIoType::INPUT, dbSigType::SIGNAL);
+  master_terminal_o = dbMTerm::create(master_or2, "o", dbIoType::OUTPUT, dbSigType::SIGNAL);
+  m_pin_a = dbMPin::create(master_terminal_a);
+  m_pin_b = dbMPin::create(master_terminal_b);
+  m_pin_o = dbMPin::create(master_terminal_o);
+  dbBox::create(m_pin_a, layer, 2, 3, 3, 4);
+  dbBox::create(m_pin_b, layer, 10, 20, 11, 21);
+  dbBox::create(m_pin_o, layer, 30, 40, 31, 41);
+  master_or2->setFrozen();
+
+
+  // #     (n1)   +-----
+  // #    --------|a    \    (n5)
+  // #     (n2)   | (i1)o|-----------+
+  // #    --------|b    /            |       +-------
+  // #            +-----             +--------\a     \    (n7)
+  // #                                         ) (i3)o|---------------
+  // #     (n3)   +-----             +--------/b     /
+  // #    --------|a    \    (n6)    |       +-------
+  // #     (n4)   | (i2)o|-----------+
+  // #    --------|b    /
+  // #            +-----
+
+  // create 2 level db with no b terms
+  dbInst *i1 = dbInst::create(block, master_and2, "i1");
+  dbInst *i2 = dbInst::create(block, master_and2, "i2");
+  dbInst *i3 = dbInst::create(block, master_or2, "i3");
+
+  dbNet *n1 = dbNet::create(block, "n1");
+  dbNet *n2 = dbNet::create(block, "n2");
+  dbNet *n3 = dbNet::create(block, "n3");
+  dbNet *n4 = dbNet::create(block, "n4");
+  dbNet *n5 = dbNet::create(block, "n5");
+  dbNet *n6 = dbNet::create(block, "n6");
+  dbNet *n7 = dbNet::create(block, "n7");
+  dbITerm::connect(i1->findITerm("a"), n1);
+  dbITerm::connect(i1->findITerm("b"), n2);
+  dbITerm::connect(i2->findITerm("a"), n3);
+  dbITerm::connect(i2->findITerm("b"), n4);
+  dbITerm::connect(i3->findITerm("a"), n5);
+  dbITerm::connect(i3->findITerm("b"), n6);
+  dbITerm::connect(i1->findITerm("o"), n5);
+  dbITerm::connect(i2->findITerm("o"), n6);
+  dbITerm::connect(i3->findITerm("o"), n7);
+
+  i1->setPlacementStatus(odb::dbPlacementStatus::PLACED);
+  i1->setLocation(30, 20);
+  i2->setPlacementStatus(odb::dbPlacementStatus::PLACED);
+  i2->setLocation(200, 300);
+  i3->setPlacementStatus(odb::dbPlacementStatus::PLACED);
+  i3->setLocation(0, 0);
+
+  cout << "chip: " << chip << "\t" << db_database_->getChip() << endl;
+  cout << "block: " << block << "\t" << db_database_->getChip()->getBlock() << endl;
 
 }
 
 void Chip::parseICCAD(const string &input_file_name) {
+  struct PinInfo {
+    string pin_name;
+    int pin_location_x;
+    int pin_location_y;
+  };
+  struct LibCellInfo {
+    string lib_cell_name;
+    int lib_cell_size_x;
+    int lib_cell_size_y;
+    int pin_number;
+    vector<PinInfo> pin_infos;
+  };
+
+  vector<LibCellInfo> lib_cell_infos1;
+  vector<LibCellInfo> lib_cell_infos2;
+
   // open input file
   ifstream input_file(input_file_name);
   if (input_file.fail()) {
     cerr << "Cannot open the input file: " << input_file_name << endl;
     exit(1);
   }
-
   // parsing start //
 
   // temporal variables
@@ -270,22 +353,21 @@ void Chip::parseICCAD(const string &input_file_name) {
     Die die;
     data_storage_.dies.push_back(die);
   }
-  for (int i = 0; i < n1 + 1; ++i) {
+  for (int i = 0; i < n1 + 1; ++i)
     die_pointers_.push_back(&data_storage_.dies.at(i));
-  }
-
 
   /////////////////////////////////// lef parsing for each tier ///////////////////////////////////////
-  for (int i = 0; i < num_technologies_; ++i) {
+  for (int i = 1; i < num_technologies_ + 1; ++i) {
     // Syntax: Tech <techName> <libCellCount>
     input_file >> info >> name1 >> n1;
     assert(info == "Tech");
 
     // Tech tech(name1, n1);
+    die_pointers_.at(i)->setDbDatabase(odb::dbDatabase::create());
     dbDatabase *db_database = die_pointers_.at(i)->getDbDatabase();
     dbTech *db_tech = dbTech::create(db_database);
     dbTechLayer *db_tech_layer = dbTechLayer::create(db_tech, "Layer1", dbTechLayerType::MASTERSLICE);
-    dbLib *db_lib = dbLib::create(db_database, info.c_str(), ',');
+    dbLib *db_lib = dbLib::create(db_database, name1.c_str(), ',');
     dbChip *db_chip = dbChip::create(db_database);
     dbBlock *db_block = dbBlock::create(db_chip, (to_string(i) + "th Die Block").c_str());
 
@@ -302,6 +384,12 @@ void Chip::parseICCAD(const string &input_file_name) {
       input_file >> info >> name1 >> n1 >> n2 >> n3;
       assert(info == "LibCell");
 
+      LibCellInfo lib_cell_info;
+      lib_cell_info.lib_cell_name = name1;
+      lib_cell_info.lib_cell_size_x = n1;
+      lib_cell_info.lib_cell_size_y = n2;
+      lib_cell_info.pin_number = n3;
+
       // (refer to `dbDatabase* createMaster2X1()` submodule/OpenDB/tests/cpp/helper.cpp)
       dbMaster *master = dbMaster::create(db_lib, name1.c_str());
       master->setWidth(n1);
@@ -314,6 +402,12 @@ void Chip::parseICCAD(const string &input_file_name) {
         input_file >> info >> name1 >> n4 >> n5;
         assert(info == "Pin");
 
+        PinInfo pin_info;
+        pin_info.pin_name = name1;
+        pin_info.pin_location_x = n4;
+        pin_info.pin_location_y = n5;
+        lib_cell_info.pin_infos.push_back(pin_info);
+
         // (refer to `void lefin::pin` function in submodule/OpenDB/src/lefin/lefin.cpp)
         dbIoType io_type = dbIoType::INOUT;  // There's no information in this contest benchmarks.
         dbSigType sig_type = dbSigType::SIGNAL;  // There's no information in this contest benchmarks.
@@ -324,209 +418,173 @@ void Chip::parseICCAD(const string &input_file_name) {
         // TODO: should check the unit.
         dbBox::create(db_m_pin, db_tech_layer, n4, n5, n4 + 1, n5 + 1);
       }
+      if (i == 1)
+        lib_cell_infos1.push_back(lib_cell_info);
+      else if (i == 2)
+        lib_cell_infos2.push_back(lib_cell_info);
     }
+  }
 
-    // Syntax: DieSize <lowerLeftX> <lowerLeftY> <upperRightX> <upperRightY>
-    input_file >> info >> n1 >> n2 >> n3 >> n4;
-    assert(info == "DieSize");
-    for (int j = 0; j < num_technologies_+1; ++j) {
+  /////////////////////////////////// lef parsing for pseudo tier ///////////////////////////////////////
+  die_pointers_.at(0)->setDbDatabase(odb::dbDatabase::create());
+  dbDatabase *db_database = die_pointers_.at(0)->getDbDatabase();
+  dbTech *db_tech = dbTech::create(db_database);
+  dbTechLayer *db_tech_layer = dbTechLayer::create(db_tech, "pseudoLayer", dbTechLayerType::MASTERSLICE);
+  dbLib *db_lib = dbLib::create(db_database, "pseudoDieLib", ',');
+  dbChip *db_chip = dbChip::create(db_database);
+  dbBlock *db_block = dbBlock::create(db_chip, (to_string(0) + "th Die Block").c_str());
 
+  die_pointers_.at(0)->setDbTech(db_tech);
+  die_pointers_.at(0)->setDbTechLayer(db_tech_layer);
+  die_pointers_.at(0)->setDbLib(db_lib);
+  die_pointers_.at(0)->setDbChip(db_chip);
+  die_pointers_.at(0)->setDbBlock(db_block);
+
+  // set LibCells for pseudo die
+
+  for (int i = 0; i < lib_cell_infos1.size(); ++i) {
+    string lib_cell_name;
+    int width, height;
+    LibCellInfo lib_cell_info1 = lib_cell_infos1.at(i);
+    LibCellInfo lib_cell_info2 = lib_cell_infos2.at(i);
+    assert(lib_cell_info1.lib_cell_name == lib_cell_info2.lib_cell_name);
+    lib_cell_name = lib_cell_info1.lib_cell_name;
+    width = floor((lib_cell_info1.lib_cell_size_x + lib_cell_info2.lib_cell_size_x) / 2);
+    height = floor((lib_cell_info1.lib_cell_size_y + lib_cell_info2.lib_cell_size_y) / 2);
+
+    dbMaster *master = dbMaster::create(db_lib, lib_cell_name.c_str());
+    master->setWidth(width);
+    master->setHeight(height);
+    master->setType(dbMasterType::CORE);
+
+    assert(lib_cell_info1.pin_number == lib_cell_info2.pin_number);
+    for (int j = 0; j < lib_cell_info1.pin_number; ++j) {
+      PinInfo pin_info1 = lib_cell_info1.pin_infos.at(j);
+      PinInfo pin_info2 = lib_cell_info2.pin_infos.at(j);
+      assert(pin_info1.pin_name == pin_info2.pin_name);
+      string pin_name = pin_info1.pin_name;
+      int pin_location_x = floor((pin_info1.pin_location_x + pin_info2.pin_location_x) / 2);
+      int pin_location_y = floor((pin_info1.pin_location_y + pin_info2.pin_location_y) / 2);
+      assert(width > pin_location_x);
+      assert(height > pin_location_y);
+
+      // (refer to `void lefin::pin` function in submodule/OpenDB/src/lefin/lefin.cpp)
+      dbIoType io_type = dbIoType::INOUT;  // There's no information in this contest benchmarks.
+      dbSigType sig_type = dbSigType::SIGNAL;  // There's no information in this contest benchmarks.
+      dbMTerm *master_terminal = dbMTerm::create(master, pin_name.c_str(), io_type, sig_type);
+      dbMPin *db_m_pin = dbMPin::create(master_terminal);
+
+      // (refer to `bool lefin::addGeoms` function in submodule/OpenDB/src/lefin/lefin.cpp in case of `lefiGeomRectE`)
+      dbBox::create(db_m_pin, db_tech_layer, pin_location_x, pin_location_y, pin_location_x + 1, pin_location_y + 1);
     }
+  }
+
+  // Syntax: DieSize <lowerLeftX> <lowerLeftY> <upperRightX> <upperRightY>
+  input_file >> info >> n1 >> n2 >> n3 >> n4;
+  assert(info == "DieSize");
+  odb::Point lower_left = odb::Point(n1, n2);
+  odb::Point upper_right = odb::Point(n3, n4);
+  odb::Rect rect(lower_left.getX(), lower_left.getY(), upper_right.getX(), upper_right.getY());
+  for (int i = 0; i < num_technologies_ + 1; ++i) {
+    // refer to submodule/OpenDB/src//defin/definReader.cpp
+    die_pointers_.at(i)->getDbBlock()->setDieArea(rect);
+  }
+
+  // Syntax: TopDieMaxUtil <util>
+  input_file >> info >> n1;
+  assert(info == "TopDieMaxUtil");
+  die_pointers_.at(1)->setMaxUtil(n1);
+
+  // Syntax: BottomDieMaxUtil <util>
+  input_file >> info >> n1;
+  assert(info == "BottomDieMaxUtil");
+  die_pointers_.at(2)->setMaxUtil(n1);
+
+  // for pseudo die
+  die_pointers_.at(0)->setMaxUtil(100);
+
+  // Syntax: TerminalSize <sizeX> <sizeY>
+  input_file >> info >> n1 >> n2;
+  assert(info == "TerminalSize");
+  hybrid_size_x_ = n1;
+  hybrid_size_y_ = n2;
+
+  // Syntax: TerminalSpacing <spacing>
+  input_file >> info >> n1;
+  assert(info == "TerminalSpacing");
+  hybrid_spacing_ = n1;
+
+  // Syntax: NumInstances <instanceCount>
+  input_file >> info >> n1;
+  assert(info == "NumInstances");
+  instance_number_ = n1;
+
+  // read Instances in one circuit
+  for (int i = 0; i < instance_number_; ++i) {
+    // Syntax: Inst <instName> <libCellName>
+    input_file >> info >> name1 >> name2;
+    assert(info == "Inst");
+    Instance instance;
+    instance.setInstName(name1);
+    instance.setLibName(name2);
 
   }
+
+  // Syntax: NumNets <netCount>
+  input_file >> info >> n1;
+  assert(info == "NumNets");
+  net_number_ = n1;
+
+  // Syntax: NumInstances <instanceCount>
+  input_file >> info >> n1;
+  assert(info == "NumInstances");
+  instance_number_ = n1;
+
+  // read Instances in pseudo circuit
+  // The other 2 die will be used after finishing all process and before writing
+  for (int i = 0; i < instance_number_; ++i) {
+    // Syntax: Inst <instName> <libCellName>
+    input_file >> info >> name1 >> name2;
+    assert(info == "Inst");
+    Instance instance;
+    instance.setInstName(name1);
+    instance.setLibName(name2);
+    dbMaster *master = db_lib->findMaster(instance.getLibName().c_str());
+    instance.setLibrary(master);
+    data_storage_.instances.push_back(instance);
+  }
+  // instance pointer setting
+  assert(instance_pointers_.empty());
+  for (int i = 0; i < instance_number_; ++i) {
+    Instance *instance = &data_storage_.instances.at(i);
+    instance_pointers_.push_back(instance);
+  }
+
+  // Syntax: NumNets <netCount>
+  input_file >> info >> n1;
+  assert(info == "NumNets");
+  // TODO
+
+  // read Nets in one circuit
+  for (int i = 0; i < net_number_; ++i) {
+    // Syntax: Net <netName> <numPins>
+    input_file >> info >> name1 >> n1;
+    assert(info == "Net");
+    // TODO
+
+    // read pins in one Net
+    for (int j = 0; j < n1; ++j) {
+      // Syntax: Pin <instName>/<libPinName>
+      input_file >> info >> name2;
+      assert(info == "Pin");
+      // TODO
+
+    }
+  }
+
 }
 int Chip::getUnitOfMicro() const {
   return db_database_->getTech()->getDbUnitsPerMicron();
 }
 
 } // VLSI_backend
-/*
-  // open input file
-  ifstream input_file(input_file_name);
-  if (input_file.fail()) {
-    cerr << "Cannot open the input file: " << input_file_name << endl;
-    exit(1);
-  }
-
-  // parsing start.
-  string info, name1, name2;
-  int n1, n2, n3, n4, n5;
-
-  // check the number of Technologies
-  // Syntax of input file: NumTechnologies <technologyCount>
-  input_file >> info >> n1;
-  assert(info == "NumTechnologies");
-  this->num_technologies_ = n1;
-  circuits_.resize(this->num_technologies_);
-
-  dbTech *db_tech;
-  dbTechLayer *db_tech_layer;
-  dbLib *lib;
-  dbChip *chip;
-  dbBlock *block;
-
-  // read Technologies
-  vector<string> lib_cell_names;
-  /////////////////////////////////// lef parsing for each tier ///////////////////////////////////////
-  for (int i = 0; i < this->num_technologies_; ++i) {
-    // Syntax: Tech <techName> <libCellCount>
-    input_file >> info >> name1 >> n1;
-    assert(info == "Tech");
-
-    Chip *circuit = &circuits_.at(i);
-    dbDatabase *db_database = circuit->getDbDatabase();
-
-    // create tech
-    // (refer to `dbDatabase* createSimpleDB()` submodule/OpenDB/tests/cpp/helper.cpp)
-    db_tech = dbTech::create(circuit->getDbDatabase());
-    db_tech_layer = dbTechLayer::create(db_tech, "metal1", dbTechLayerType::MASTERSLICE);
-    lib = dbLib::create(db_database, info.c_str(), ',');
-    chip = dbChip::create(db_database);
-    block = dbBlock::create(chip, "block");
-
-    // create libCells
-    circuit->setLibCellNum(n1);
-    for (int j = 0; j < circuit->getLibCellNum(); ++j) {
-      // Syntax: LibCell <libCellName> <libCellSizeX> <libCellSizeY> <pinCount>
-      input_file >> info >> name1 >> n2 >> n3 >> n1;
-      assert(info == "LibCell");
-      /// create one libCell
-      // (refer to `dbDatabase* createSimpleDB()` submodule/OpenDB/tests/cpp/helper.cpp)
-      dbMaster *master = dbMaster::create(lib, name1.c_str());
-      master->setWidth(n2);
-      master->setHeight(n3);
-      master->setType(dbMasterType::CORE);
-      if (i == 0)
-        lib_cell_names.push_back(name1);
-      /// create pins in the above libCell
-      // (refer to addGeoms in `OpenDB/src/lefin/lefin.cpp`)
-      for (int k = 0; k < n1; ++k) {
-        // Syntax: Pin <pinName> <pinLocationX> <pinLocationY>
-        // pin object generate
-        input_file >> info >> name1 >> n2 >> n3;
-        assert(info == "Pin");
-        dbMTerm *db_m_term = dbMTerm::create(master, name1.c_str(), dbIoType::INOUT, dbSigType::SIGNAL);
-        // pin geometry generate
-        dbMPin *db_m_pin = dbMPin::create(db_m_term);
-        int x1 = n2;
-        int x2 = x1 + 1;
-        int y1 = n3;
-        int y2 = y1 + 1;
-        dbBox::create(db_m_pin, db_tech_layer, x1, y2, x2, y2);
-        // trim the order of pins in the master terminal
-        dbSet<dbMPin> pins = db_m_term->getMPins();
-        if (pins.reversible() && pins.orderReversed())
-          pins.reverse();
-      }
-    }
-  }
-
-  // create pseudo lib cells for netlist
-  db_tech = dbTech::create(db_database_netlist_);
-  db_tech_layer = dbTechLayer::create(db_tech, "metal1", dbTechLayerType::MASTERSLICE);
-  lib = dbLib::create(db_database_netlist_, "pseudo_layer", ',');
-  chip = dbChip::create(db_database_netlist_);
-  block = dbBlock::create(chip, "pseudo_block");
-  for (int i = 0; i < lib_cell_names.size(); ++i) {
-    dbMaster *master = dbMaster::create(lib, lib_cell_names.at(i).c_str());
-    master->setType(dbMasterType::CORE);
-  }
-
-  // Syntax: DieSize <lowerLeftX> <lowerLeftY> <upperRightX> <upperRightY>
-  input_file >> info >> n1 >> n2 >> n3 >> n4;
-  assert(info == "DieSize");
-  assert(n1 == 0 && n3 == 0);
-  for (int i = 0; i < 2; ++i) {
-    circuits_.at(i).setDieSize(static_cast<uint>(n2), static_cast<uint>(n4));
-  }
-
-  // Syntax: TopDieMaxUtil <util>
-  input_file >> info >> n1;
-  assert(info == "TopDieMaxUtil");
-  circuits_.at(0).setUtil(n1);
-
-  // Syntax: BottomDieMaxUtil <util>
-  input_file >> info >> n1;
-  assert(info == "BottomDieMaxUtil");
-  circuits_.at(1).setUtil(n1);
-
-  // Syntax: TopDieRows <startX> <startY> <rowLength> <rowHeight> <repeatCount>
-  input_file >> info >> n2 >> n3 >> n4 >> n5 >> n1;
-  assert(info == "TopDieRows");
-  // TODO
-  //  circuit.topDie.setRows(n2, n3, n4, n5, n1);
-
-  // Syntax: BottomDieRows <startX> <startY> <rowLength> <rowHeight>
-  // <repeatCount>
-  input_file >> info >> n2 >> n3 >> n4 >> n5 >> n1;
-  assert(info == "BottomDieRows");
-  // TODO
-  //  circuit.bottomDie.setRows(n2, n3, n4, n5, n1);
-
-  // Syntax: TopDieTech <TechName>
-  input_file >> info >> name1;
-  assert(info == "TopDieTech");
-  // TODO
-  //  circuit.topDie.tech = techs[name1];
-  //  for (auto &libCell : circuit.topDie.tech.libCells) {
-  //    libCell.dieID = DieID::TOP;
-  //  }
-
-  // Syntax: BottomDieTech <TechName>
-  input_file >> info >> name1;
-  assert(info == "BottomDieTech");
-  // TODO
-  //  circuit.bottomDie.tech = techs[name1];
-  //  for (auto &libCell : circuit.bottomDie.tech.libCells) {
-  //    libCell.dieID = DieID::BOTTOM;
-  //  }
-
-  // Syntax: TerminalSize <sizeX> <sizeY>
-  input_file >> info >> n1 >> n2;
-  assert(info == "TerminalSize");
-  this->hybrid_bond_size_.first = n1;
-  this->hybrid_bond_size_.second = n2;
-
-  // Syntax: TerminalSpacing <spacing>
-  input_file >> info >> n1;
-  assert(info == "TerminalSpacing");
-  this->hybrid_bond_size_space_ = n1;
-
-  // Syntax: NumInstances <instanceCount>
-  input_file >> info >> n1;
-  assert(info == "NumInstances");
-  instance_num_ = n1;
-
-  // read Instances in one circuit
-  for (int i = 0; i < instance_num_; i++) {
-    // Syntax: Inst <instName> <libCellName>
-    input_file >> info >> name1 >> name2;
-    assert(info == "Inst");
-    auto master = lib->findMaster(name2.c_str());
-    dbInst::create(block, master, name1.c_str());
-  }
-
-  // Syntax: NumNets <netCount>
-  input_file >> info >> n1;
-  assert(info == "NumNets");
-  net_num_ = n1;
-
-  // read Nets in one circuit
-  // (refer to `create2LevetDbNoBTerms` function in submodule/OpenDB/tests/cpp/helper.cpp)
-  for (int i = 0; i < net_num_; i++) {
-    // Syntax: Net <netName> <numPins>
-    input_file >> info >> name1 >> n1;
-    assert(info == "Net");
-    // TODO
-    //    circuit.netlist.addNet(name1, n1);
-
-    // read pins in one Net
-    for (int j = 0; j < n1; j++) {
-      // Syntax: Pin <instName>/<libPinName>
-      input_file >> info >> name2;
-      assert(info == "Pin");
-      // TODO
-      //      circuit.netlist.addPin(name1, name2);
-    }
-  }
-*/

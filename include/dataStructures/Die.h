@@ -38,6 +38,15 @@
 
 namespace VLSI_backend {
 using namespace odb;
+class RowInfo {
+ public:
+  int start_x_ = 0;
+  int start_y_ = 0;
+  int row_width_ = 0;
+  int row_height_ = 0;
+  int repeat_count_ = 0;
+};
+
 class Die {
  private:
   dbDatabase *db_database_ = nullptr;
@@ -57,12 +66,15 @@ class Die {
   int die_id_ = 0;
   string tech_name_;
   int lib_num_ = 0;
+  int max_util_ = 0; // unit: percent
 
+  RowInfo row_info_;
+
+  void setDieSize(uint width, uint height);
  public:
   Die() = default;
   explicit Die(dbBlock *db_block);
   void setDbBlock(dbBlock *db_block);
-  void setDieSize(uint width, uint height);
   uint getWidth();
   uint getHeight();
 
@@ -100,8 +112,13 @@ class Die {
   void setTechName(const string &tech_name);
   int getLibNum() const;
   void setLibNum(int lib_num);
+  int getMaxUtil() const;
+  void setMaxUtil(int max_util);
+  void setRowInfo(int start_x, int start_y, int row_width, int row_height, int repeat_count);
+
 
 };
+
 
 } // VLSI_backend
 

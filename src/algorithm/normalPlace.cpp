@@ -75,5 +75,26 @@ void Chip::doNestrovPlace() {
   nestrov_placer.initNestrovPlace();
   nestrov_placer.doNestrovPlace(0);
 }
+int Chip::getInstanceNumber() const {
+  return instance_number_;
+}
+void Chip::setInstanceNumber(int instance_number) {
+  data_storage_.instances.reserve(instance_number);
+  instance_number_ = instance_number;
+}
+int Chip::getNetNumber() const {
+  return net_number_;
+}
+void Chip::setNetNumber(int net_number) {
+  data_storage_.nets.reserve(net_number);
+  net_number_ = net_number;
+}
+dbDatabase *Chip::getDbDatabase() const {
+  return db_database_;
+}
+void Chip::setDbDatabase(dbDatabase *db_database) {
+  parser_.db_database_ = db_database;
+  db_database_ = db_database;
+}
 
 } // VLSI_backend

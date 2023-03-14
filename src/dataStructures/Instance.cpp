@@ -53,11 +53,11 @@ std::vector<Pin *> Instance::getPins() {
     // if this is not a filler
     // TODO
     //    can be more simplified?
-    for (Pin* pin: connected_pins_) {
+    for (Pin *pin : connected_pins_) {
       pins.push_back(pin);
     }
   }
-  if (is_hybrid_bond_){
+  if (is_hybrid_bond_) {
     // TODO
     //    should be need any code?
   }
@@ -207,7 +207,7 @@ void Instance::setDensityCenterLocation(int dCx, int dCy) {
   dLy_ = dCy - halfDDy;
   dUx_ = dCx + halfDDx;
   dUy_ = dCy + halfDDy;
-  for (Pin* pin: getPins()){
+  for (Pin *pin : getPins()) {
     pin->updateDensityLocation(this);
   }
 }
@@ -263,6 +263,25 @@ void Instance::setConnectedPins(vector<Pin *> connected_pins) {
 }
 void Instance::setConnectedNets(vector<Net *> connected_nets) {
   connected_nets_ = connected_nets;
+}
+void Instance::setInstName(const string &name) {
+  name_ = name;
+}
+void Instance::setLibName(const string &lib_name) {
+  libName_ = lib_name;
+}
+dbDatabase *Instance::getDbDatabase() const {
+  return db_database_;
+}
+void Instance::setDbDatabase(dbDatabase *db_database) {
+  db_database_ = db_database;
+}
+void Instance::setLibrary(dbMaster *master) {
+  assert(!libName_.empty());
+  assert(db_inst_ == nullptr);
+  assert(db_database_ == nullptr);
+  dbBlock* db_block = db_database_->getChip()->getBlock();
+  db_inst_ = dbInst::create(db_block, master, libName_.c_str());
 }
 
 } // VLSI_backend
