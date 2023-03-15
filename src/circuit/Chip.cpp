@@ -39,11 +39,6 @@ using namespace std;
 namespace VLSI_backend {
 Chip::Chip() {
 }
-void Chip::parse(const string &lef_name, const string &def_name) {
-  parser_.readLef(lef_name);
-  parser_.readDef(def_name);
-  this->init();
-}
 void Chip::init() {
   /// this is for connection between the objects in initialization
   struct data_mapping {
@@ -210,15 +205,10 @@ void Chip::init() {
   * */
 
 }
-void Chip::write(const string &out_file_name) {
-  parser_.writeDef(out_file_name);
-}
-ulong Chip::getHPWL() {
-  ulong HPWL = 0;
-  for (Net *net : net_pointers_) {
-    HPWL += net->getHPWL();
-  }
-  return HPWL;
+void Chip::parse(const string &lef_name, const string &def_name) {
+  parser_.readLef(lef_name);
+  parser_.readDef(def_name);
+  this->init();
 }
 void Chip::parseICCAD(const string &input_file_name) {
   // In this function, we only construct odb database.
@@ -446,259 +436,6 @@ void Chip::parseICCAD(const string &input_file_name) {
 
   this->init();
 }
-void Chip::parseICCAD_deprecated(const string &input_file_name) {
-  struct PinInfo {
-    string pin_name;
-    int pin_location_x;
-    int pin_location_y;
-  };
-  struct LibCellInfo {
-    string lib_cell_name;
-    int lib_cell_size_x;
-    int lib_cell_size_y;
-    int pin_number;
-    vector<PinInfo> pin_infos;
-  };
-
-  vector<LibCellInfo> lib_cell_infos1;
-  vector<LibCellInfo> lib_cell_infos2;
-
-  // open input file
-  ifstream input_file(input_file_name);
-  if (input_file.fail()) {
-    cerr << "Cannot open the input file: " << input_file_name << endl;
-    exit(1);
-  }
-  // parsing start //
-
-  // temporal variables
-  string info, name1, name2;
-  int n1, n2, n3, n4, n5;
-
-  // check the number of Technologies
-  // Syntax of input file: NumTechnologies <technologyCount>
-  input_file >> info >> n1;
-  assert(info == "NumTechnologies");
-  num_technologies_ = n1;
-
-  // Make Dies as much as technologies
-  // one for pseudo die
-  for (int i = 0; i < num_technologies_ + 1; ++i) {
-    Die die;
-    die.setDieId(i);
-    data_storage_.dies.push_back(die);
-  }
-  for (int i = 0; i < n1 + 1; ++i)
-    die_pointers_.push_back(&data_storage_.dies.at(i));
-
-  /////////////////////////////////// lef parsing for each tier ///////////////////////////////////////
-  for (int i = 1; i < num_technologies_ + 1; ++i) {
-    // Syntax: Tech <techName> <libCellCount>
-    input_file >> info >> name1 >> n1;
-    assert(info == "Tech");
-
-    // Tech tech(name1, n1);
-    Die *target_die = die_pointers_.at(i);
-    target_die->setDBBasic(name1);
-    dbDatabase *db_database = target_die->getDbDatabase();
-    dbTech *db_tech = target_die->getDbTech();
-    dbTechLayer *db_tech_layer = target_die->getDbTechLayer();
-    dbLib *db_lib = target_die->getDbLib();
-    dbChip *db_chip = target_die->getDbChip();
-    dbBlock *db_block = target_die->getDbBlock();
-    target_die->setLibNum(n1);
-
-    // read LibCells in one tech
-    for (int j = 0; j < die_pointers_.at(i)->getLibNum(); j++) {
-      // Syntax: LibCell <libCellName> <libCellSizeX> <libCellSizeY> <pinCount>
-      input_file >> info >> name1 >> n1 >> n2 >> n3;
-      assert(info == "LibCell");
-
-      LibCellInfo lib_cell_info;
-      lib_cell_info.lib_cell_name = name1;
-      lib_cell_info.lib_cell_size_x = n1;
-      lib_cell_info.lib_cell_size_y = n2;
-      lib_cell_info.pin_number = n3;
-
-      // (refer to `dbDatabase* createMaster2X1()` submodule/OpenDB/tests/cpp/helper.cpp)
-      dbMaster *master = dbMaster::create(db_lib, name1.c_str());
-      master->setWidth(n1);
-      master->setHeight(n2);
-      master->setType(dbMasterType::CORE);
-      // read pins in one LibCell
-      for (int k = 0; k < n3; ++k) {
-        // Syntax: Pin <pinName> <pinLocationX> <pinLocationY>
-        input_file >> info >> name1 >> n4 >> n5;
-        assert(info == "Pin");
-
-        PinInfo pin_info;
-        pin_info.pin_name = name1;
-        pin_info.pin_location_x = n4;
-        pin_info.pin_location_y = n5;
-        lib_cell_info.pin_infos.push_back(pin_info);
-
-        // (refer to `void lefin::pin` function in submodule/OpenDB/src/lefin/lefin.cpp)
-        dbIoType io_type = dbIoType::INOUT;  // There's no information in this contest benchmarks.
-        dbSigType sig_type = dbSigType::SIGNAL;  // There's no information in this contest benchmarks.
-        dbMTerm *master_terminal = dbMTerm::create(master, name1.c_str(), io_type, sig_type);
-        dbMPin *db_m_pin = dbMPin::create(master_terminal);
-
-        // (refer to `bool lefin::addGeoms` function in submodule/OpenDB/src/lefin/lefin.cpp in case of `lefiGeomRectE`)
-        dbBox::create(db_m_pin, db_tech_layer, n4, n5, n4 + 1, n5 + 1);
-      }
-      if (i == 1)
-        lib_cell_infos1.push_back(lib_cell_info);
-      else if (i == 2)
-        lib_cell_infos2.push_back(lib_cell_info);
-    }
-  }
-
-  /////////////////////////////////// lef parsing for pseudo tier ///////////////////////////////////////
-  die_pointers_.at(0)->setDbDatabase(odb::dbDatabase::create());
-  dbDatabase *db_database = die_pointers_.at(0)->getDbDatabase();
-  dbTech *db_tech = dbTech::create(db_database);
-  dbTechLayer *db_tech_layer = dbTechLayer::create(db_tech, "pseudoLayer", dbTechLayerType::MASTERSLICE);
-  dbLib *db_lib = dbLib::create(db_database, "pseudoDieLib", ',');
-  dbChip *db_chip = dbChip::create(db_database);
-  dbBlock *db_block = dbBlock::create(db_chip, (to_string(0) + "th Die Block").c_str());
-
-  die_pointers_.at(0)->setDbTech(db_tech);
-  die_pointers_.at(0)->setDbTechLayer(db_tech_layer);
-  die_pointers_.at(0)->setDbLib(db_lib);
-  die_pointers_.at(0)->setDbChip(db_chip);
-  die_pointers_.at(0)->setDbBlock(db_block);
-
-  // set LibCells for pseudo die
-  for (int i = 0; i < lib_cell_infos1.size(); ++i) {
-    string lib_cell_name;
-    int width, height;
-    LibCellInfo lib_cell_info1 = lib_cell_infos1.at(i);
-    LibCellInfo lib_cell_info2 = lib_cell_infos2.at(i);
-    assert(lib_cell_info1.lib_cell_name == lib_cell_info2.lib_cell_name);
-    lib_cell_name = lib_cell_info1.lib_cell_name;
-    width = floor((lib_cell_info1.lib_cell_size_x + lib_cell_info2.lib_cell_size_x) / 2);
-    height = floor((lib_cell_info1.lib_cell_size_y + lib_cell_info2.lib_cell_size_y) / 2);
-
-    dbMaster *master = dbMaster::create(db_lib, lib_cell_name.c_str());
-    master->setWidth(width);
-    master->setHeight(height);
-    master->setType(dbMasterType::CORE);
-
-    assert(lib_cell_info1.pin_number == lib_cell_info2.pin_number);
-    for (int j = 0; j < lib_cell_info1.pin_number; ++j) {
-      PinInfo pin_info1 = lib_cell_info1.pin_infos.at(j);
-      PinInfo pin_info2 = lib_cell_info2.pin_infos.at(j);
-      assert(pin_info1.pin_name == pin_info2.pin_name);
-      string pin_name = pin_info1.pin_name;
-      int pin_location_x = floor((pin_info1.pin_location_x + pin_info2.pin_location_x) / 2);
-      int pin_location_y = floor((pin_info1.pin_location_y + pin_info2.pin_location_y) / 2);
-      assert(width > pin_location_x);
-      assert(height > pin_location_y);
-
-      // (refer to `void lefin::pin` function in submodule/OpenDB/src/lefin/lefin.cpp)
-      dbIoType io_type = dbIoType::INOUT;  // There's no information in this contest benchmarks.
-      dbSigType sig_type = dbSigType::SIGNAL;  // There's no information in this contest benchmarks.
-      dbMTerm *master_terminal = dbMTerm::create(master, pin_name.c_str(), io_type, sig_type);
-      dbMPin *db_m_pin = dbMPin::create(master_terminal);
-
-      // (refer to `bool lefin::addGeoms` function in submodule/OpenDB/src/lefin/lefin.cpp in case of `lefiGeomRectE`)
-      dbBox::create(db_m_pin, db_tech_layer, pin_location_x, pin_location_y, pin_location_x + 1, pin_location_y + 1);
-    }
-  }
-
-  // Syntax: DieSize <lowerLeftX> <lowerLeftY> <upperRightX> <upperRightY>
-  input_file >> info >> n1 >> n2 >> n3 >> n4;
-  assert(info == "DieSize");
-  odb::Point lower_left = odb::Point(n1, n2);
-  odb::Point upper_right = odb::Point(n3, n4);
-  odb::Rect rect(lower_left.getX(), lower_left.getY(), upper_right.getX(), upper_right.getY());
-  for (int i = 0; i < num_technologies_ + 1; ++i) {
-    // refer to submodule/OpenDB/src//defin/definReader.cpp
-    die_pointers_.at(i)->getDbBlock()->setDieArea(rect);
-  }
-
-  // Syntax: TopDieMaxUtil <util>
-  input_file >> info >> n1;
-  assert(info == "TopDieMaxUtil");
-  die_pointers_.at(1)->setMaxUtil(n1);
-
-  // Syntax: BottomDieMaxUtil <util>
-  input_file >> info >> n1;
-  assert(info == "BottomDieMaxUtil");
-  die_pointers_.at(2)->setMaxUtil(n1);
-
-  // for pseudo die
-  die_pointers_.at(0)->setMaxUtil(100);
-
-  // Syntax: TerminalSize <sizeX> <sizeY>
-  input_file >> info >> n1 >> n2;
-  assert(info == "TerminalSize");
-  hybrid_size_x_ = n1;
-  hybrid_size_y_ = n2;
-
-  // Syntax: TerminalSpacing <spacing>
-  input_file >> info >> n1;
-  assert(info == "TerminalSpacing");
-  hybrid_spacing_ = n1;
-
-  // Syntax: NumInstances <instanceCount>
-  input_file >> info >> n1;
-  assert(info == "NumInstances");
-  instance_number_ = n1;
-
-  // read Instances in one circuit
-  for (int i = 0; i < instance_number_; ++i) {
-    // Syntax: Inst <instName> <libCellName>
-    input_file >> info >> name1 >> name2;
-    assert(info == "Inst");
-    Instance instance;
-    instance.setInstName(name1);
-    instance.setLibName(name2);
-    dbMaster *master = db_database->findMaster(instance.getLibName().c_str());
-    instance.setLibrary(master);
-  }
-
-  // read Instances in pseudo circuit
-  // The other 2 die will be used after finishing all process and before writing
-  for (int i = 0; i < instance_number_; ++i) {
-    // Syntax: Inst <instName> <libCellName>
-    input_file >> info >> name1 >> name2;
-    assert(info == "Inst");
-    Instance instance;
-    instance.setInstName(name1);
-    instance.setLibName(name2);
-    dbMaster *master = db_lib->findMaster(instance.getLibName().c_str());
-    instance.setLibrary(master);
-    data_storage_.instances.push_back(instance);
-  }
-  // instance pointer setting
-  assert(instance_pointers_.empty());
-  for (int i = 0; i < instance_number_; ++i) {
-    Instance *instance = &data_storage_.instances.at(i);
-    instance_pointers_.push_back(instance);
-  }
-
-  // Syntax: NumNets <netCount>
-  input_file >> info >> n1;
-  assert(info == "NumNets");
-  net_number_ = n1;
-
-  // read Nets in one circuit
-  for (int i = 0; i < net_number_; ++i) {
-    // Syntax: Net <netName> <numPins>
-    input_file >> info >> name1 >> n1;
-    assert(info == "Net");
-
-    // read pins in one Net
-    for (int j = 0; j < n1; ++j) {
-      // Syntax: Pin <instName>/<libPinName>
-      input_file >> info >> name2;
-      assert(info == "Pin");
-
-    }
-  }
-
-}
 void Chip::test() {
   dbDatabase *die_db = odb::dbDatabase::create();
   setDbDatabase(die_db);
@@ -788,8 +525,17 @@ void Chip::test() {
   cout << "block: " << block << "\t" << db_database_->getChip()->getBlock() << endl;
 
 }
+void Chip::write(const string &out_file_name) {
+  parser_.writeDef(out_file_name);
+}
+ulong Chip::getHPWL() {
+  ulong HPWL = 0;
+  for (Net *net : net_pointers_) {
+    HPWL += net->getHPWL();
+  }
+  return HPWL;
+}
 int Chip::getUnitOfMicro() const {
   return db_database_->getTech()->getDbUnitsPerMicron();
 }
-
 } // VLSI_backend
