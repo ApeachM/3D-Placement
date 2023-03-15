@@ -35,7 +35,37 @@
 #include "Instance.h"
 
 namespace VLSI_backend {
-
+Instance::Instance(odb::dbInst *db_inst) {
+  db_database_ = db_inst->getDb();
+  db_inst_ = db_inst;
+  name_ = db_inst->getName();
+  libName_ = db_inst->getMaster()->getName();
+  is_macro_ = db_inst_->getMaster()->getType().isBlock();
+  position_.first = getCoordinate().first;
+  position_.second = getCoordinate().second;
+  width_ = db_inst_->getMaster()->getWidth();
+  height_ = db_inst_->getMaster()->getHeight();
+  dLx_ = position_.first;
+  dLy_ = position_.second;
+  dUx_ = dLx_ + width_;
+  dUy_ = dLy_ + height_;
+}
+Instance::Instance(odb::dbInst *db_inst, int id) {
+  db_database_ = db_inst->getDb();
+  db_inst_ = db_inst;
+  name_ = db_inst->getName();
+  libName_ = db_inst->getMaster()->getName();
+  is_macro_ = db_inst_->getMaster()->getType().isBlock();
+  position_.first = getCoordinate().first;
+  position_.second = getCoordinate().second;
+  width_ = db_inst_->getMaster()->getWidth();
+  height_ = db_inst_->getMaster()->getHeight();
+  dLx_ = position_.first;
+  dLy_ = position_.second;
+  dUx_ = dLx_ + width_;
+  dUy_ = dLy_ + height_;
+  setId(id);
+}
 string Instance::getName() {
   return name_;
 }
@@ -62,21 +92,6 @@ std::vector<Pin *> Instance::getPins() {
     //    should be need any code?
   }
   return pins;
-}
-Instance::Instance(odb::dbInst *db_inst) {
-  db_database_ = db_inst->getDb();
-  db_inst_ = db_inst;
-  name_ = db_inst->getName();
-  libName_ = db_inst->getMaster()->getName();
-  is_macro_ = db_inst_->getMaster()->getType().isBlock();
-  position_.first = getCoordinate().first;
-  position_.second = getCoordinate().second;
-  width_ = db_inst_->getMaster()->getWidth();
-  height_ = db_inst_->getMaster()->getHeight();
-  dLx_ = position_.first;
-  dLy_ = position_.second;
-  dUx_ = dLx_ + width_;
-  dUy_ = dLy_ + height_;
 }
 uint Instance::getArea() {
   return this->getWidth() * this->getHeight();
@@ -281,7 +296,22 @@ void Instance::setLibrary(dbMaster *master) {
   assert(db_inst_ == nullptr);
   assert(db_database_ == nullptr);
   dbBlock* db_block = db_database_->getChip()->getBlock();
-  db_inst_ = dbInst::create(db_block, master, libName_.c_str());
+  db_inst_ = dbInst::create(db_block, master, name_.c_str());
+}
+uint Instance::getCenterX() {
+  return getCoordinate().first + floor(getWidth() / 2);
+}
+uint Instance::getCenterY() {
+  return getCoordinate().second + floor(getHeight() / 2);
+}
+void Instance::assignDie(int die_id) {
+  die_id_ = die_id;
+}
+bool Instance::isInstance() {
+  return db_inst_ != nullptr;
+}
+bool Instance::isDummy() {
+  return db_inst_ == nullptr;
 }
 
 } // VLSI_backend

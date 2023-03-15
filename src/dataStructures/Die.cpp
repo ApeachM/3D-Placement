@@ -36,7 +36,8 @@
 #include "Die.h"
 
 namespace VLSI_backend {
-
+Die::Die() {
+}
 Die::Die(dbBlock *db_block) {
   db_block_ = db_block;
   db_block->getDieArea(die_shape_);

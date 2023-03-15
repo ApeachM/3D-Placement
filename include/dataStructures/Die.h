@@ -48,31 +48,8 @@ class RowInfo {
 };
 
 class Die {
- private:
-  dbDatabase *db_database_ = nullptr;
-  dbBlock *db_block_ = nullptr;
-  dbTech *db_tech_ = nullptr;
-  dbTechLayer *db_tech_layer_ = nullptr;
-  dbLib *db_lib_ = nullptr;
-  dbChip *db_chip_ = nullptr;
-
-  Rect die_shape_{};
-
-  float density_ = 1.0;
-
-  uint width_ = 0;
-  uint height_ = 0;
-
-  int die_id_ = 0;
-  string tech_name_;
-  int lib_num_ = 0;
-  int max_util_ = 0; // unit: percent
-
-  RowInfo row_info_;
-
-  void setDieSize(uint width, uint height);
  public:
-  Die() = default;
+  Die();
   explicit Die(dbBlock *db_block);
   void setDbBlock(dbBlock *db_block);
   uint getWidth();
@@ -93,6 +70,22 @@ class Die {
   }
   int getUpperRightY() {
     return die_shape_.ur().getY();
+  }
+
+  /*!
+   * Caution!! Use this function only when you parsed data without the openDB parse functions.
+   * */
+  void setDBBasic(string lib_name) {
+    assert(db_database_);
+    db_database_ = odb::dbDatabase::create();
+    db_tech_ = dbTech::create(db_database_);
+    db_tech_layer_ = dbTechLayer::create(db_tech_, "Layer", dbTechLayerType::MASTERSLICE);
+    db_lib_ = dbLib::create(db_database_, lib_name.c_str(), ',');
+    db_chip_ = dbChip::create(db_database_);
+    db_block_ = dbBlock::create(db_chip_, (std::to_string(die_id_) + "th Die Block").c_str());
+
+    db_block_->getDieArea(die_shape_);
+    setDieSize(die_shape_.dx(), die_shape_.dy());
   }
 
   int getDieId() const;
@@ -116,9 +109,30 @@ class Die {
   void setMaxUtil(int max_util);
   void setRowInfo(int start_x, int start_y, int row_width, int row_height, int repeat_count);
 
+ private:
+  dbDatabase *db_database_ = nullptr;
+  dbBlock *db_block_ = nullptr;
+  dbTech *db_tech_ = nullptr;
+  dbTechLayer *db_tech_layer_ = nullptr;
+  dbLib *db_lib_ = nullptr;
+  dbChip *db_chip_ = nullptr;
 
+  Rect die_shape_{};
+
+  float density_ = 1.0;
+
+  uint width_ = 0;
+  uint height_ = 0;
+
+  int die_id_ = 0;
+  string tech_name_;
+  int lib_num_ = 0;
+  int max_util_ = 0; // unit: percent
+
+  RowInfo row_info_;
+
+  void setDieSize(uint width, uint height);
 };
-
 
 } // VLSI_backend
 

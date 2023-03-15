@@ -5,10 +5,10 @@
 using namespace std;
 
 int main() {
-  bool is_for_contest = false;
+  bool is_for_contest = true;
   if (is_for_contest) {
     VLSI_backend::Chip chip;
-    chip.parseICCAD("..//test/benchmarks/iccad2022/case1.txt");
+    chip.parseICCAD("../test/benchmarks/iccad2022/case1.txt");
   } else {
 //    string lefName = "Nangate45.lef";
 //    string defName = "simple01.def";
@@ -22,7 +22,7 @@ int main() {
     chip.test();
 //    chip.do3DPlace();
     chip.write(output_path_name + defName);
-    chip.getDbDatabase()->getChip()->getBlock()->saveLef((output_path_name + lefName).c_str());
+    // chip.getDbDatabase()->getChip()->getBlock()->saveLef((output_path_name + lefName).c_str());
   }
 //
 }

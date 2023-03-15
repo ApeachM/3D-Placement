@@ -87,7 +87,7 @@ class Chip {
  public:
   Chip();
   ~Chip() = default;
-  /*!
+  /**
    * \brief
    * Core method
    * \details
@@ -100,7 +100,7 @@ class Chip {
    * */
   void do3DPlace();
 
-  /*!
+  /**
    * \brief
    * Read and Write functions
    * \author
@@ -109,7 +109,7 @@ class Chip {
    * */
   void parse(const string &lef_name, const string &def_name);
 
-  /*!
+  /**
    * \brief
    * This code parses the input data of ICCAD 2022 contest.
    *
@@ -123,7 +123,8 @@ class Chip {
    * Minjae Kim \n
    * GitHub: ApeachM (https://github.com/ApeachM)
    * */
-  void parseICCAD(const string &input_file_name);
+   void parseICCAD(const string& input_file_name);
+  void parseICCAD_deprecated(const string &input_file_name);
   void write(const string &out_file_name);
   void test();
 
@@ -134,19 +135,19 @@ class Chip {
   // Data initialization
   void init();
 
-  /*!
+  /**
    * \author
    * Minjae Kim \n
    * GitHub: ApeachM (https://github.com/ApeachM)
    * */
   void setTargetDensity(vector<double> densities);
-  /*!
+  /**
    * \author
    * Minjae Kim \n
    * GitHub: ApeachM (https://github.com/ApeachM)
    * */
   void doInitialPlace();
-  /*!
+  /**
    * \author
    * Minjae Kim \n
    * GitHub: ApeachM (https://github.com/ApeachM)
@@ -161,7 +162,7 @@ class Chip {
    * */
   void normalPlacement();
 
-  /*!
+  /**
    * \brief
    * Divide a cells into two circuit.
    * Louvain(actually, not louvain but ledien) clustering is implemented by igraph package
@@ -173,12 +174,12 @@ class Chip {
    * */
   void partition();
 
-  /*!\brief
+  /**\brief
    * After partitioning, the
    * */
   void generateHybridBonds();
 
-  /*!
+  /**
    * \brief
    * Do placement 2 Die synchronously.\n
    * This will consider the interaction between two die. \n
@@ -203,7 +204,7 @@ class Chip {
    * */
   int getUnitOfMicro() const;
 
-  /*!
+  /**
    * \brief
    * get HPWL of total circuit
    * \details
@@ -218,12 +219,16 @@ class Chip {
   void setInstanceNumber(int instance_number);
   int getNetNumber() const;
   void setNetNumber(int net_number);
- public:
   dbDatabase *getDbDatabase() const;
   void setDbDatabase(dbDatabase *db_database);
  protected:
-
+  // For pseudo die
   odb::dbDatabase *db_database_{};
+
+  // For top and bottom die.
+  // This should be only used when parse ICCAD contest benchmark,
+  // and write the two lef and def files for top and bottom die
+  std::vector<odb::dbDatabase *> db_databases_{};
 
   Parser parser_;
   data_storage data_storage_;
@@ -244,6 +249,8 @@ class Chip {
 
   int instance_number_ = 0;
   int net_number_ = 0;
+
+  pair<int, int> max_util_; // first one is for top, the second one is for bottom.
 
 };
 

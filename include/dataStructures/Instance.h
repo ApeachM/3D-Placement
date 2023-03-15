@@ -42,44 +42,11 @@
 namespace VLSI_backend {
 using namespace std;
 class Instance {
- private:
-  odb::dbDatabase *db_database_ = nullptr;
-  odb::dbInst *db_inst_ = nullptr;
-
-  string name_ = "";
-  string libName_ = "";
-  int id_{};
-  int die_id_ = 0;
-  bool is_macro_ = false;
-  bool is_locked_ = false;
-  bool is_hybrid_bond_ = false;
-  Pin* hybrid_bond_pin_ = nullptr;
-
-  vector<Pin*> connected_pins_;
-  vector<Net*> connected_nets_;
-
-  /// This is lower left position of instance
-  /// This is same with the origin of db_inst_ pointer
-  pair<int, int> position_ = pair<int, int>{0, 0};
-  uint width_ = 0;
-  uint height_ = 0;
-
-  /// density location
-  int dLx_{0};
-  int dLy_{0};
-  int dUx_{0};
-  int dUy_{0};
-
-  // density variables
-  float densityScale_{0};
-  float gradientX_{};
-  float gradientY_{};
-
  public:
-
   /// Constructors
   Instance() = default;
   explicit Instance(odb::dbInst *db_inst);
+  Instance(odb::dbInst *db_inst, int id);
 
   /// return the instance name of the cell
   /// example: _321_
@@ -145,17 +112,9 @@ class Instance {
   void setCoordinate(int x, int y);
   /// check whether it is placed or not
   bool isPlaced();
-
-  uint getCenterX() {
-    return getCoordinate().first + floor(getWidth() / 2);
-  }
-  uint getCenterY() {
-    return getCoordinate().second + floor(getHeight() / 2);
-  }
-
-  void assignDie(int die_id) {
-    die_id_ = die_id;
-  }
+  uint getCenterX();
+  uint getCenterY();
+  void assignDie(int die_id);
 
   /*!
    * \brief
@@ -163,9 +122,7 @@ class Instance {
    * \details
    * If it is not dummy cell, then this returns true.
    * */
-  bool isInstance() {
-    return db_inst_ != nullptr;
-  }
+  bool isInstance();
 
   /*!
    * \brief
@@ -173,9 +130,7 @@ class Instance {
    * \details
    * If it is not dummy cell, then this returns false.
    * */
-  bool isDummy() {
-    return db_inst_ == nullptr;
-  }
+  bool isDummy();
 
   // ref: https://github.com/The-OpenROAD-Project/OpenROAD/blob/a5e786eb65f40abfb7004b18312d519dac95cc33/src/gpl/src/placerBase.cpp#L139
   bool isFixed();
@@ -228,6 +183,39 @@ class Instance {
   void setLibName(const string &lib_name);
   dbDatabase *getDbDatabase() const;
   void setDbDatabase(dbDatabase *db_database);
+
+ private:
+  odb::dbDatabase *db_database_ = nullptr;
+  odb::dbInst *db_inst_ = nullptr;
+
+  string name_;
+  string libName_;
+  int id_{};
+  int die_id_ = 0;
+  bool is_macro_ = false;
+  bool is_locked_ = false;
+  bool is_hybrid_bond_ = false;
+  Pin* hybrid_bond_pin_ = nullptr;
+
+  vector<Pin*> connected_pins_;
+  vector<Net*> connected_nets_;
+
+  /// This is lower left position of instance
+  /// This is same with the origin of db_inst_ pointer
+  pair<int, int> position_ = pair<int, int>{0, 0};
+  uint width_ = 0;
+  uint height_ = 0;
+
+  /// density location
+  int dLx_{0};
+  int dLy_{0};
+  int dUx_{0};
+  int dUy_{0};
+
+  // density variables
+  float densityScale_{0};
+  float gradientX_{};
+  float gradientY_{};
 };
 
 }
