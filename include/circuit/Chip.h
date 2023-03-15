@@ -123,7 +123,7 @@ class Chip {
    * Minjae Kim \n
    * GitHub: ApeachM (https://github.com/ApeachM)
    * */
-   void parseICCAD(const string& input_file_name);
+  void parseICCAD(const string &input_file_name);
   void parseICCAD_deprecated(const string &input_file_name);
   void write(const string &out_file_name);
   void test();
@@ -250,7 +250,10 @@ class Chip {
   int instance_number_ = 0;
   int net_number_ = 0;
 
-  pair<int, int> max_util_; // first one is for top, the second one is for bottom.
+  // first one is for top, the second one is for bottom.
+  pair<int, int> max_util_;
+  // first one is for top, the second one is for bottom. This info will be copied at die.
+  pair<RowInfo, RowInfo> row_infos_;
 
 };
 

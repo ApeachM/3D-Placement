@@ -254,27 +254,33 @@ void Chip::parseICCAD(const string &input_file_name) {
     // Syntax: Tech <techName> <libCellCount>
     input_file >> info >> name1 >> n1;
     assert(info == "Tech");
+    string tech_name = name1;
+    int lib_cell_num = n1;
 
     assert(db_databases_.size() == die_id);
     dbDatabase *db_database = dbDatabase::create();
     dbTech *db_tech = dbTech::create(db_database);
     dbTechLayer *db_tech_layer = dbTechLayer::create(db_tech, "Layer", dbTechLayerType::MASTERSLICE);
-    dbLib *db_lib = dbLib::create(db_database, name1.c_str(), ',');
+    dbLib *db_lib = dbLib::create(db_database, tech_name.c_str(), ',');
     dbChip *db_chip = dbChip::create(db_database);
     dbBlock *db_block = dbBlock::create(db_chip, (std::to_string(die_id) + "th Die Block").c_str());
     db_databases_.push_back(db_database);
 
     // read LibCells in one tech
-    for (int i = 0; i < n1; ++i) {
+    for (int i = 0; i < lib_cell_num; ++i) {
       // Syntax: LibCell <libCellName> <libCellSizeX> <libCellSizeY> <pinCount>
       input_file >> info >> name1 >> n1 >> n2 >> n3;
       assert(info == "LibCell");
+      string lib_cell_name = name1;
+      int lib_cell_size_x = n1;
+      int lib_cell_size_y = n2;
+      int pin_num = n3;
 
       LibCellInfo lib_cell_info;
-      lib_cell_info.name = name1;
-      lib_cell_info.width = n1;
-      lib_cell_info.height = n2;
-      lib_cell_info.pin_number = n3;
+      lib_cell_info.name = lib_cell_name;
+      lib_cell_info.width = lib_cell_size_x;
+      lib_cell_info.height = lib_cell_size_y;
+      lib_cell_info.pin_number = pin_num;
 
       // (refer to `dbDatabase* createMaster2X1()` submodule/OpenDB/tests/cpp/helper.cpp)
       dbMaster *master = dbMaster::create(db_lib, name1.c_str());
@@ -284,18 +290,18 @@ void Chip::parseICCAD(const string &input_file_name) {
       // read pins in one LibCell
       for (int j = 0; j < lib_cell_info.pin_number; ++j) {
         // Syntax: Pin <pinName> <pinLocationX> <pinLocationY>
-        input_file >> info >> name1 >> n4 >> n5;
+        input_file >> info >> name1 >> n1 >> n2;
         assert(info == "Pin");
         PinInfo pin_info;
         pin_info.pin_name = name1;
-        pin_info.pin_location_x = n4;
-        pin_info.pin_location_y = n5;
+        pin_info.pin_location_x = n1;
+        pin_info.pin_location_y = n2;
         lib_cell_info.pin_infos.push_back(pin_info);
 
         // (refer to `void lefin::pin` function in submodule/OpenDB/src/lefin/lefin.cpp)
         dbIoType io_type = dbIoType::INOUT;  // There's no information in this contest benchmarks.
         dbSigType sig_type = dbSigType::SIGNAL;  // There's no information in this contest benchmarks.
-        dbMTerm *master_terminal = dbMTerm::create(master, name1.c_str(), io_type, sig_type);
+        dbMTerm *master_terminal = dbMTerm::create(master, pin_info.pin_name.c_str(), io_type, sig_type);
         dbMPin *db_m_pin = dbMPin::create(master_terminal);
         // (refer to `bool lefin::addGeoms` function in submodule/OpenDB/src/lefin/lefin.cpp in case of `lefiGeomRectE`)
         dbBox::create(db_m_pin, db_tech_layer,
@@ -379,6 +385,27 @@ void Chip::parseICCAD(const string &input_file_name) {
   input_file >> info >> n1;
   assert(info == "BottomDieMaxUtil");
   max_util_.second = n1;
+
+  RowInfo row_info_top, row_info_bottom;
+  // Syntax: TopDieRows <startX> <startY> <rowLength> <rowHeight> <repeatCount>
+  input_file >> info >> n1 >> n2 >> n3 >> n4 >> n5;
+  assert(info == "TopDieRows");
+  row_info_top.start_x = n1;
+  row_info_top.start_y = n2;
+  row_info_top.row_width = n3;
+  row_info_top.row_height = n4;
+  row_info_top.repeat_count = n5;
+  row_infos_.first = row_info_top;
+
+  // Syntax: BottomDieRows <startX> <startY> <rowLength> <rowHeight>
+  input_file >> info >> n1 >> n2 >> n3 >> n4 >> n5;
+  assert(info == "BottomDieRows");
+  row_info_bottom.start_x = n1;
+  row_info_bottom.start_y = n2;
+  row_info_bottom.row_width = n3;
+  row_info_bottom.row_height = n4;
+  row_info_bottom.repeat_count = n5;
+  row_infos_.second = row_info_bottom;
 
   // Syntax: TerminalSize <sizeX> <sizeY>
   input_file >> info >> n1 >> n2;

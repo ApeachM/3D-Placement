@@ -38,13 +38,13 @@
 
 namespace VLSI_backend {
 using namespace odb;
-class RowInfo {
+struct RowInfo {
  public:
-  int start_x_ = 0;
-  int start_y_ = 0;
-  int row_width_ = 0;
-  int row_height_ = 0;
-  int repeat_count_ = 0;
+  int start_x = 0;
+  int start_y = 0;
+  int row_width = 0;
+  int row_height = 0;
+  int repeat_count = 0;
 };
 
 class Die {

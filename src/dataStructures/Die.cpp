@@ -125,10 +125,10 @@ void Die::setMaxUtil(int max_util) {
   max_util_ = max_util;
 }
 void Die::setRowInfo(int start_x, int start_y, int row_width, int row_height, int repeat_count) {
-  row_info_.start_x_ = start_x;
-  row_info_.start_y_ = start_y;
-  row_info_.row_width_ = row_width;
-  row_info_.row_height_ = row_height;
-  row_info_.repeat_count_ = repeat_count;
+  row_info_.start_x = start_x;
+  row_info_.start_y = start_y;
+  row_info_.row_width = row_width;
+  row_info_.row_height = row_height;
+  row_info_.repeat_count = repeat_count;
 }
 } // VLSI_backend
