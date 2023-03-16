@@ -592,11 +592,33 @@ void Chip::parseICCAD(const string &input_file_name) {
   for (int i = 0; i < instance_number_; ++i) {
     InstanceInfo *instance_info = &instance_infos.at(i);
     dbMaster *master = db_database_->findMaster(instance_info->lib_cell_name.c_str());
-
+    dbInst::create(db_block, master, instance_info->inst_name.c_str());
   }
 
-}
+  // Net and connections setting //
+  for (int i = 0; i < net_number_; ++i) {
+    // (refer to `dbDatabase* create2LevetDbNoBTerms()` function in submodule/OpenDB/test/cpp/helper.cpp)
+    NetInfo* net_info = &net_infos.at(i);
+    dbNet* net = dbNet::create(db_block, net_info->net_name.c_str());
 
+    // read pins in one Net
+    for (int j = 0; j < net_info->pin_num; ++j) {
+      ConnectedPinInfo* pin_info = &net_info->connected_pins_infos.at(j);
+      dbInst* inst = db_block->findInst(pin_info->instance_name.c_str());
+      dbITerm::connect(inst->findITerm(pin_info->lib_pin_name.c_str()), net);
+      assert(inst->findITerm(pin_info->lib_pin_name.c_str()));
+    }
+  }
+
+  // Terminal info setting //
+  hybrid_size_x_ = terminal_info.size_x;
+  hybrid_size_y_ = terminal_info.size_y;
+  hybrid_spacing_ = terminal_info.spacing_size;
+
+  // parse end
+
+  init();
+}
 void Chip::parseICCADDeprecated(const string &input_file_name) {
   // In this function, we only construct odb database.
 
