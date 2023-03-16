@@ -32,6 +32,8 @@
 ///////////////////////////////////////////////////////////////////////////////
 #include "NesterovPlacer.h"
 #include "InitialPlacer.h"
+#include "Chip.h"
+
 using namespace std;
 
 namespace VLSI_backend {

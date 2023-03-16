@@ -8,7 +8,7 @@ int main() {
   bool is_for_contest = true;
   if (is_for_contest) {
     VLSI_backend::Chip chip;
-    chip.parseICCAD("../test/benchmarks/iccad2022/case1.txt");
+    chip.parseICCADDeprecated("../test/benchmarks/iccad2022/case1.txt");
     chip.write("../test/output/case1.txt");
   } else {
     // string lefName = "Nangate45.lef";

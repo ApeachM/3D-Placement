@@ -124,7 +124,7 @@ class Chip {
    * GitHub: ApeachM (https://github.com/ApeachM)
    * */
   void parseICCAD(const string &input_file_name);
-  void parseICCAD_deprecated(const string &input_file_name);
+  void parseICCADDeprecated(const string &input_file_name);
   void write(const string &out_file_name);
   void test();
 
