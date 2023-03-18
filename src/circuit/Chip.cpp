@@ -206,6 +206,8 @@ void Chip::init() {
 
 }
 void Chip::parse(const string &lef_name, const string &def_name) {
+  db_database_ = dbDatabase::create();
+  parser_.db_database_ = db_database_;
   parser_.readLef(lef_name);
   parser_.readDef(def_name);
   this->init();
@@ -556,6 +558,7 @@ void Chip::parseICCAD(const string &input_file_name) {
                     pin_location_x + 1,
                     pin_location_y + 1);
     }
+    master->setFrozen();
   }
 
   // Die Size Setting //
@@ -599,16 +602,42 @@ void Chip::parseICCAD(const string &input_file_name) {
   // Net and connections setting //
   for (int i = 0; i < net_number_; ++i) {
     // (refer to `dbDatabase* create2LevetDbNoBTerms()` function in submodule/OpenDB/test/cpp/helper.cpp)
-    NetInfo* net_info = &net_infos.at(i);
-    dbNet* net = dbNet::create(db_block, net_info->net_name.c_str());
+    NetInfo *net_info = &net_infos.at(i);
+    dbNet *net = dbNet::create(db_block, net_info->net_name.c_str());
 
     // read pins in one Net
     for (int j = 0; j < net_info->pin_num; ++j) {
-      ConnectedPinInfo* pin_info = &net_info->connected_pins_infos.at(j);
-      dbInst* inst = db_block->findInst(pin_info->instance_name.c_str());
+      ConnectedPinInfo *pin_info = &net_info->connected_pins_infos.at(j);
+      dbInst *inst = db_block->findInst(pin_info->instance_name.c_str());
       dbITerm::connect(inst->findITerm(pin_info->lib_pin_name.c_str()), net);
       assert(inst->findITerm(pin_info->lib_pin_name.c_str()));
     }
+  }
+
+  // Row info setting //
+  assert(row_infos_.first.row_width == row_infos_.second.row_width);
+  assert(row_infos_.first.start_x == row_infos_.second.start_x);
+  assert(row_infos_.first.row_height * row_infos_.first.repeat_count
+             == row_infos_.second.row_height * row_infos_.first.repeat_count);
+  // for top and bottom die
+  for (int i = 0; i < row_infos_.first.repeat_count; ++i) {
+    dbSite *site = dbSite::create(db_databases_.at(0)->findLib("lib"), ("site" + to_string(i)).c_str());
+    dbRow::create(db_databases_.at(0)->getChip()->getBlock(), ("row" + to_string(i)).c_str(), site,
+                  0, 0, dbOrientType::MX, dbRowDir::HORIZONTAL, 1, row_infos_.first.row_height);
+  }
+  for (int i = 0; i < row_infos_.second.repeat_count; ++i) {
+    dbSite *site = dbSite::create(db_databases_.at(1)->findLib("lib"), ("site" + to_string(i)).c_str());
+    dbRow::create(db_databases_.at(1)->getChip()->getBlock(), ("row" + to_string(i)).c_str(), site,
+                  0, 0, dbOrientType::MX, dbRowDir::HORIZONTAL, 1, row_infos_.first.row_height);
+  }
+  // for pseudo die
+  int die_height = row_infos_.first.row_height * row_infos_.second.repeat_count;
+  int row_height = floor((row_infos_.first.row_height + row_infos_.second.row_height) / 2);
+  int repeat_count = floor(die_height / row_height);
+  for (int i = 0; i < repeat_count; ++i) {
+    dbSite *site = dbSite::create(db_database_->findLib("pseudoDieLib"), ("site" + to_string(i)).c_str());
+    dbRow::create(db_block, ("row" + to_string(i)).c_str(), site,
+                  0, 0, dbOrientType::MX, dbRowDir::HORIZONTAL, 1, row_height);
   }
 
   // Terminal info setting //

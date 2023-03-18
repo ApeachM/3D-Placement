@@ -65,11 +65,11 @@ class Pin {
   // minExpSum_: holds exp(-x_i/gamma)
   // the x_i is equal to cx_ variable.
   //
-  float maxExpSumX_;
-  float maxExpSumY_;
+  float maxExpSumX_{};
+  float maxExpSumY_{};
 
-  float minExpSumX_;
-  float minExpSumY_;
+  float minExpSumX_{};
+  float minExpSumY_{};
 
   // flag variables
   //
