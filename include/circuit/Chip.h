@@ -85,14 +85,9 @@ class Chip {
   class NesterovPlacer;
 
  public:
-  Chip(){
-    db_database_ = odb::dbDatabase::create();
-    db_database_top_ = odb::dbDatabase::create();
-    db_database_bottom_ = odb::dbDatabase::create();
-    parser_.db_database_ = db_database_;
-  }
+  Chip();
   ~Chip() = default;
-  /*!
+  /**
    * \brief
    * Core method
    * \details
@@ -105,7 +100,7 @@ class Chip {
    * */
   void do3DPlace();
 
-  /*!
+  /**
    * \brief
    * Read and Write functions
    * \author
@@ -113,10 +108,11 @@ class Chip {
    * GitHub: ApeachM (https://github.com/ApeachM)
    * */
   void parse(const string &lef_name, const string &def_name);
+  void write(const string &out_file_name);
 
-  /*!
+  /**
    * \brief
-   * This code parses the input data of ICCAD 2022 contest.
+   * This code parses and writes the input data of ICCAD 2022 contest.
    *
    * \details
    * This code highly refers to https://github.com/csdl-projects/ICCAD2022/blob/main/src/utils/Parser.cpp \n
@@ -128,8 +124,9 @@ class Chip {
    * Minjae Kim \n
    * GitHub: ApeachM (https://github.com/ApeachM)
    * */
-  void input_file_name(const string &lef_name);
-  void write(const string &out_file_name);
+  void parseICCAD(const string &input_file_name);
+  void writeICCAD(const string &output_file_name);
+  void test();
 
   // etc
   void dbTutorial() const;
@@ -138,19 +135,19 @@ class Chip {
   // Data initialization
   void init();
 
-  /*!
+  /**
    * \author
    * Minjae Kim \n
    * GitHub: ApeachM (https://github.com/ApeachM)
    * */
   void setTargetDensity(vector<double> densities);
-  /*!
+  /**
    * \author
    * Minjae Kim \n
    * GitHub: ApeachM (https://github.com/ApeachM)
    * */
   void doInitialPlace();
-  /*!
+  /**
    * \author
    * Minjae Kim \n
    * GitHub: ApeachM (https://github.com/ApeachM)
@@ -165,7 +162,7 @@ class Chip {
    * */
   void normalPlacement();
 
-  /*!
+  /**
    * \brief
    * Divide a cells into two circuit.
    * Louvain(actually, not louvain but ledien) clustering is implemented by igraph package
@@ -177,12 +174,12 @@ class Chip {
    * */
   void partition();
 
-  /*!\brief
+  /**\brief
    * After partitioning, the
    * */
   void generateHybridBonds();
 
-  /*!
+  /**
    * \brief
    * Do placement 2 Die synchronously.\n
    * This will consider the interaction between two die. \n
@@ -207,7 +204,7 @@ class Chip {
    * */
   int getUnitOfMicro() const;
 
-  /*!
+  /**
    * \brief
    * get HPWL of total circuit
    * \details
@@ -218,9 +215,20 @@ class Chip {
    * */
   ulong getHPWL();
 
+  int getInstanceNumber() const;
+  void setInstanceNumber(int instance_number);
+  int getNetNumber() const;
+  void setNetNumber(int net_number);
+  dbDatabase *getDbDatabase() const;
+  void setDbDatabase(dbDatabase *db_database);
+ protected:
+  // For pseudo die
   odb::dbDatabase *db_database_{};
-  odb::dbDatabase *db_database_top_{};
-  odb::dbDatabase *db_database_bottom_{};
+
+  // For top and bottom die.
+  // This should be only used when parse ICCAD contest benchmark,
+  // and write the two lef and def files for top and bottom die
+  std::vector<odb::dbDatabase *> db_databases_{};
 
   Parser parser_;
   data_storage data_storage_;
@@ -233,8 +241,19 @@ class Chip {
   std::vector<Die *> die_pointers_;
 
   int num_technologies_ = 0;
-  int lib_cell_num_ = 0;
-  int util_ = 100;
+
+  // hybrid size and spacing
+  int hybrid_size_x_ = 0;
+  int hybrid_size_y_ = 0;
+  int hybrid_spacing_ = 0;
+
+  int instance_number_ = 0;
+  int net_number_ = 0;
+
+  // first one is for top, the second one is for bottom.
+  pair<int, int> max_utils_;
+  // first one is for top, the second one is for bottom. This info will be copied at die.
+  pair<RowInfo, RowInfo> row_infos_;
 
 };
 

@@ -239,7 +239,7 @@ void Chip::do3DPlace() {
   // 0. target density setting
   /* manually setting in code level */
   vector<double> densities;
-  densities.push_back(0.7);
+  densities.push_back(2.0); // pseudo die util = top die util + bottom die util
   densities.push_back(1.0);
   densities.push_back(1.0);
   setTargetDensity(densities);
