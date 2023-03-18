@@ -257,6 +257,7 @@ int Instance::getDieId() const {
   return die_id_;
 }
 bool Instance::isHybridBond() const {
+  assert(die_id_ == -1);
   return is_hybrid_bond_;
 }
 void Instance::setAsHybridBond() {
@@ -312,6 +313,9 @@ bool Instance::isInstance() {
 }
 bool Instance::isDummy() {
   return db_inst_ == nullptr;
+}
+const vector<Net *> &Instance::getConnectedNets() const {
+  return connected_nets_;
 }
 
 } // VLSI_backend

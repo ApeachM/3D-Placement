@@ -5,12 +5,12 @@
 using namespace std;
 
 int main() {
-  bool is_for_contest = false;
+  bool is_for_contest = true;
   if (is_for_contest) {
     VLSI_backend::Chip chip;
     chip.parseICCAD("../test/benchmarks/iccad2022/case1.txt");
     chip.do3DPlace();
-    // chip.write("../test/output/case1.txt");
+    chip.writeICCAD("../test/output/case1.txt");
   } else {
     string lefName = "Nangate45.lef";
     string defName = "simple01.def";

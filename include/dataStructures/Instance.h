@@ -177,6 +177,7 @@ class Instance {
   void setAsHybridBond();
   Pin *getHybridBondPin() const;
   void setHybridBondPin(Pin *hybrid_bond_pin);
+  const vector<Net *> &getConnectedNets() const;
   void setConnectedPins(vector<Pin *> connected_pins);
   void setConnectedNets(vector<Net *> connected_nets);
   void setInstName(const string &name);

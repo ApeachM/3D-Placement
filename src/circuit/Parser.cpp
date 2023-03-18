@@ -265,6 +265,11 @@ void Chip::parseICCAD(const string &input_file_name) {
       if (die_info.tech_name == tech_info.name)
         die_info.tech_info = &tech_info;
 
+  row_infos_.first = die_infos.at(0).row_info;
+  max_utils_.first = die_infos.at(0).max_util;
+  row_infos_.second = die_infos.at(1).row_info;
+  max_utils_.second = die_infos.at(1).max_util;
+
   // check
   for (DieInfo die_info : die_infos) {
     assert(die_info.tech_name == die_info.tech_info->name);
@@ -451,15 +456,17 @@ void Chip::parseICCAD(const string &input_file_name) {
   assert(row_infos_.first.row_width == row_infos_.second.row_width);
   assert(row_infos_.first.start_x == row_infos_.second.start_x);
   assert(row_infos_.first.row_height * row_infos_.first.repeat_count
-             == row_infos_.second.row_height * row_infos_.first.repeat_count);
+             == row_infos_.second.row_height * row_infos_.second.repeat_count);
   // for top and bottom die
   for (int i = 0; i < row_infos_.first.repeat_count; ++i) {
     dbSite *site = dbSite::create(db_databases_.at(0)->findLib("lib"), ("site" + to_string(i)).c_str());
+    site->setHeight(row_infos_.first.row_height);
     dbRow::create(db_databases_.at(0)->getChip()->getBlock(), ("row" + to_string(i)).c_str(), site,
                   0, 0, dbOrientType::MX, dbRowDir::HORIZONTAL, 1, row_infos_.first.row_height);
   }
   for (int i = 0; i < row_infos_.second.repeat_count; ++i) {
     dbSite *site = dbSite::create(db_databases_.at(1)->findLib("lib"), ("site" + to_string(i)).c_str());
+    site->setHeight(row_infos_.second.row_height);
     dbRow::create(db_databases_.at(1)->getChip()->getBlock(), ("row" + to_string(i)).c_str(), site,
                   0, 0, dbOrientType::MX, dbRowDir::HORIZONTAL, 1, row_infos_.first.row_height);
   }
@@ -469,6 +476,7 @@ void Chip::parseICCAD(const string &input_file_name) {
   int repeat_count = floor(die_height / row_height);
   for (int i = 0; i < repeat_count; ++i) {
     dbSite *site = dbSite::create(db_database_->findLib("pseudoDieLib"), ("site" + to_string(i)).c_str());
+    site->setHeight(row_height);
     dbRow::create(db_block, ("row" + to_string(i)).c_str(), site,
                   0, 0, dbOrientType::MX, dbRowDir::HORIZONTAL, 1, row_height);
   }
@@ -483,6 +491,54 @@ void Chip::parseICCAD(const string &input_file_name) {
   init();
 }
 void Chip::writeICCAD(const string &output_file_name) {
+  // open output file
+  ofstream ofs(output_file_name);
+  assert(ofs.is_open());
+
+  // get the number of instances in the top and bottom die
+  int num_instances_top = 0;
+  int num_instances_bottom = 0;
+  int num_terminals = 0;
+  vector<Instance *> terminals;
+  for (int i = 0; i < instance_pointers_.size(); ++i) {
+    Instance *instance = instance_pointers_.at(i);
+    if (instance->getDieId() == 1) {
+      num_instances_top++;
+    } else if (instance->getDieId() == 2) {
+      num_instances_bottom++;
+    } else if (instance->isHybridBond()) {
+      num_terminals++;
+      terminals.push_back(instance);
+    }
+  }
+
+  // For top die
+
+  ofs << "TopDiePlacement " << num_instances_top << endl;
+  for (int i = 0; i < instance_pointers_.size(); ++i) {
+    if (instance_pointers_.at(i)->getDieId() != 1)
+      continue;
+    Instance *instance = instance_pointers_.at(i);
+    ofs << "Inst " << instance->getName() << " "
+        << instance->getCoordinate().first << " " << instance->getCoordinate().second << endl;
+  }
+
+  ofs << "BottomDiePlacement " << num_instances_top << endl;
+  for (int i = 0; i < instance_pointers_.size(); ++i) {
+    if (instance_pointers_.at(i)->getDieId() != 2)
+      continue;
+    Instance *instance = instance_pointers_.at(i);
+    ofs << "Inst " << instance->getName() << " "
+        << instance->getCoordinate().first << " " << instance->getCoordinate().second << endl;
+  }
+
+  ofs << "NumTerminals " << num_terminals << endl;
+  for (int i = 0; i < num_terminals; ++i) {
+    Instance *terminal = terminals.at(i);
+    string net_name = terminal->getHybridBondPin()->getNet()->getName();
+    auto position = terminal->getHybridBondPin()->getCoordinate();
+    ofs << "Terminal " << net_name << " " << position.first << " " << position.second << endl;
+  }
 
 }
 

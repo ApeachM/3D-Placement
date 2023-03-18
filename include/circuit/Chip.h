@@ -251,7 +251,7 @@ class Chip {
   int net_number_ = 0;
 
   // first one is for top, the second one is for bottom.
-  pair<int, int> max_util_;
+  pair<int, int> max_utils_;
   // first one is for top, the second one is for bottom. This info will be copied at die.
   pair<RowInfo, RowInfo> row_infos_;
 
