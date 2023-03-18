@@ -108,10 +108,11 @@ class Chip {
    * GitHub: ApeachM (https://github.com/ApeachM)
    * */
   void parse(const string &lef_name, const string &def_name);
+  void write(const string &out_file_name);
 
   /**
    * \brief
-   * This code parses the input data of ICCAD 2022 contest.
+   * This code parses and writes the input data of ICCAD 2022 contest.
    *
    * \details
    * This code highly refers to https://github.com/csdl-projects/ICCAD2022/blob/main/src/utils/Parser.cpp \n
@@ -124,8 +125,7 @@ class Chip {
    * GitHub: ApeachM (https://github.com/ApeachM)
    * */
   void parseICCAD(const string &input_file_name);
-  void parseICCADDeprecated(const string &input_file_name);
-  void write(const string &out_file_name);
+  void writeICCAD(const string &output_file_name);
   void test();
 
   // etc
