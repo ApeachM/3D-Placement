@@ -1,7 +1,7 @@
-cmake_minimum_required(VERSION 3.14..3.16)
+cmake_minimum_required(VERSION 3.16)
 project(3D-Placement)
 
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
 set(SOURCES
         src/main.cpp
 
@@ -17,35 +17,31 @@ set(SOURCES
         src/algorithm/do3DPlace.cpp
         src/algorithm/normalPlace.cpp
         src/algorithm/InitialPlacer.cpp
+        src/algorithm/NesterovPlacer.cpp
 
         src/tool/fft.cpp
         src/tool/fftsg.cpp
         src/tool/fftsg2d.cpp
 
         src/etc/dbTutorial.cpp
-        src/algorithm/NesterovPlacer.cpp
-        include/algorithm/NesterovPlacer.h include/algorithm/InitialPlacer.h)
+        )
 
 set(INCLUDE_DIRS
-        #${PROJECT_SOURCE_DIR}/include
         ${PROJECT_SOURCE_DIR}/include/algorithm
         ${PROJECT_SOURCE_DIR}/include/circuit
         ${PROJECT_SOURCE_DIR}/include/dataStructures
         ${PROJECT_SOURCE_DIR}/include/tool
-        ${PROJECT_SOURCE_DIR}/submodule/CImg
         )
 
 add_executable(placer ${SOURCES})
 target_include_directories(placer PRIVATE ${INCLUDE_DIRS})
 
 find_package(Eigen3 REQUIRED)
-add_subdirectory(submodule/OpenDB)
-#add_subdirectory(submodule/igraph)
+add_subdirectory(submodule/OpenROAD)
 target_link_libraries(placer
-        PRIVATE
+        PUBLIC
+#        openroad
+        odb
+#        mpl2
         Eigen3::Eigen
-        opendb
-        X11
-        pthread
-        #igraph
         )

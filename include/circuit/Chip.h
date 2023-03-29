@@ -222,6 +222,7 @@ class Chip {
   dbDatabase *getDbDatabase() const;
   void setDbDatabase(dbDatabase *db_database);
  protected:
+  utl::Logger logger_;
   // For pseudo die
   odb::dbDatabase *db_database_{};
 
