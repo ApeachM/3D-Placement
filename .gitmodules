@@ -1,3 +1,6 @@
 [submodule "submodule"]
 	path = submodule/OpenROAD
 	url = https://github.com/The-OpenROAD-Project/OpenROAD.git
+[submodule "openroadForked"]
+	path = submodule/openroadForked
+	url = https://github.com/QuantamHD/OpenROAD.git
