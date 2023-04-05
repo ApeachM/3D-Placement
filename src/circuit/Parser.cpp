@@ -542,7 +542,6 @@ void Chip::writeICCAD(const string &output_file_name) {
   }
 
 }
-
 void Chip::test() {
   dbDatabase *die_db = odb::dbDatabase::create();
   setDbDatabase(die_db);
@@ -633,7 +632,6 @@ void Chip::test() {
   cout << "block: " << block << "\t" << db_database_->getChip()->getBlock() << endl;
 
 }
-
 odb::defout::Version Parser::stringToDefVersion(const string &version) {
   if (version == "5.8")
     return odb::defout::Version::DEF_5_8;

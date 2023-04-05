@@ -37,11 +37,14 @@ add_executable(placer ${SOURCES})
 target_include_directories(placer PRIVATE ${INCLUDE_DIRS})
 
 find_package(Eigen3 REQUIRED)
-add_subdirectory(submodule/openroadForked)
+add_subdirectory(submodules/OpenROAD)
 target_link_libraries(placer
         PUBLIC
-#        openroad
         odb
-        mpl2
+        mpl2_lib
         Eigen3::Eigen
+        )
+target_include_directories(mpl2_lib
+        PUBLIC
+        submodules/OpenROAD/src/mpl2/src
         )
