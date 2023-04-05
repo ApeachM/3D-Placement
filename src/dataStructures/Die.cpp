@@ -40,12 +40,12 @@ Die::Die() {
 }
 Die::Die(dbBlock *db_block) {
   db_block_ = db_block;
-  db_block->getDieArea(die_shape_);
+  die_shape_ = db_block->getDieArea();
   setDieSize(die_shape_.dx(), die_shape_.dy());
 }
 void Die::setDbBlock(dbBlock *db_block) {
   db_block_ = db_block;
-  db_block->getDieArea(die_shape_);
+  die_shape_ = db_block->getDieArea();
   setDieSize(die_shape_.dx(), die_shape_.dy());
 }
 uint Die::getWidth() {

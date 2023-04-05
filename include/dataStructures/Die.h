@@ -84,7 +84,7 @@ class Die {
     db_chip_ = dbChip::create(db_database_);
     db_block_ = dbBlock::create(db_chip_, (std::to_string(die_id_) + "th Die Block").c_str());
 
-    db_block_->getDieArea(die_shape_);
+    die_shape_ = db_block_->getDieArea();
     setDieSize(die_shape_.dx(), die_shape_.dy());
   }
 

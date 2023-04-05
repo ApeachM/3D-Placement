@@ -35,6 +35,29 @@
 #include <random>
 #include <algorithm>
 namespace VLSI_backend {
+void Chip::do3DPlace() {
+
+  // 0. target density setting
+  /* manually setting in code level */
+  vector<double> densities;
+  densities.push_back(2.0); // pseudo die util = top die util + bottom die util
+  densities.push_back(1.0);
+  densities.push_back(1.0);
+  setTargetDensity(densities);
+
+  // 1. do3DPlace the cells in the pseudo die
+  this->normalPlacement();
+
+  // 2. partition
+  this->partition();
+
+  // 3. hybrid bond generate and placement
+  this->generateHybridBonds();
+
+  // 4. placement synchronously
+  this->placement2DieSynchronously();
+}
+
 void Chip::normalPlacement() {
   doInitialPlace();
   doNestrovPlace();
@@ -232,28 +255,5 @@ void Chip::placement2DieSynchronously() {
   }
   nestrov_placer1.updateDB();
   nestrov_placer2.updateDB();
-}
-
-void Chip::do3DPlace() {
-
-  // 0. target density setting
-  /* manually setting in code level */
-  vector<double> densities;
-  densities.push_back(2.0); // pseudo die util = top die util + bottom die util
-  densities.push_back(1.0);
-  densities.push_back(1.0);
-  setTargetDensity(densities);
-
-  // 1. do3DPlace the cells in the pseudo die
-  this->normalPlacement();
-
-  // 2. partition
-  this->partition();
-
-  // 3. hybrid bond generate and placement
-  this->generateHybridBonds();
-
-  // 4. placement synchronously
-  this->placement2DieSynchronously();
 }
 }

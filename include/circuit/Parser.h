@@ -46,6 +46,7 @@ namespace VLSI_backend {
 class Parser {
  private:
   static odb::defout::Version stringToDefVersion(const string &version);
+  utl::Logger* logger_ = nullptr;
 
  public:
   odb::dbDatabase *db_database_{};
@@ -53,6 +54,9 @@ class Parser {
   void readLef(const string &filename) const;
   void readDef(const string &filename) const;
   void writeDef(const string &filename, const string &version = "5.8") const;
+
+  utl::Logger *getLogger() const;
+  void setLoggerPtr(utl::Logger *logger);
 };
 
 } // VLSI_backend

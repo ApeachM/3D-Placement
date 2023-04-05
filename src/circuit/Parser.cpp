@@ -301,6 +301,7 @@ void Chip::parseICCAD(const string &input_file_name) {
   {
     assert(db_database_ == nullptr);
     db_database_ = odb::dbDatabase::create();
+    db_database_->setLogger(&logger_);
     dbTech *db_tech = dbTech::create(db_database_);
     dbTechLayer::create(db_tech, "pseudoLayer", dbTechLayerType::MASTERSLICE);
     dbLib::create(db_database_, "pseudoDieLib", ',');
@@ -447,7 +448,7 @@ void Chip::parseICCAD(const string &input_file_name) {
     for (int j = 0; j < net_info->pin_num; ++j) {
       ConnectedPinInfo *pin_info = &net_info->connected_pins_infos.at(j);
       dbInst *inst = db_block->findInst(pin_info->instance_name.c_str());
-      dbITerm::connect(inst->findITerm(pin_info->lib_pin_name.c_str()), net);
+      inst->findITerm(pin_info->lib_pin_name.c_str())->connect(net);
       assert(inst->findITerm(pin_info->lib_pin_name.c_str()));
     }
   }
@@ -541,7 +542,6 @@ void Chip::writeICCAD(const string &output_file_name) {
   }
 
 }
-
 void Chip::test() {
   dbDatabase *die_db = odb::dbDatabase::create();
   setDbDatabase(die_db);
@@ -610,15 +610,16 @@ void Chip::test() {
   dbNet *n5 = dbNet::create(block, "n5");
   dbNet *n6 = dbNet::create(block, "n6");
   dbNet *n7 = dbNet::create(block, "n7");
-  dbITerm::connect(i1->findITerm("a"), n1);
-  dbITerm::connect(i1->findITerm("b"), n2);
-  dbITerm::connect(i2->findITerm("a"), n3);
-  dbITerm::connect(i2->findITerm("b"), n4);
-  dbITerm::connect(i3->findITerm("a"), n5);
-  dbITerm::connect(i3->findITerm("b"), n6);
-  dbITerm::connect(i1->findITerm("o"), n5);
-  dbITerm::connect(i2->findITerm("o"), n6);
-  dbITerm::connect(i3->findITerm("o"), n7);
+
+  i1->findITerm("a")->connect(n1);
+  i2->findITerm("b")->connect(n2);
+  i3->findITerm("a")->connect(n3);
+  i2->findITerm("b")->connect(n4);
+  i3->findITerm("a")->connect(n5);
+  i3->findITerm("b")->connect(n6);
+  i1->findITerm("o")->connect(n5);
+  i2->findITerm("o")->connect(n6);
+  i3->findITerm("o")->connect(n7);
 
   i1->setPlacementStatus(odb::dbPlacementStatus::PLACED);
   i1->setLocation(30, 20);
@@ -631,7 +632,6 @@ void Chip::test() {
   cout << "block: " << block << "\t" << db_database_->getChip()->getBlock() << endl;
 
 }
-
 odb::defout::Version Parser::stringToDefVersion(const string &version) {
   if (version == "5.8")
     return odb::defout::Version::DEF_5_8;
@@ -649,7 +649,7 @@ odb::defout::Version Parser::stringToDefVersion(const string &version) {
     return odb::defout::Version::DEF_5_8;
 }
 void Parser::readLef(const string &filename) const {
-  odb::lefin lef_reader(db_database_, false);
+  odb::lefin lef_reader(db_database_, logger_, false);
   odb::dbLib *lib = lef_reader.createTechAndLib("nangate", filename.c_str());
   odb::dbTech *tech = db_database_->getTech();
 
@@ -661,7 +661,7 @@ void Parser::readLef(const string &filename) const {
   }
 }
 void Parser::readDef(const string &filename) const {
-  odb::defin def_reader(db_database_);
+  odb::defin def_reader(db_database_, logger_);
   std::vector<odb::dbLib *> search_libs;
   for (odb::dbLib *lib : db_database_->getLibs())
     search_libs.push_back(lib);
@@ -678,12 +678,18 @@ void Parser::writeDef(const string &filename, const string &version) const {
   if (chip) {
     odb::dbBlock *block = chip->getBlock();
     if (block) {
-      odb::defout def_writer;
+      odb::defout def_writer(logger_);
       def_writer.setVersion(stringToDefVersion(version));
       def_writer.writeBlock(block, filename.c_str());
     }
   } else {
     std::cout << "Writing Def is failed." << std::endl;
   }
+}
+utl::Logger *Parser::getLogger() const {
+  return logger_;
+}
+void Parser::setLoggerPtr(utl::Logger *logger) {
+  logger_ = logger;
 }
 } // VLSI_backend

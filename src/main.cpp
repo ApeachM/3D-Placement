@@ -1,5 +1,4 @@
 #include <iostream>
-//#include <igraph.h>
 #include "Chip.h"
 
 using namespace std;
@@ -10,7 +9,7 @@ int main() {
     VLSI_backend::Chip chip;
     chip.parseICCAD("../test/benchmarks/iccad2022/case1.txt");
     chip.do3DPlace();
-    chip.writeICCAD("../test/output/case1.txt");
+    // chip.writeICCAD("../test/output/case1.txt");
   } else {
     string lefName = "Nangate45.lef";
     string defName = "simple01.def";
@@ -26,5 +25,4 @@ int main() {
     chip.write(output_path_name + defName);
     // chip.getDbDatabase()->getChip()->getBlock()->saveLef((output_path_name + lefName).c_str());
   }
-//
 }

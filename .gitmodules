@@ -1,6 +1,3 @@
-[submodule "OpenDB"]
-	path = submodule/OpenDB
-	url = https://github.com/ApeachM/OpenDB
-[submodule "CImg"]
-	path = submodule/CImg
-	url = https://github.com/GreycLab/CImg.git
+[submodule "submodules/OpenROAD"]
+	path = submodules/OpenROAD
+	url = https://github.com/The-OpenROAD-Project/OpenROAD.git

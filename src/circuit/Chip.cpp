@@ -38,6 +38,7 @@ using namespace std;
 
 namespace VLSI_backend {
 Chip::Chip() {
+  parser_.setLoggerPtr(&logger_);
 }
 void Chip::init() {
   /// this is for connection between the objects in initialization

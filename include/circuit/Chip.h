@@ -47,6 +47,8 @@
 #include "Pin.h"
 #include "Die.h"
 #include "fft.h"
+#include "mpl2/rtl_mp.h"
+#include "hier_rtlmp.h"
 
 #define REPLACE_SQRT2 1.414213562373095048801L
 
@@ -222,6 +224,7 @@ class Chip {
   dbDatabase *getDbDatabase() const;
   void setDbDatabase(dbDatabase *db_database);
  protected:
+  utl::Logger logger_;
   // For pseudo die
   odb::dbDatabase *db_database_{};
 
@@ -255,6 +258,8 @@ class Chip {
   // first one is for top, the second one is for bottom. This info will be copied at die.
   pair<RowInfo, RowInfo> row_infos_;
 
+  mpl2::MacroPlacer2 macro_placer_;
+  mpl2::HierRTLMP *hier_rtlmp_;
 };
 
 } // VLSI_backend
