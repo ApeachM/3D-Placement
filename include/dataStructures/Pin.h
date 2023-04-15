@@ -35,7 +35,7 @@
 #ifndef PLACER_INCLUDE_DATASTRUCTURES_PIN_H_
 #define PLACER_INCLUDE_DATASTRUCTURES_PIN_H_
 #include "db.h"
-#include "structures.h"
+#include "storages.h"
 
 namespace VLSI_backend {
 using namespace std;

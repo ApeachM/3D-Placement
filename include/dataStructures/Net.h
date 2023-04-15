@@ -38,7 +38,7 @@
 #include <string>
 #include <iostream>
 #include "db.h"
-#include "structures.h"
+#include "storages.h"
 namespace VLSI_backend {
 using namespace std;
 class Pin;
