@@ -41,15 +41,13 @@
 #include "storages.h"
 namespace VLSI_backend {
 using namespace std;
-class Pin;
-class Instance;
 class Net {
  public:
   /// Constructors
   Net() = default;
   explicit Net(odb::dbNet *db_net);
   /// methods for Chip.init()
-  dbNet *getDbNet() const;
+  odb::dbNet *getDbNet() const;
 
   /// get net name
   string getName();

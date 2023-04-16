@@ -192,4 +192,35 @@ Net *Pin::getConnectedNet() const {
 void Pin::setConnectedNet(Net *connected_net) {
   Pin::connected_net = connected_net;
 }
+void Pin::updateDensityLocation(Instance *instance) {
+  // why is this "instance->getDensityCenterX + offsetCx"?
+  // shouldn't it be "instance->dLy + offsetCx"?
+  cx_ = instance->getDensityCenterX() + offsetCx_;
+  cy_ = instance->getDensityCenterY() + offsetCy_;
+}
+void Pin::clearWaVars() {
+  hasMaxExpSumX_ = 0;
+  hasMaxExpSumY_ = 0;
+  hasMinExpSumX_ = 0;
+  hasMinExpSumY_ = 0;
+
+  maxExpSumX_ = maxExpSumY_ = 0;
+  minExpSumX_ = minExpSumY_ = 0;
+}
+void Pin::setMaxExpSumX(float maxExpSumX) {
+  hasMaxExpSumX_ = 1;
+  maxExpSumX_ = maxExpSumX;
+}
+void Pin::setMaxExpSumY(float maxExpSumY) {
+  hasMaxExpSumY_ = 1;
+  maxExpSumY_ = maxExpSumY;
+}
+void Pin::setMinExpSumX(float minExpSumX) {
+  hasMinExpSumX_ = 1;
+  minExpSumX_ = minExpSumX;
+}
+void Pin::setMinExpSumY(float minExpSumY) {
+  hasMinExpSumY_ = 1;
+  minExpSumY_ = minExpSumY;
+}
 } // VLSI_backend

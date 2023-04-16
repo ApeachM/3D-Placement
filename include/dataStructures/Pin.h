@@ -137,40 +137,15 @@ class Pin {
   int cy() { return cy_; }
 
   void initDensityCoordinate();
-  void updateDensityLocation(Instance *instance) {
-    // why is this "instance->getDensityCenterX + offsetCx"?
-    // shouldn't it be "instance->dLy + offsetCx"?
-    cx_ = instance->getDensityCenterX() + offsetCx_;
-    cy_ = instance->getDensityCenterY() + offsetCy_;
-  }
+  void updateDensityLocation(Instance *instance);
 
   // clear WA(Weighted Average) variables.
-  void clearWaVars() {
-    hasMaxExpSumX_ = 0;
-    hasMaxExpSumY_ = 0;
-    hasMinExpSumX_ = 0;
-    hasMinExpSumY_ = 0;
+  void clearWaVars();
 
-    maxExpSumX_ = maxExpSumY_ = 0;
-    minExpSumX_ = minExpSumY_ = 0;
-  }
-
-  void setMaxExpSumX(float maxExpSumX) {
-    hasMaxExpSumX_ = 1;
-    maxExpSumX_ = maxExpSumX;
-  }
-  void setMaxExpSumY(float maxExpSumY) {
-    hasMaxExpSumY_ = 1;
-    maxExpSumY_ = maxExpSumY;
-  }
-  void setMinExpSumX(float minExpSumX) {
-    hasMinExpSumX_ = 1;
-    minExpSumX_ = minExpSumX;
-  }
-  void setMinExpSumY(float minExpSumY) {
-    hasMinExpSumY_ = 1;
-    minExpSumY_ = minExpSumY;
-  }
+  void setMaxExpSumX(float maxExpSumX);
+  void setMaxExpSumY(float maxExpSumY);
+  void setMinExpSumX(float minExpSumX);
+  void setMinExpSumY(float minExpSumY);
   float maxExpSumX() const { return maxExpSumX_; }
   float maxExpSumY() const { return maxExpSumY_; }
   float minExpSumX() const { return minExpSumX_; }

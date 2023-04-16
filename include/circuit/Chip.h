@@ -47,8 +47,7 @@
 #include "Pin.h"
 #include "Die.h"
 #include "fft.h"
-#include "mpl2/rtl_mp.h"
-#include "hier_rtlmp.h"
+#include "HierRTLMP.h"
 
 #define REPLACE_SQRT2 1.414213562373095048801L
 
@@ -167,9 +166,8 @@ class Chip {
   /**
    * \brief
    * Divide a cells into two circuit.
-   * Louvain(actually, not louvain but ledien) clustering is implemented by igraph package
+   * use Heir-RLTMP in OpenROAD. (this is in mpl2 in OpenROAD)
    * \todo
-   * This code is just temporal code now. Meaningless but only simple partition is implemented.
    * \author
    * Minjae Kim \n
    * GitHub: ApeachM (https://github.com/ApeachM)
@@ -258,8 +256,7 @@ class Chip {
   // first one is for top, the second one is for bottom. This info will be copied at die.
   pair<RowInfo, RowInfo> row_infos_;
 
-  mpl2::MacroPlacer2 macro_placer_;
-  mpl2::HierRTLMP *hier_rtlmp_;
+  HierRTLMPartition* hier_rtl_;
 };
 
 } // VLSI_backend

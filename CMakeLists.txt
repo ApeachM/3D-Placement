@@ -18,6 +18,7 @@ set(SOURCES
         src/algorithm/normalPlace.cpp
         src/algorithm/InitialPlacer.cpp
         src/algorithm/NesterovPlacer.cpp
+        src/algorithm/HierRTLMP.cpp
 
         src/tool/fft.cpp
         src/tool/fftsg.cpp

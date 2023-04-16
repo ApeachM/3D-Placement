@@ -46,16 +46,16 @@ void Chip::do3DPlace() {
   setTargetDensity(densities);
 
   // 1. do3DPlace the cells in the pseudo die
-  this->normalPlacement();
+  // this->normalPlacement();
 
   // 2. partition
   this->partition();
 
   // 3. hybrid bond generate and placement
-  this->generateHybridBonds();
+  // this->generateHybridBonds();
 
   // 4. placement synchronously
-  this->placement2DieSynchronously();
+  // this->placement2DieSynchronously();
 }
 
 void Chip::normalPlacement() {
@@ -65,6 +65,7 @@ void Chip::normalPlacement() {
 
 void Chip::partition() {
   /* Temporal code */
+/*
   int cell_num = static_cast<int>(instance_pointers_.size());
   for (int i = 0; i < floor(cell_num / 2); ++i) {
     Instance *instance = instance_pointers_.at(i);
@@ -74,6 +75,16 @@ void Chip::partition() {
     Instance *instance = instance_pointers_.at(i);
     instance->assignDie(2);
   }
+*/
+  auto *sta = new sta::dbSta;
+  sta::dbNetwork *network = sta->getDbNetwork();
+
+  par::PartitionMgr *tritonpart;
+  hier_rtl_ = new HierRTLMPartition(network, db_database_, sta, &logger_, tritonpart);
+  hier_rtl_->init();
+  hier_rtl_->partition();
+
+  delete hier_rtl_;
 }
 
 void Chip::generateHybridBonds() {
@@ -119,8 +130,8 @@ void Chip::generateHybridBonds() {
       data_storage_.hybrid_bonds.push_back(hybrid_bond_object);
       data_storage_.hybrid_bond_pins.push_back(hybrid_bond_pin_object);
 
-      Instance *hybrid_bond = &data_storage_.hybrid_bonds.at(data_storage_.hybrid_bonds.size()-1);
-      Pin *hybrid_bond_pin = &data_storage_.hybrid_bond_pins.at(data_storage_.hybrid_bond_pins.size()-1);
+      Instance *hybrid_bond = &data_storage_.hybrid_bonds.at(data_storage_.hybrid_bonds.size() - 1);
+      Pin *hybrid_bond_pin = &data_storage_.hybrid_bond_pins.at(data_storage_.hybrid_bond_pins.size() - 1);
 
       // link them
       hybrid_bond->setHybridBondPin(hybrid_bond_pin); // pin and instance
@@ -245,7 +256,7 @@ void Chip::placement2DieSynchronously() {
     assert(0);
 
   for (int i = 0; i < nestrov_placer1.getMaxNesterovIter(); ++i) {
-    int nestrov_iter1, nestrov_iter2 ;
+    int nestrov_iter1, nestrov_iter2;
     nestrov_iter1 = nestrov_placer1.doNestrovPlace(i, true);
     nestrov_iter2 = nestrov_placer2.doNestrovPlace(i, true);
     if (nestrov_iter1 >= nestrov_placer1.getMaxNesterovIter()
