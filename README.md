@@ -20,6 +20,8 @@ You can use `etc/DependencyInstaller.sh` in linux system.
 git clone --recurse-submodules https://github.com/ApeachM/3D-Placement.git
 cd 3D-Placement
 git submodule update --force --recursive --init --remote
+cd submodule/OpenROAD
+git switch OpenROAD/feature/Custom
 ```
 
 ```shell
