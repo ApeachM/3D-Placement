@@ -210,17 +210,21 @@ void Pin::clearWaVars() {
 void Pin::setMaxExpSumX(float maxExpSumX) {
   hasMaxExpSumX_ = 1;
   maxExpSumX_ = maxExpSumX;
+  assert(!(isnan(maxExpSumX)|| isinf(maxExpSumX)));
 }
 void Pin::setMaxExpSumY(float maxExpSumY) {
   hasMaxExpSumY_ = 1;
   maxExpSumY_ = maxExpSumY;
+  assert(!(isnan(maxExpSumY)|| isinf(maxExpSumY)));
 }
 void Pin::setMinExpSumX(float minExpSumX) {
   hasMinExpSumX_ = 1;
   minExpSumX_ = minExpSumX;
+  assert(!(isnan(minExpSumX)|| isinf(minExpSumX)));
 }
 void Pin::setMinExpSumY(float minExpSumY) {
   hasMinExpSumY_ = 1;
   minExpSumY_ = minExpSumY;
+  assert(!(isnan(minExpSumY)|| isinf(minExpSumY)));
 }
 } // VLSI_backend

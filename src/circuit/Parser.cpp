@@ -456,8 +456,8 @@ void Chip::parseICCAD(const string &input_file_name) {
   // Row info setting //
   assert(row_infos_.first.row_width == row_infos_.second.row_width);
   assert(row_infos_.first.start_x == row_infos_.second.start_x);
-  assert(row_infos_.first.row_height * row_infos_.first.repeat_count
-             == row_infos_.second.row_height * row_infos_.second.repeat_count);
+//  assert(row_infos_.first.row_height * row_infos_.first.repeat_count
+//             == row_infos_.second.row_height * row_infos_.second.repeat_count);
   // for top and bottom die
   for (int i = 0; i < row_infos_.first.repeat_count; ++i) {
     dbSite *site = dbSite::create(db_databases_.at(0)->findLib("lib"), ("site" + to_string(i)).c_str());

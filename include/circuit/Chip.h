@@ -60,7 +60,7 @@ typedef Eigen::SparseMatrix<float, Eigen::RowMajor> SMatrix;
 namespace VLSI_backend {
 using namespace odb;
 // https://codingforspeed.com/using-faster-exponential-approximation/
-static float fastExp(float a);
+static double fastExp(float a);
 
 /**\brief
  * This will do 3d placement (D2D placement). \n

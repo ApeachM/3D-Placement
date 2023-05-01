@@ -289,7 +289,7 @@ class Chip::NesterovPlacer {
    * */
   void updateDensitySize();
   void updateDensityForceBin();
-  void updateWireLengthForceWA(float wlCoeffX, float wlCoeffY);
+  void updateWireLengthForceWA(double wlCoeffX, double wlCoeffY);
   float nesterovInstsArea() const;
   void updateWireLengthCoef(float overflow);
   float getPhiCoef(float scaledDiffHpwl);

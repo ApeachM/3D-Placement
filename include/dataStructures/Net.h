@@ -66,14 +66,63 @@ class Net {
   /// get HPWLe of the net
   ulong getHPWL();
 
-  inline void addWaExpMinSumX(float waExpMinSumX) { waExpMinSumX_ += waExpMinSumX; }
-  inline void addWaXExpMinSumX(float waXExpMinSumX) { waXExpMinSumX_ += waXExpMinSumX; }
-  inline void addWaExpMinSumY(float waExpMinSumY) { waExpMinSumY_ += waExpMinSumY; }
-  inline void addWaYExpMinSumY(float waExpXMinSumY) { waYExpMinSumY_ += waExpXMinSumY; }
-  inline void addWaExpMaxSumX(float waExpMaxSumX) { waExpMaxSumX_ += waExpMaxSumX; }
-  inline void addWaXExpMaxSumX(float waXExpMaxSumX) { waXExpMaxSumX_ += waXExpMaxSumX; }
-  inline void addWaExpMaxSumY(float waExpMaxSumY) { waExpMaxSumY_ += waExpMaxSumY; }
-  inline void addWaYExpMaxSumY(float waYExpMaxSumY) { waYExpMaxSumY_ += waYExpMaxSumY; }
+  void addWaExpMinSumX(double waExpMinSumX) {
+    waExpMinSumX_ += waExpMinSumX;
+    assert(!isnan(waExpMinSumX));
+    assert(!isnan(waExpMinSumX_));
+    assert(!isinf(waExpMinSumX));
+    assert(!isinf(waExpMinSumX_));
+  }
+  void addWaXExpMinSumX(double waXExpMinSumX) {
+    waXExpMinSumX_ += waXExpMinSumX;
+    assert(!isnan(waXExpMinSumX));
+    assert(!isnan(waXExpMinSumX_));
+    assert(!isinf(waXExpMinSumX));
+    assert(!isinf(waXExpMinSumX_));
+
+  }
+  void addWaExpMinSumY(double waExpMinSumY) {
+    waExpMinSumY_ += waExpMinSumY;
+    assert(!isnan(waExpMinSumY));
+    assert(!isnan(waExpMinSumY_));
+    assert(!isinf(waExpMinSumY));
+    assert(!isinf(waExpMinSumY_));
+  }
+  void addWaYExpMinSumY(double waExpYMinSumY) {
+    waYExpMinSumY_ += waExpYMinSumY;
+    assert(!isnan(waExpYMinSumY));
+    assert(!isnan(waYExpMinSumY_));
+    assert(!isinf(waExpYMinSumY));
+    assert(!isinf(waYExpMinSumY_));
+  }
+  void addWaExpMaxSumX(double waExpMaxSumX) {
+    waExpMaxSumX_ += waExpMaxSumX;
+    assert(!isnan(waExpMaxSumX));
+    assert(!isnan(waExpMaxSumX_));
+    assert(!isinf(waExpMaxSumX));
+    assert(!isinf(waExpMaxSumX_));
+  }
+  void addWaXExpMaxSumX(double waXExpMaxSumX) {
+    waXExpMaxSumX_ += waXExpMaxSumX;
+    assert(!isnan(waXExpMaxSumX));
+    assert(!isnan(waXExpMaxSumX_));
+    assert(!isinf(waXExpMaxSumX));
+    assert(!isinf(waXExpMaxSumX_));
+  }
+  void addWaExpMaxSumY(double waExpMaxSumY) {
+    waExpMaxSumY_ += waExpMaxSumY;
+    assert(!isnan(waExpMaxSumY));
+    assert(!isnan(waExpMaxSumY_));
+    assert(!isinf(waExpMaxSumY));
+    assert(!isinf(waExpMaxSumY_));
+  }
+  void addWaYExpMaxSumY(double waYExpMaxSumY) {
+    waYExpMaxSumY_ += waYExpMaxSumY;
+    assert(!isnan(waYExpMaxSumY));
+    assert(!isnan(waYExpMaxSumY_));
+    assert(!isinf(waYExpMaxSumY));
+    assert(!isinf(waYExpMaxSumY_));
+  }
   inline float waExpMinSumX() const { return waExpMinSumX_; }
   inline float waXExpMinSumX() const { return waXExpMinSumX_; }
   inline float waExpMinSumY() const { return waExpMinSumY_; }
@@ -151,11 +200,11 @@ class Net {
    waExpMaxSumX_ : store sigma {exp(-x_i/gamma)}
    waXExpMaxSumX_: store sigma {x_i*exp(-x_i/gamma)}
   */
-  float waExpMinSumX_ = 0;
-  float waXExpMinSumX_ = 0;
+  double  waExpMinSumX_ = 0;
+  double waXExpMinSumX_ = 0;
 
-  float waExpMaxSumX_ = 0;
-  float waXExpMaxSumX_ = 0;
+  double waExpMaxSumX_ = 0;
+  double waXExpMaxSumX_ = 0;
 
   /*
    Y forces.
@@ -164,11 +213,11 @@ class Net {
    waExpMaxSumY_ : store sigma {exp(-y_i/gamma)}
    waYExpMaxSumY_: store sigma {y_i*exp(-y_i/gamma)}
   */
-  float waExpMinSumY_ = 0;
-  float waYExpMinSumY_ = 0;
+  double waExpMinSumY_ = 0;
+  double waYExpMinSumY_ = 0;
 
-  float waExpMaxSumY_ = 0;
-  float waYExpMaxSumY_ = 0;
+  double waExpMaxSumY_ = 0;
+  double waYExpMaxSumY_ = 0;
 
   unsigned char isDontCare_: 1;
 

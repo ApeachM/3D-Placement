@@ -695,7 +695,7 @@ void Chip::NesterovPlacer::updateDensityForceBin() {
   }
 
 }
-void Chip::NesterovPlacer::updateWireLengthForceWA(float wlCoeffX, float wlCoeffY) {
+void Chip::NesterovPlacer::updateWireLengthForceWA(double wlCoeffX, double wlCoeffY) {
   // clear all WA variables.
   for (Net *gNet : net_pointers_) {
     gNet->clearWaVars();
@@ -732,10 +732,10 @@ void Chip::NesterovPlacer::updateWireLengthForceWA(float wlCoeffX, float wlCoeff
       //   Sum(exp(x_i))          Sum(exp(x_i - C))
       //
       // So we shift to keep the exponential from overflowing
-      float expMinX = static_cast<float>(gNet->lx() - gPin->cx()) * wlCoeffX;
-      float expMaxX = static_cast<float>(gPin->cx() - gNet->ux()) * wlCoeffX;
-      float expMinY = static_cast<float>(gNet->ly() - gPin->cy()) * wlCoeffY;
-      float expMaxY = static_cast<float>(gPin->cy() - gNet->uy()) * wlCoeffY;
+      double expMinX = static_cast<double>(gNet->lx() - gPin->cx()) * wlCoeffX;
+      double expMaxX = static_cast<double>(gPin->cx() - gNet->ux()) * wlCoeffX;
+      double expMinY = static_cast<double>(gNet->ly() - gPin->cy()) * wlCoeffY;
+      double expMaxY = static_cast<double>(gPin->cy() - gNet->uy()) * wlCoeffY;
 
       // min x
       if (expMinX > min_wire_length_force_bar_) {
@@ -929,6 +929,9 @@ void Chip::NesterovPlacer::updateGradients(vector<pair<float, float>> &sumGrads,
     // To prevent instability problem,
     // I partitioned the fabs(~~.x) + fabs(~~.y) as two terms.
     //
+    if (isnan(wireLengthGrads[i].first) || isnan(wireLengthGrads[i].second)) {
+      cout << "here " << endl;
+    }
     wire_length_grad_sum_ += fabs(wireLengthGrads[i].first);
     wire_length_grad_sum_ += fabs(wireLengthGrads[i].second);
 
@@ -1018,50 +1021,54 @@ pair<float, float> Chip::NesterovPlacer::getWireLengthGradientWA(Instance *gCell
   return gradientPair;
 }
 pair<float, float> Chip::NesterovPlacer::getWireLengthGradientPinWA(Pin *gPin, float wlCoeffX, float wlCoeffY) {
-  float gradientMinX = 0, gradientMinY = 0;
-  float gradientMaxX = 0, gradientMaxY = 0;
+  double gradientMinX = 0, gradientMinY = 0;
+  double gradientMaxX = 0, gradientMaxY = 0;
 
   // min x
   if (gPin->hasMinExpSumX()) {
     // from Net.
-    float waExpMinSumX = gPin->getNet()->waExpMinSumX();
-    float waXExpMinSumX = gPin->getNet()->waXExpMinSumX();
+    double waExpMinSumX = gPin->getNet()->waExpMinSumX();
+    double waXExpMinSumX = gPin->getNet()->waXExpMinSumX();
 
     gradientMinX
-        = static_cast<float>(waExpMinSumX * (gPin->minExpSumX() * (1.0 - wlCoeffX * static_cast<float>(gPin->cx())))
+        = static_cast<double>(waExpMinSumX * (gPin->minExpSumX() * (1.0 - wlCoeffX * static_cast<double>(gPin->cx())))
         + wlCoeffX * gPin->minExpSumX() * waXExpMinSumX) / (waExpMinSumX * waExpMinSumX);
   }
 
   // max x
   if (gPin->hasMaxExpSumX()) {
-    float waExpMaxSumX = gPin->getNet()->waExpMaxSumX();
-    float waXExpMaxSumX = gPin->getNet()->waXExpMaxSumX();
+    double waExpMaxSumX = gPin->getNet()->waExpMaxSumX();
+    double waXExpMaxSumX = gPin->getNet()->waXExpMaxSumX();
 
     gradientMaxX
-        = static_cast<float>(waExpMaxSumX * (gPin->maxExpSumX() * (1.0 + wlCoeffX * static_cast<float>(gPin->cx())))
+        = static_cast<double>(waExpMaxSumX * (gPin->maxExpSumX() * (1.0 + wlCoeffX * static_cast<double>(gPin->cx())))
         - wlCoeffX * gPin->maxExpSumX() * waXExpMaxSumX) / (waExpMaxSumX * waExpMaxSumX);
   }
 
   // min y
   if (gPin->hasMinExpSumY()) {
-    float waExpMinSumY = gPin->getNet()->waExpMinSumY();
-    float waYExpMinSumY = gPin->getNet()->waYExpMinSumY();
+    double waExpMinSumY = gPin->getNet()->waExpMinSumY();
+    double waYExpMinSumY = gPin->getNet()->waYExpMinSumY();
 
     gradientMinY
-        = static_cast<float>(waExpMinSumY * (gPin->minExpSumY() * (1.0 - wlCoeffY * static_cast<float>(gPin->cy())))
+        = static_cast<double>(waExpMinSumY * (gPin->minExpSumY() * (1.0 - wlCoeffY * static_cast<double>(gPin->cy())))
         + wlCoeffY * gPin->minExpSumY() * waYExpMinSumY) / (waExpMinSumY * waExpMinSumY);
   }
 
   // max y
   if (gPin->hasMaxExpSumY()) {
-    float waExpMaxSumY = gPin->getNet()->waExpMaxSumY();
-    float waYExpMaxSumY = gPin->getNet()->waYExpMaxSumY();
+    double waExpMaxSumY = gPin->getNet()->waExpMaxSumY();
+    double waYExpMaxSumY = gPin->getNet()->waYExpMaxSumY();
 
     gradientMaxY
-        = static_cast<float>(waExpMaxSumY * (gPin->maxExpSumY() * (1.0 + wlCoeffY * static_cast<float>(gPin->cy())))
+        = static_cast<double>(waExpMaxSumY * (gPin->maxExpSumY() * (1.0 + wlCoeffY * static_cast<double>(gPin->cy())))
         - wlCoeffY * gPin->maxExpSumY() * waYExpMaxSumY) / (waExpMaxSumY * waExpMaxSumY);
   }
 
+  assert(!isnan(gradientMaxX));
+  assert(!isnan(gradientMaxY));
+  assert(!isnan(gradientMinX));
+  assert(!isnan(gradientMinY));
   return pair<float, float>{gradientMinX - gradientMaxX, gradientMinY - gradientMaxY};
 }
 void Chip::NesterovPlacer::initSLPStepsVars() {
@@ -1210,7 +1217,7 @@ void Chip::NesterovPlacer::updateDB() {
 int Chip::NesterovPlacer::getMaxNesterovIter() const {
   return maxNesterovIter;
 }
-float fastExp(float a) {
+double fastExp(float a) {
   a = 1.0f + a / 1024.0f;
   a *= a;
   a *= a;

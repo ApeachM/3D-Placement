@@ -46,16 +46,16 @@ void Chip::do3DPlace() {
   setTargetDensity(densities);
 
   // 1. do3DPlace the cells in the pseudo die
-  // this->normalPlacement();
+  this->normalPlacement();
 
   // 2. partition
-  this->partition();
+  this->partition();  // temporary code
 
   // 3. hybrid bond generate and placement
-  // this->generateHybridBonds();
+  this->generateHybridBonds();
 
   // 4. placement synchronously
-  // this->placement2DieSynchronously();
+  this->placement2DieSynchronously();
 }
 
 void Chip::normalPlacement() {
@@ -65,7 +65,6 @@ void Chip::normalPlacement() {
 
 void Chip::partition() {
   /* Temporal code */
-/*
   int cell_num = static_cast<int>(instance_pointers_.size());
   for (int i = 0; i < floor(cell_num / 2); ++i) {
     Instance *instance = instance_pointers_.at(i);
@@ -75,7 +74,7 @@ void Chip::partition() {
     Instance *instance = instance_pointers_.at(i);
     instance->assignDie(2);
   }
-*/
+/*
   auto *sta = new sta::dbSta;
   sta::dbNetwork *network = sta->getDbNetwork();
 
@@ -85,6 +84,7 @@ void Chip::partition() {
   hier_rtl_->partition();
 
   delete hier_rtl_;
+*/
 }
 
 void Chip::generateHybridBonds() {
