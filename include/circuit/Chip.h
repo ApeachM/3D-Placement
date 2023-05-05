@@ -48,6 +48,7 @@
 #include "Die.h"
 #include "fft.h"
 #include "HierRTLMP.h"
+#include "Drawer.h"
 
 #define REPLACE_SQRT2 1.414213562373095048801L
 
@@ -221,6 +222,11 @@ class Chip {
   void setNetNumber(int net_number);
   dbDatabase *getDbDatabase() const;
   void setDbDatabase(dbDatabase *db_database);
+
+  void drawDies(const string& pseudo_die_name = "pseudo_die.bmp",
+                const string &top_die_name = "topDie.jpeg",
+                const string &bottom_die_name = "bottomDie.jpeg",
+                int scale_factor = 1);
  protected:
   utl::Logger logger_;
   // For pseudo die
@@ -256,7 +262,7 @@ class Chip {
   // first one is for top, the second one is for bottom. This info will be copied at die.
   pair<RowInfo, RowInfo> row_infos_;
 
-  HierRTLMPartition* hier_rtl_;
+  HierRTLMPartition *hier_rtl_;
 };
 
 } // VLSI_backend

@@ -216,4 +216,57 @@ ulong Chip::getHPWL() {
 int Chip::getUnitOfMicro() const {
   return db_database_->getTech()->getDbUnitsPerMicron();
 }
+void Chip::drawDies(const string &pseudo_die_name,
+                    const string &top_die_name,
+                    const string &bottom_die_name,
+                    int scale_factor) {
+  if (!data_storage_.hybrid_bonds.empty()) {
+    uint top_die_w = die_pointers_.at(0)->getWidth() / scale_factor;
+    uint top_die_h = die_pointers_.at(0)->getHeight() / scale_factor;
+    uint bottom_die_w = die_pointers_.at(1)->getWidth() / scale_factor;
+    uint bottom_die_h = die_pointers_.at(1)->getHeight() / scale_factor;
+
+    Drawer top_die(top_die_w, top_die_h);
+    Drawer bottom_die(bottom_die_w, bottom_die_h);
+    top_die.setDieId(1);
+    bottom_die.setDieId(2);
+
+    // Draw cells
+    for (Instance *instance : instance_pointers_) {
+      int ll_x = instance->getCoordinate().first / scale_factor;
+      int ll_y = instance->getCoordinate().second / scale_factor;
+      int ur_x = instance->getCoordinate().first + instance->getWidth() / scale_factor;
+      int ur_y = instance->getCoordinate().second + instance->getHeight() / scale_factor;
+
+      if (instance->getDieId() == 1) {
+        // top die
+        top_die.drawRect(ll_x, ll_y, ur_x, ur_y, Color::BLACK);
+
+      } else if (instance->getId() == 2) {
+        // bottom die
+        bottom_die.drawRect(ll_x, ll_y, ur_x, ur_y, Color::BLACK);
+      } else {
+        assert(0);
+      }
+    }
+  } else {
+    uint pseudo_die_w = die_pointers_.at(0)->getWidth() / scale_factor;
+    uint pseudo_die_h = die_pointers_.at(0)->getHeight() / scale_factor;
+
+    Drawer pseudo_die(pseudo_die_w, pseudo_die_h);
+    pseudo_die.setDieId(0);
+
+    // Draw cells
+    for (Instance *instance : instance_pointers_) {
+      int ll_x = instance->getCoordinate().first / scale_factor;
+      int ll_y = instance->getCoordinate().second / scale_factor;
+      int ur_x = instance->getCoordinate().first + instance->getWidth() / scale_factor;
+      int ur_y = instance->getCoordinate().second + instance->getHeight() / scale_factor;
+      if (instance->getDieId() != 0)
+        assert(0);
+      pseudo_die.drawRect(ll_x, ll_y, ur_x, ur_y, Color::BLACK);
+    }
+  }
+
+}
 } // VLSI_backend
