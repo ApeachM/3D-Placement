@@ -219,7 +219,16 @@ int Chip::getUnitOfMicro() const {
 void Chip::drawDies(const string &pseudo_die_name,
                     const string &top_die_name,
                     const string &bottom_die_name,
-                    int scale_factor) {
+                    int scale_factor,
+                    bool as_dot) {
+  if (instance_pointers_.size() > 10e6) {
+    scale_factor = 1000;
+  } else if (instance_pointers_.size() > 10e3) {
+    scale_factor = 100;
+  } else {
+    scale_factor = 10;
+  }
+
   if (!data_storage_.hybrid_bonds.empty()) {
     uint top_die_w = die_pointers_.at(0)->getWidth() / scale_factor;
     uint top_die_h = die_pointers_.at(0)->getHeight() / scale_factor;
@@ -235,16 +244,26 @@ void Chip::drawDies(const string &pseudo_die_name,
     for (Instance *instance : instance_pointers_) {
       int ll_x = instance->getCoordinate().first / scale_factor;
       int ll_y = instance->getCoordinate().second / scale_factor;
-      int ur_x = instance->getCoordinate().first + instance->getWidth() / scale_factor;
-      int ur_y = instance->getCoordinate().second + instance->getHeight() / scale_factor;
+      int ur_x = ll_x + instance->getWidth() / scale_factor;
+      int ur_y = ll_y + instance->getHeight() / scale_factor;
 
       if (instance->getDieId() == 1) {
         // top die
-        top_die.drawRect(ll_x, ll_y, ur_x, ur_y, Color::BLACK);
+        if (as_dot)
+          top_die.drawRect(ll_x, ll_y, ll_x + 1, ll_y + 1, Color::BLACK);
+        else
+          top_die.drawRect(ll_x, ll_y, ur_x, ur_y, Color::BLACK);
 
-      } else if (instance->getId() == 2) {
+      } else if (instance->getDieId() == 2) {
         // bottom die
-        bottom_die.drawRect(ll_x, ll_y, ur_x, ur_y, Color::BLACK);
+        if (as_dot)
+          bottom_die.drawRect(ll_x, ll_y, ll_x + 1, ll_y + 1, Color::BLACK);
+        else
+          bottom_die.drawRect(ll_x, ll_y, ur_x, ur_y, Color::BLACK);
+      } else if (instance->getDieId() == -1) {
+        // hybrid bond pin
+        top_die.drawRect(ll_x, ll_y, ll_x + 1, ll_y + 1, Color::BLUE);
+        bottom_die.drawRect(ll_x, ll_y, ll_x + 1, ll_y + 1, Color::BLUE);
       } else {
         assert(0);
       }
@@ -262,11 +281,15 @@ void Chip::drawDies(const string &pseudo_die_name,
     for (Instance *instance : instance_pointers_) {
       int ll_x = instance->getCoordinate().first / scale_factor;
       int ll_y = instance->getCoordinate().second / scale_factor;
-      int ur_x = instance->getCoordinate().first + instance->getWidth() / scale_factor;
-      int ur_y = instance->getCoordinate().second + instance->getHeight() / scale_factor;
+      int ur_x = ll_x + instance->getWidth() / scale_factor;
+      int ur_y = ll_y + instance->getHeight() / scale_factor;
       if (instance->getDieId() != 0)
         assert(0);
-      pseudo_die.drawRect(ll_x, ll_y, ur_x, ur_y, Color::BLACK);
+      if (as_dot)
+        pseudo_die.drawRect(ll_x, ll_y, ll_x + 1, ll_y + 1, Color::BLACK);
+      else
+        pseudo_die.drawRect(ll_x, ll_y, ur_x, ur_y, Color::BLACK);
+
     }
 
     pseudo_die.saveImg(pseudo_die_name);

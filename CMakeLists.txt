@@ -45,6 +45,7 @@ target_link_libraries(placer
         odb
         mpl2_lib
         Eigen3::Eigen
+        X11
         )
 target_include_directories(mpl2_lib
         PUBLIC

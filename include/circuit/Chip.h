@@ -137,25 +137,6 @@ class Chip {
   // Data initialization
   void init();
 
-  /**
-   * \author
-   * Minjae Kim \n
-   * GitHub: ApeachM (https://github.com/ApeachM)
-   * */
-  void setTargetDensity(vector<double> densities);
-  /**
-   * \author
-   * Minjae Kim \n
-   * GitHub: ApeachM (https://github.com/ApeachM)
-   * */
-  void doInitialPlace();
-  /**
-   * \author
-   * Minjae Kim \n
-   * GitHub: ApeachM (https://github.com/ApeachM)
-   * */
-  void doNestrovPlace();
-
   /**\brief
    * One die (virtual die) placement before partitioning
    * \author
@@ -192,6 +173,25 @@ class Chip {
    * */
   void placement2DieSynchronously();
 
+  /**
+ * \author
+ * Minjae Kim \n
+ * GitHub: ApeachM (https://github.com/ApeachM)
+ * */
+  void setTargetDensity(vector<double> densities);
+  /**
+   * \author
+   * Minjae Kim \n
+   * GitHub: ApeachM (https://github.com/ApeachM)
+   * */
+  void doInitialPlace();
+  /**
+   * \author
+   * Minjae Kim \n
+   * GitHub: ApeachM (https://github.com/ApeachM)
+   * */
+  void doNestrovPlace();
+
   /**\brief
    * get unit of micro
    * \details
@@ -223,10 +223,11 @@ class Chip {
   dbDatabase *getDbDatabase() const;
   void setDbDatabase(dbDatabase *db_database);
 
-  void drawDies(const string& pseudo_die_name = "pseudo_die.bmp",
-                const string &top_die_name = "topDie.jpeg",
-                const string &bottom_die_name = "bottomDie.jpeg",
-                int scale_factor = 1);
+  void drawDies(const string& pseudo_die_name = "pseudo_die",
+                const string &top_die_name = "topDie",
+                const string &bottom_die_name = "bottomDie",
+                int scale_factor = 1,
+                bool as_dot = true);
  protected:
   utl::Logger logger_;
   // For pseudo die

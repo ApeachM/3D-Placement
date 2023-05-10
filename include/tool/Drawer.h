@@ -22,11 +22,15 @@ class Drawer {
     image_ = Image(width_, height_, 1, 3, 255);
   }
   void drawRect(int ll_x, int ll_y, int ur_x, int ur_y, const unsigned char *color) {
+    if (ll_x == ur_x)
+      ur_x += 1;
+    if (ll_y == ur_y)
+      ur_y += 1;
     image_.draw_rectangle(ll_x, ll_y, ur_x, ur_y, color);
   }
-  void saveImg(string file_name) {
-    file_name = file_path + file_name;
-    image_.save_bmp(file_name.c_str());
+  void saveImg(const string &file_name) {
+    string save_file_name = file_path + file_name + ".bmp";
+    image_.save_bmp(save_file_name.c_str());
   }
 
   int getDieId() const {
