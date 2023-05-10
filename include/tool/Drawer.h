@@ -24,7 +24,8 @@ class Drawer {
   void drawRect(int ll_x, int ll_y, int ur_x, int ur_y, const unsigned char *color) {
     image_.draw_rectangle(ll_x, ll_y, ur_x, ur_y, color);
   }
-  void saveImg(const string &file_name) {
+  void saveImg(string file_name) {
+    file_name = file_path + file_name;
     image_.save_bmp(file_name.c_str());
   }
 
@@ -39,6 +40,7 @@ class Drawer {
   int die_id_ = 0;
   uint width_ = 0;
   uint height_ = 0;
+  string file_path = "../output/images/";
   Image image_;
 
 };

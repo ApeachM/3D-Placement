@@ -249,6 +249,8 @@ void Chip::drawDies(const string &pseudo_die_name,
         assert(0);
       }
     }
+    top_die.saveImg(top_die_name);
+    bottom_die.saveImg(bottom_die_name);
   } else {
     uint pseudo_die_w = die_pointers_.at(0)->getWidth() / scale_factor;
     uint pseudo_die_h = die_pointers_.at(0)->getHeight() / scale_factor;
@@ -266,6 +268,8 @@ void Chip::drawDies(const string &pseudo_die_name,
         assert(0);
       pseudo_die.drawRect(ll_x, ll_y, ur_x, ur_y, Color::BLACK);
     }
+
+    pseudo_die.saveImg(pseudo_die_name);
   }
 
 }
