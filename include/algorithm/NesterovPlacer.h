@@ -445,6 +445,15 @@ class Chip::NesterovPlacer {
 
   bool is_base_initialized_ = false;
 
+  void handleDiverge(const vector<pair<float, float>> &snapshotCoordi,
+                     const vector<pair<float, float>> &snapshotSLPCoordi,
+                     const vector<pair<float, float>> &snapshotSLPSumGrads,
+                     float snapshotA,
+                     float snapshotDensityPenalty,
+                     float snapshotStepLength,
+                     float snapshotWlCoefX,
+                     float snapshotWlCoefY,
+                     bool &isDivergeTriedRevert);
 };
 
 class Chip::NesterovPlacer::Bin {

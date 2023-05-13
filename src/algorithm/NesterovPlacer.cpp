@@ -264,36 +264,10 @@ int Chip::NesterovPlacer::doNestrovPlace(int start_iter, bool only_one_iter) {
      1) happen overflow < 20%
      2) Hpwl is growing
     */
-    if (sum_overflow_unscaled_ < 0.3f
-        && sum_overflow_unscaled_ - minSumOverflow >= 0.02f
+    if (sum_overflow_unscaled_ < 0.3f && sum_overflow_unscaled_ - minSumOverflow >= 0.02f
         && hpwlWithMinSumOverflow * 1.2f < prev_hpwl_) {
-      diverge_msg_ = "RePlAce divergence detected. ";
-      diverge_msg_ += "Re-run with a smaller max_phi_cof value.";
-      diverge_code_ = 307;
-      is_diverged_ = true;
-
-
-      // revert back the current density penality
-      cur_coordinates_ = snapshotCoordi;
-      cur_SLP_coordinates_ = snapshotSLPCoordi;
-      cur_SLP_sum_grads_ = snapshotSLPSumGrads;
-      curA = snapshotA;
-      density_penalty_ = snapshotDensityPenalty;
-      step_length_ = snapshotStepLength;
-      wire_length_coefficient_x_ = snapshotWlCoefX;
-      wire_length_coefficient_y_ = snapshotWlCoefY;
-
-      updateGCellDensityCenterLocation(cur_coordinates_);
-      updateDensityForceBin();
-      updateWireLengthForceWA(wire_length_coefficient_x_, wire_length_coefficient_y_);
-
-      is_diverged_ = false;
-      diverge_code_ = 0;
-      diverge_msg_ = "";
-      isDivergeTriedRevert = true;
-
-      // turn off the RD forcely
-      is_routability_need_ = false;
+      handleDiverge(snapshotCoordi, snapshotSLPCoordi, snapshotSLPSumGrads, snapshotA, snapshotDensityPenalty,
+                    snapshotStepLength, snapshotWlCoefX, snapshotWlCoefY, isDivergeTriedRevert);
     }
     // if it reached target overflow
     if (sum_overflow_unscaled_ <= targetOverflow) {
@@ -313,6 +287,43 @@ int Chip::NesterovPlacer::doNestrovPlace(int start_iter, bool only_one_iter) {
   }
   return iter;
 
+}
+void Chip::NesterovPlacer::handleDiverge(const vector<pair<float, float>> &snapshotCoordi,
+                                         const vector<pair<float, float>> &snapshotSLPCoordi,
+                                         const vector<pair<float, float>> &snapshotSLPSumGrads,
+                                         float snapshotA,
+                                         float snapshotDensityPenalty,
+                                         float snapshotStepLength,
+                                         float snapshotWlCoefX,
+                                         float snapshotWlCoefY,
+                                         bool &isDivergeTriedRevert) {
+  diverge_msg_ = "RePlAce divergence detected. ";
+  diverge_msg_ += "Re-run with a smaller max_phi_cof value.";
+  diverge_code_ = 307;
+  is_diverged_ = true;
+
+
+  // revert back the current density penality
+  cur_coordinates_ = snapshotCoordi;
+  cur_SLP_coordinates_ = snapshotSLPCoordi;
+  cur_SLP_sum_grads_ = snapshotSLPSumGrads;
+  curA = snapshotA;
+  density_penalty_ = snapshotDensityPenalty;
+  step_length_ = snapshotStepLength;
+  wire_length_coefficient_x_ = snapshotWlCoefX;
+  wire_length_coefficient_y_ = snapshotWlCoefY;
+
+  updateGCellDensityCenterLocation(cur_coordinates_);
+  updateDensityForceBin();
+  updateWireLengthForceWA(wire_length_coefficient_x_, wire_length_coefficient_y_);
+
+  is_diverged_ = false;
+  diverge_code_ = 0;
+  diverge_msg_ = "";
+  isDivergeTriedRevert = true;
+
+  // turn off the RD forcely
+  is_routability_need_ = false;
 }
 
 void Chip::NesterovPlacer::setInstancesArea() {
@@ -999,7 +1010,9 @@ float Chip::NesterovPlacer::getDistance(vector<pair<float, float>> a, vector<pai
 
   return sqrt(sumDistance / (2.0 * a.size()));
 }
-pair<float, float> Chip::NesterovPlacer::getWireLengthGradientWA(Instance *gCell, float wlCoeffX, float wlCoeffY) const {
+pair<float, float> Chip::NesterovPlacer::getWireLengthGradientWA(Instance *gCell,
+                                                                 float wlCoeffX,
+                                                                 float wlCoeffY) const {
   pair<float, float> gradientPair;
 
   for (auto &gPin : gCell->getPins()) {

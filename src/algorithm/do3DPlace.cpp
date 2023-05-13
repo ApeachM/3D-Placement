@@ -153,6 +153,7 @@ void Chip::generateHybridBonds() {
     }
   }
   cout << "Hybrid bond #: " << data_storage_.hybrid_bonds.size() << endl;
+  this->drawDies("after_hybrid_bond_generation");
 }
 
 void Chip::placement2DieSynchronously() {
@@ -171,10 +172,9 @@ void Chip::placement2DieSynchronously() {
 
   for (Instance *instance : instance_pointers_) {
     int die_id = instance->getDieId();
-    if (die_id == 0) {
-      // if die_id == 0, it will be hybrid bond
-      if (!instance->isHybridBond())
-        assert(0);
+    if (die_id == -1) {
+      // if die_id == -1, it is a hybrid bond
+      assert(instance->isHybridBond());
       dieVar1.instance_pointers.push_back(instance);
       dieVar2.instance_pointers.push_back(instance);
     } else if (die_id == 1) {
@@ -261,9 +261,8 @@ void Chip::placement2DieSynchronously() {
     nestrov_iter1 = nestrov_placer1.doNestrovPlace(i, true);
     nestrov_iter2 = nestrov_placer2.doNestrovPlace(i, true);
     if (nestrov_iter1 >= nestrov_placer1.getMaxNesterovIter()
-        || nestrov_iter2 >= nestrov_placer2.getMaxNesterovIter()) {
+        || nestrov_iter2 >= nestrov_placer2.getMaxNesterovIter())
       break;
-    }
     // ONLY FOR DEBUGGING
     nestrov_placer1.updateDB();
     nestrov_placer2.updateDB();
@@ -271,7 +270,7 @@ void Chip::placement2DieSynchronously() {
     std::stringstream ss;
     ss << std::setw(4) << std::setfill('0') << i;
     ss >> file_name;;
-    this->drawDies( file_name);
+    this->drawDies(file_name);
   }
   nestrov_placer1.updateDB();
   nestrov_placer2.updateDB();
