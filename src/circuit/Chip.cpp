@@ -220,7 +220,8 @@ void Chip::drawDies(const string &pseudo_die_name,
                     const string &top_die_name,
                     const string &bottom_die_name,
                     int scale_factor,
-                    bool as_dot) {
+                    bool as_dot,
+                    bool draw_same_canvas) {
   if (instance_pointers_.size() > 10e6) {
     scale_factor = 1000;
   } else if (instance_pointers_.size() > 10e3) {
@@ -237,6 +238,17 @@ void Chip::drawDies(const string &pseudo_die_name,
 
     Drawer top_die(top_die_w, top_die_h);
     Drawer bottom_die(bottom_die_w, bottom_die_h);
+
+    if (draw_same_canvas) {
+      bottom_die.linkImg(top_die.getImage());
+      top_die.setCellColor(Color::BLACK);
+      bottom_die.setCellColor(Color::RED);
+    } else {
+      top_die.setCellColor(Color::BLACK);
+      bottom_die.setCellColor(Color::BLACK);
+    }
+
+    // ID setting
     top_die.setDieId(1);
     bottom_die.setDieId(2);
 
@@ -250,26 +262,30 @@ void Chip::drawDies(const string &pseudo_die_name,
       if (instance->getDieId() == 1) {
         // top die
         if (as_dot)
-          top_die.drawRect(ll_x, ll_y, ll_x + 1, ll_y + 1, Color::BLACK);
+          top_die.drawCell(ll_x, ll_y, ll_x + 1, ll_y + 1);
         else
-          top_die.drawRect(ll_x, ll_y, ur_x, ur_y, Color::BLACK);
-
+          top_die.drawCell(ll_x, ll_y, ur_x, ur_y);
       } else if (instance->getDieId() == 2) {
         // bottom die
         if (as_dot)
-          bottom_die.drawRect(ll_x, ll_y, ll_x + 1, ll_y + 1, Color::BLACK);
+          bottom_die.drawCell(ll_x, ll_y, ll_x + 1, ll_y + 1);
         else
-          bottom_die.drawRect(ll_x, ll_y, ur_x, ur_y, Color::BLACK);
+          bottom_die.drawCell(ll_x, ll_y, ur_x, ur_y);
       } else if (instance->getDieId() == -1) {
         // hybrid bond pin
-        top_die.drawRect(ll_x, ll_y, ll_x + 1, ll_y + 1, Color::BLUE);
-        bottom_die.drawRect(ll_x, ll_y, ll_x + 1, ll_y + 1, Color::BLUE);
+        top_die.drawHybridBond(ll_x, ll_y, ll_x + 1, ll_y + 1);
+        bottom_die.drawHybridBond(ll_x, ll_y, ll_x + 1, ll_y + 1);
       } else {
         assert(0);
       }
     }
-    top_die.saveImg(top_die_name);
-    bottom_die.saveImg(bottom_die_name);
+
+    if (draw_same_canvas)
+      top_die.saveImg(pseudo_die_name);
+    else {
+      top_die.saveImg(top_die_name);
+      bottom_die.saveImg(bottom_die_name);
+    }
   } else {
     uint pseudo_die_w = die_pointers_.at(0)->getWidth() / scale_factor;
     uint pseudo_die_h = die_pointers_.at(0)->getHeight() / scale_factor;
@@ -286,9 +302,9 @@ void Chip::drawDies(const string &pseudo_die_name,
       if (instance->getDieId() != 0)
         assert(0);
       if (as_dot)
-        pseudo_die.drawRect(ll_x, ll_y, ll_x + 1, ll_y + 1, Color::BLACK);
+        pseudo_die.drawCell(ll_x, ll_y, ll_x + 1, ll_y + 1);
       else
-        pseudo_die.drawRect(ll_x, ll_y, ur_x, ur_y, Color::BLACK);
+        pseudo_die.drawCell(ll_x, ll_y, ur_x, ur_y);
 
     }
 

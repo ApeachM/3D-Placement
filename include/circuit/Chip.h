@@ -223,11 +223,13 @@ class Chip {
   dbDatabase *getDbDatabase() const;
   void setDbDatabase(dbDatabase *db_database);
 
-  void drawDies(const string& pseudo_die_name = "pseudo_die",
+  void drawDies(const string &pseudo_die_name = "pseudo_die",
                 const string &top_die_name = "topDie",
                 const string &bottom_die_name = "bottomDie",
                 int scale_factor = 1,
-                bool as_dot = true);
+                bool as_dot = true,
+                bool draw_same_canvas = true);
+
  protected:
   utl::Logger logger_;
   // For pseudo die
