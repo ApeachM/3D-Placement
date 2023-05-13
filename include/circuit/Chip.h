@@ -48,6 +48,7 @@
 #include "Die.h"
 #include "fft.h"
 #include "HierRTLMP.h"
+#include "Drawer.h"
 
 #define REPLACE_SQRT2 1.414213562373095048801L
 
@@ -136,25 +137,6 @@ class Chip {
   // Data initialization
   void init();
 
-  /**
-   * \author
-   * Minjae Kim \n
-   * GitHub: ApeachM (https://github.com/ApeachM)
-   * */
-  void setTargetDensity(vector<double> densities);
-  /**
-   * \author
-   * Minjae Kim \n
-   * GitHub: ApeachM (https://github.com/ApeachM)
-   * */
-  void doInitialPlace();
-  /**
-   * \author
-   * Minjae Kim \n
-   * GitHub: ApeachM (https://github.com/ApeachM)
-   * */
-  void doNestrovPlace();
-
   /**\brief
    * One die (virtual die) placement before partitioning
    * \author
@@ -191,6 +173,25 @@ class Chip {
    * */
   void placement2DieSynchronously();
 
+  /**
+ * \author
+ * Minjae Kim \n
+ * GitHub: ApeachM (https://github.com/ApeachM)
+ * */
+  void setTargetDensity(vector<double> densities);
+  /**
+   * \author
+   * Minjae Kim \n
+   * GitHub: ApeachM (https://github.com/ApeachM)
+   * */
+  void doInitialPlace();
+  /**
+   * \author
+   * Minjae Kim \n
+   * GitHub: ApeachM (https://github.com/ApeachM)
+   * */
+  void doNestrovPlace();
+
   /**\brief
    * get unit of micro
    * \details
@@ -221,6 +222,14 @@ class Chip {
   void setNetNumber(int net_number);
   dbDatabase *getDbDatabase() const;
   void setDbDatabase(dbDatabase *db_database);
+
+  void drawDies(const string &pseudo_die_name = "pseudo_die",
+                const string &top_die_name = "topDie",
+                const string &bottom_die_name = "bottomDie",
+                int scale_factor = 1,
+                bool as_dot = true,
+                bool draw_same_canvas = true);
+
  protected:
   utl::Logger logger_;
   // For pseudo die
@@ -256,7 +265,7 @@ class Chip {
   // first one is for top, the second one is for bottom. This info will be copied at die.
   pair<RowInfo, RowInfo> row_infos_;
 
-  HierRTLMPartition* hier_rtl_;
+  HierRTLMPartition *hier_rtl_;
 };
 
 } // VLSI_backend

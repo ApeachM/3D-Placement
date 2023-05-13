@@ -7,7 +7,7 @@ int main() {
   bool is_for_contest = true;
   if (is_for_contest) {
     VLSI_backend::Chip chip;
-    chip.parseICCAD("../test/benchmarks/iccad2022/Problem B_case3_hidden.txt");
+    chip.parseICCAD("../test/benchmarks/iccad2022/case2.txt");
     chip.do3DPlace();
     // chip.writeICCAD("../test/output/case1.txt");
   } else {

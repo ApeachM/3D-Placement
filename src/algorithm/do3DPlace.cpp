@@ -61,6 +61,7 @@ void Chip::do3DPlace() {
 void Chip::normalPlacement() {
   doInitialPlace();
   doNestrovPlace();
+  this->drawDies();
 }
 
 void Chip::partition() {
@@ -263,6 +264,14 @@ void Chip::placement2DieSynchronously() {
         || nestrov_iter2 >= nestrov_placer2.getMaxNesterovIter()) {
       break;
     }
+    // ONLY FOR DEBUGGING
+    nestrov_placer1.updateDB();
+    nestrov_placer2.updateDB();
+    string file_name;
+    std::stringstream ss;
+    ss << std::setw(4) << std::setfill('0') << i;
+    ss >> file_name;;
+    this->drawDies( file_name);
   }
   nestrov_placer1.updateDB();
   nestrov_placer2.updateDB();

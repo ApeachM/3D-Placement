@@ -331,7 +331,8 @@ class Chip::NesterovPlacer {
   std::vector<Bin> binStor_;
 
   // class variables for nestrov place
-  int maxNesterovIter = 5000;
+  // int maxNesterovIter = 5000;
+  int maxNesterovIter = 100;
   int maxBackTrack = 10;
   float initDensityPenalty = 0.00008;           // INIT_LAMBDA
   float initWireLengthCoef = 0.25;           // base_wcof

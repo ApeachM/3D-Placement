@@ -25,13 +25,14 @@ set(SOURCES
         src/tool/fftsg2d.cpp
 
         src/etc/dbTutorial.cpp
-        )
+        include/tool/Drawer.cpp include/tool/Drawer.h)
 
 set(INCLUDE_DIRS
         ${PROJECT_SOURCE_DIR}/include/algorithm
         ${PROJECT_SOURCE_DIR}/include/circuit
         ${PROJECT_SOURCE_DIR}/include/dataStructures
         ${PROJECT_SOURCE_DIR}/include/tool
+        ${PROJECT_SOURCE_DIR}/submodules/CImg
         )
 
 add_executable(placer ${SOURCES})
@@ -44,6 +45,7 @@ target_link_libraries(placer
         odb
         mpl2_lib
         Eigen3::Eigen
+        X11
         )
 target_include_directories(mpl2_lib
         PUBLIC
