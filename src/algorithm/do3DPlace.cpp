@@ -139,11 +139,13 @@ void Chip::generateHybridBonds() {
       // set name
       hybrid_bond->setInstName("hybrid_bond_" + to_string(hybrid_num));
 
-      // link them
-      hybrid_bond->setHybridBondPin(hybrid_bond_pin); // pin and instance
-      hybrid_bond_pin->setHybridBond(hybrid_bond);
-      net->setHybridBondPin(hybrid_bond_pin); // pin and net
-      hybrid_bond_pin->setIntersectedNet(net);
+      // link them: instance - pin - net
+      hybrid_bond->setHybridBondPin(hybrid_bond_pin); // instance -> pin
+      hybrid_bond_pin->setHybridBond(hybrid_bond); // pin -> instance
+      net->setHybridBondPin(hybrid_bond_pin); // pin -> net
+      hybrid_bond_pin->setIntersectedNet(net); // net -> pin
+      hybrid_bond->setConnectedNets({net}); // instance -> net
+      net->addConnectedInstance(hybrid_bond); // net -> instance
 
       // set coordinate of hybrid bond
       // p.s. net box would be updated in the first placement phase (Nestrov in virtual die)
@@ -257,8 +259,8 @@ void Chip::placement2DieSynchronously() {
       this->die_pointers_.at(2)
   );
 
-  nestrov_placer1.initNestrovPlace();
-  nestrov_placer2.initNestrovPlace();
+  nestrov_placer1.initNestrovPlace(false);
+  nestrov_placer2.initNestrovPlace(false);
 
   if (nestrov_placer1.getMaxNesterovIter() != nestrov_placer2.getMaxNesterovIter())
     assert(0);

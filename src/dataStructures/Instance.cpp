@@ -88,8 +88,7 @@ std::vector<Pin *> Instance::getPins() {
     }
   }
   if (is_hybrid_bond_) {
-    // TODO
-    //    should be need any code?
+    pins.push_back(hybrid_bond_pin_);
   }
   return pins;
 }
@@ -103,6 +102,10 @@ void Instance::setCoordinate(int x, int y) {
     // if this is normal(not filler) instance,
     db_inst_->setPlacementStatus(odb::dbPlacementStatus::PLACED);
     db_inst_->setLocation(x, y);
+  } else if (is_hybrid_bond_) {
+    // if this is a hybrid bond, the pin coordinate is not automatically adjusted when instance is moved.
+    // so, we should adjust the pin coordinate manually.
+    hybrid_bond_pin_->setHybridBondCoordinate(x, y);
   }
 }
 bool Instance::isPlaced() {
@@ -273,6 +276,7 @@ void Instance::setHybridBondPin(Pin *hybrid_bond_pin) {
   if (!hybrid_bond_pin->isHybridBondPin())
     assert(0); // This pin is not a pin for hybrid bond.
   hybrid_bond_pin_ = hybrid_bond_pin;
+  connected_pins_.push_back(hybrid_bond_pin);
 }
 void Instance::setConnectedPins(vector<Pin *> connected_pins) {
   connected_pins_ = connected_pins;

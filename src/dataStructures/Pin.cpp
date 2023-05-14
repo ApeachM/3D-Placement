@@ -91,8 +91,7 @@ pair<int, int> Pin::getCoordinate() {
       }
     }
   } else if (isHybridBondPin()) {
-    if (!this->getInstance()->isHybridBond())
-      assert(0);
+    assert(this->getInstance()->isHybridBond());
     x = this->getInstance()->getCoordinate().first;
     y = this->getInstance()->getCoordinate().second;
   }
@@ -125,6 +124,10 @@ void Pin::initDensityCoordinate() {
     offsetCy_ = cy_ - getInstance()->getCoordinate().second;
   } else if (db_b_term_) {
     // TODO: ??? is this right ???
+    offsetCx_ = cx_;
+    offsetCy_ = cy_;
+  } else {
+    // if this is a pin for hybrid
     offsetCx_ = cx_;
     offsetCy_ = cy_;
   }
@@ -173,12 +176,16 @@ void Pin::setIntersectedNet(Net *intersected_net) {
   if (!this->isHybridBondPin())
     assert(0);
   intersected_net_ = intersected_net;
+  connected_net = intersected_net;
 }
 Instance *Pin::getHybridBond() const {
   return hybrid_bond_;
 }
 void Pin::setHybridBond(Instance *hybrid_bond) {
   hybrid_bond_ = hybrid_bond;
+  connected_instance = hybrid_bond;
+  cx_ = hybrid_bond->getCoordinate().first;
+  cy_ = hybrid_bond->getCoordinate().second;
 }
 Instance *Pin::getConnectedInstance() const {
   return connected_instance;
@@ -210,21 +217,21 @@ void Pin::clearWaVars() {
 void Pin::setMaxExpSumX(float maxExpSumX) {
   hasMaxExpSumX_ = 1;
   maxExpSumX_ = maxExpSumX;
-  assert(!(isnan(maxExpSumX)|| isinf(maxExpSumX)));
+  assert(!(isnan(maxExpSumX) || isinf(maxExpSumX)));
 }
 void Pin::setMaxExpSumY(float maxExpSumY) {
   hasMaxExpSumY_ = 1;
   maxExpSumY_ = maxExpSumY;
-  assert(!(isnan(maxExpSumY)|| isinf(maxExpSumY)));
+  assert(!(isnan(maxExpSumY) || isinf(maxExpSumY)));
 }
 void Pin::setMinExpSumX(float minExpSumX) {
   hasMinExpSumX_ = 1;
   minExpSumX_ = minExpSumX;
-  assert(!(isnan(minExpSumX)|| isinf(minExpSumX)));
+  assert(!(isnan(minExpSumX) || isinf(minExpSumX)));
 }
 void Pin::setMinExpSumY(float minExpSumY) {
   hasMinExpSumY_ = 1;
   minExpSumY_ = minExpSumY;
-  assert(!(isnan(minExpSumY)|| isinf(minExpSumY)));
+  assert(!(isnan(minExpSumY) || isinf(minExpSumY)));
 }
 } // VLSI_backend

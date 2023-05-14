@@ -46,7 +46,7 @@ class Chip::NesterovPlacer {
                  std::vector<Pin *> pin_pointers,
                  std::vector<Pin *> pad_pointers,
                  Die *die_pointer);
-  bool initNestrovPlace();
+  bool initNestrovPlace(bool is_pseudo_die=true);
   /*!
    * \brief
    * Do Nestrov Placement. The core function of this class
@@ -57,6 +57,9 @@ class Chip::NesterovPlacer {
   void updateDB();
 
   int getMaxNesterovIter() const;
+  void setMaxNesterovIter(int max_nesterov_iter){
+    max_nesterov_iter_ = max_nesterov_iter;
+  }
  private:
   /*!
    * \name
@@ -212,7 +215,7 @@ class Chip::NesterovPlacer {
    * 1. Update the coordinates variables for density things of cells.
    *    The input parameter (the set of coordinates) will be inserted into cell coordinate variables.
    *    \n
-   * 2. Call `updateBinsGCellDensityArea` function.
+   * 2. Call `updateBinsCellDensityArea` function.
    * This function will considers the cell coordinates variables for density things,
    * and update the bin variables
    * (`instPlacedArea_`, `instPlacedAreaUnscaled_`, `instPlacedAreaUnscaled_`, `nonPlaceAreaUnscaled_`, and `fillerArea_`).
@@ -309,7 +312,7 @@ class Chip::NesterovPlacer {
                            vector<pair<float, float>> b);
   pair<float, float> getWireLengthGradientWA(Instance *gCell, float wlCoeffX, float wlCoeffY) const;
   static pair<float, float> getWireLengthGradientPinWA(Pin *gPin, float wlCoeffX, float wlCoeffY);
-  void updateBinsGCellDensityArea(vector<Instance *> cells);
+  void updateBinsCellDensityArea(vector<Instance *> cells);
   void setDensityValuesAsDefault();
   void updateDensityCoordiLayoutInside(Instance *gCell);
   void updateInitialPrevSLPCoordi();
@@ -331,8 +334,8 @@ class Chip::NesterovPlacer {
   std::vector<Bin> binStor_;
 
   // class variables for nestrov place
-  // int maxNesterovIter = 5000;
-  int maxNesterovIter = 100;
+  // int max_nesterov_iter_ = 5000;
+  int max_nesterov_iter_ = 200;
   int max_back_track_ = 10;
   float initDensityPenalty = 0.00008;         // INIT_LAMBDA
   float initWireLengthCoef = 0.25;            // base_wcof

@@ -164,6 +164,9 @@ class Net {
   void setConnectedPins(const vector<Pin *> &connected_pins);
   const vector<Instance *> &getConnectedInstances() const;
   void setConnectedInstances(const vector<Instance *> &connected_instances);
+  void addConnectedInstance(Instance* instance){
+    connected_instances_.push_back(instance);
+  }
 
  private:
   odb::dbDatabase *db_database_ = nullptr;

@@ -158,6 +158,7 @@ void Net::setHybridBondPin(Pin *hybrid_bond_pin) {
   if (intersected_ == false)
     assert(0);
   hybrid_bond_pin_ = hybrid_bond_pin;
+  connected_pins_.push_back(hybrid_bond_pin);
 }
 void Net::setConnectedPins(const vector<Pin *> &connected_pins) {
   connected_pins_ = connected_pins;

@@ -75,6 +75,7 @@ void Chip::doNestrovPlace() {
       this->pad_pointers_,
       this->die_pointers_.at(0));
   nestrov_placer.initNestrovPlace();
+  nestrov_placer.setMaxNesterovIter(30);
   nestrov_placer.doNestrovPlace(0);
 }
 int Chip::getInstanceNumber() const {

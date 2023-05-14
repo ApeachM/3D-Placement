@@ -23,9 +23,11 @@ Chip::NesterovPlacer::NesterovPlacer(odb::dbDatabase *db_database,
   // hyper parameters
   if (instance_pointers_.size() < 1e5)
     initDensityPenalty = 0.01;
+  else if (instance_pointers.size() < 1e3)
+    initDensityPenalty = 0.1;
 
 }
-bool Chip::NesterovPlacer::initNestrovPlace() {
+bool Chip::NesterovPlacer::initNestrovPlace(bool is_pseudo_die) {
   if (!is_base_initialized_) {
     // refer to: https://github.com/The-OpenROAD-Project/OpenROAD/blob/402c5cff5d5dac9868f812fec69edb064a5bfbb3/src/gpl/src/nesterovBase.cpp#L1054
     // bool Replace::initNesterovPlace()
@@ -43,16 +45,18 @@ bool Chip::NesterovPlacer::initNestrovPlace() {
     srand(42);
     int dbu_per_micron = db_database_->getChip()->getBlock()->getDbUnitsPerMicron();
 
-    for (Instance *instance : instance_pointers_) {
-      // For any cell, add a random noise between -1 and 1 microns to each of its
-      // x and y components. This is added to make it very unlikely that identical
-      // cells connected in parallel do not start at the exact same position and
-      // consequently shadow each other throughout the entire placement process
-      int x_offset = rand() % (2 * dbu_per_micron) - dbu_per_micron;
-      int y_offset = rand() % (2 * dbu_per_micron) - dbu_per_micron;
-      instance->setCoordinate(instance->getCoordinate().first + x_offset, instance->getCoordinate().second + y_offset);
+    if (is_pseudo_die) {
+      for (Instance *instance : instance_pointers_) {
+        // For any cell, add a random noise between -1 and 1 microns to each of its
+        // x and y components. This is added to make it very unlikely that identical
+        // cells connected in parallel do not start at the exact same position and
+        // consequently shadow each other throughout the entire placement process
+        int x_offset = rand() % (2 * dbu_per_micron) - dbu_per_micron;
+        int y_offset = rand() % (2 * dbu_per_micron) - dbu_per_micron;
+        instance->setCoordinate(instance->getCoordinate().first + x_offset,
+                                instance->getCoordinate().second + y_offset);
+      }
     }
-
     initFillerCells();
     initBins();
 
@@ -132,7 +136,7 @@ bool Chip::NesterovPlacer::initNestrovPlace() {
     cout << "np init: steplength = 0 detected. Rerunning Nesterov::init() with initPrevSLPCoef: "
          << initialPrevCoordiUpdateCoef << endl;
     recursion_cnt_init_slp_coef_++;
-    initNestrovPlace();
+    initNestrovPlace(is_pseudo_die);
   }
 
   if (isnan(step_length_) || isinf(step_length_)) {
@@ -170,7 +174,7 @@ int Chip::NesterovPlacer::doNestrovPlace(int start_iter, bool only_one_iter) {
 
   // Core Nesterov Loop
   int iter = start_iter;
-  for (; iter < maxNesterovIter; ++iter) {
+  for (; iter < max_nesterov_iter_; ++iter) {
     // cout << "[replace-test] np: InitSumOverflow: " << sum_overflow_unscaled_ << endl;
 
     prevA = curA;
@@ -247,7 +251,7 @@ int Chip::NesterovPlacer::doNestrovPlace(int start_iter, bool only_one_iter) {
     }
     // if it reached target overflow
     if (finishCheck()) {
-      iter = maxNesterovIter;
+      iter = max_nesterov_iter_;
       break;
     }
     if (only_one_iter)
@@ -576,10 +580,10 @@ float Chip::NesterovPlacer::getDensityCoordiLayoutInsideY(Instance *instance, fl
 void Chip::NesterovPlacer::updateGCellDensityCenterLocation(const vector<pair<float, float>> &coordinates) {
   for (int idx = 0; idx < coordinates.size(); ++idx) {
     pair<float, float> coordinate = coordinates.at(idx);
-    Instance* instance = instance_pointers_.at(idx);
+    Instance *instance = instance_pointers_.at(idx);
     instance->setDensityCenterLocation(coordinate.first, coordinate.second);
   }
-  updateBinsGCellDensityArea(instance_pointers_);
+  updateBinsCellDensityArea(instance_pointers_);
 }
 std::pair<int, int> Chip::NesterovPlacer::getMinMaxIdxX(Instance *inst) const {
   int lowerIdx = (inst->ly() - die_pointer_->getLowerLeftY()) / bin_size_y_;
@@ -1111,7 +1115,7 @@ void Chip::NesterovPlacer::initSLPStepsVars() {
   next_coordinates_.resize(instance_num);
   init_coordinates_.resize(instance_num);
 }
-void Chip::NesterovPlacer::updateBinsGCellDensityArea(vector<Instance *> cells) {
+void Chip::NesterovPlacer::updateBinsCellDensityArea(vector<Instance *> cells) {
   // clear the Bin-area info
   for (auto &bin : bins_) {
     bin->setInstPlacedArea(0);
@@ -1237,7 +1241,7 @@ void Chip::NesterovPlacer::updateDB() {
   }
 }
 int Chip::NesterovPlacer::getMaxNesterovIter() const {
-  return maxNesterovIter;
+  return max_nesterov_iter_;
 }
 double fastExp(float a) {
   a = 1.0f + a / 1024.0f;
