@@ -45,10 +45,10 @@ Instance::Instance(odb::dbInst *db_inst) {
   position_.second = getCoordinate().second;
   width_ = db_inst_->getMaster()->getWidth();
   height_ = db_inst_->getMaster()->getHeight();
-  dLx_ = position_.first;
-  dLy_ = position_.second;
-  dUx_ = dLx_ + width_;
-  dUy_ = dLy_ + height_;
+  d_lx_ = position_.first;
+  d_ly_ = position_.second;
+  d_ux_ = d_lx_ + width_;
+  d_uy_ = d_ly_ + height_;
 }
 Instance::Instance(odb::dbInst *db_inst, int id) {
   db_database_ = db_inst->getDb();
@@ -60,10 +60,10 @@ Instance::Instance(odb::dbInst *db_inst, int id) {
   position_.second = getCoordinate().second;
   width_ = db_inst_->getMaster()->getWidth();
   height_ = db_inst_->getMaster()->getHeight();
-  dLx_ = position_.first;
-  dLy_ = position_.second;
-  dUx_ = dLx_ + width_;
-  dUy_ = dLy_ + height_;
+  d_lx_ = position_.first;
+  d_ly_ = position_.second;
+  d_ux_ = d_lx_ + width_;
+  d_uy_ = d_ly_ + height_;
   setId(id);
 }
 string Instance::getName() {
@@ -147,52 +147,52 @@ void Instance::setId(int id) {
   id_ = id;
 }
 int Instance::dLx() const {
-  return dLx_;
+  return d_lx_;
 }
 void Instance::setDLx(int d_lx) {
-  dLx_ = d_lx;
+  d_lx_ = d_lx;
 }
 int Instance::dLy() const {
-  return dLy_;
+  return d_ly_;
 }
 void Instance::setDLy(int d_ly) {
-  dLy_ = d_ly;
+  d_ly_ = d_ly;
 }
 int Instance::dUx() const {
-  return dUx_;
+  return d_ux_;
 }
 void Instance::setDUx(int d_ux) {
-  dUx_ = d_ux;
+  d_ux_ = d_ux;
 }
 int Instance::dUy() const {
-  return dUy_;
+  return d_uy_;
 }
 void Instance::setDUy(int d_uy) {
-  dUy_ = d_uy;
+  d_uy_ = d_uy;
 }
 float Instance::densityScale() const {
-  return densityScale_;
+  return density_scale_;
 }
 void Instance::setDensityScale(float density_scale) {
-  densityScale_ = density_scale;
+  density_scale_ = density_scale;
 }
 void Instance::setDensityValueAsDefault() {
-  dLx_ = position_.first;
-  dLy_ = position_.second;
-  dUx_ = position_.first + getWidth();
-  dUy_ = position_.second + getHeight();
+  d_lx_ = position_.first;
+  d_ly_ = position_.second;
+  d_ux_ = position_.first + static_cast<int>(getWidth());
+  d_uy_ = position_.second + static_cast<int>(getHeight());
 }
 float Instance::getGradientX() const {
-  return gradientX_;
+  return gradient_x_;
 }
 void Instance::setGradientX(float gradient_x) {
-  gradientX_ = gradient_x;
+  gradient_x_ = gradient_x;
 }
 float Instance::getGradientY() const {
-  return gradientY_;
+  return gradient_y_;
 }
 void Instance::setGradientY(float gradient_y) {
-  gradientY_ = gradient_y;
+  gradient_y_ = gradient_y;
 }
 bool Instance::isMacroInstance() {
   if (!isInstance())
@@ -209,19 +209,19 @@ bool Instance::isFiller() {
   return db_inst_ == nullptr;
 }
 void Instance::setDensityLocation(float dLx, float dLy) {
-  dUx_ = dLx + (dUx_ - dLx_);
-  dUy_ = dLy + (dUy_ - dLy_);
-  dLx_ = dLx;
-  dLy_ = dLy;
+  d_ux_ = dLx + (d_ux_ - d_lx_);
+  d_uy_ = dLy + (d_uy_ - d_ly_);
+  d_lx_ = dLx;
+  d_ly_ = dLy;
 }
-void Instance::setDensityCenterLocation(int dCx, int dCy) {
-  const int halfDDx = getDensityDeltaX() / 2;
-  const int halfDDy = getDensityDeltaY() / 2;
+void Instance::setDensityCenterLocation(int d_cx, int d_cy) {
+  const int half_d_dx = getDensityDeltaX() / 2;
+  const int half_d_dy = getDensityDeltaY() / 2;
 
-  dLx_ = dCx - halfDDx;
-  dLy_ = dCy - halfDDy;
-  dUx_ = dCx + halfDDx;
-  dUy_ = dCy + halfDDy;
+  d_lx_ = d_cx - half_d_dx;
+  d_ly_ = d_cy - half_d_dy;
+  d_ux_ = d_cx + half_d_dx;
+  d_uy_ = d_cy + half_d_dy;
   for (Pin *pin : getPins()) {
     pin->updateDensityLocation(this);
   }
@@ -248,16 +248,15 @@ bool Instance::isFixed() {
 void Instance::setDensitySize(float density_width, float density_height) {
   const uint density_center_x = getDensityCenterX();
   const uint density_center_y = getDensityCenterY();
-  dLx_ = static_cast<int>(density_center_x - density_width / 2);
-  dLy_ = static_cast<int>(density_center_y - density_height / 2);
-  dUx_ = static_cast<int>(density_center_x + density_width / 2);
-  dUy_ = static_cast<int>(density_center_y + density_height / 2);
+  d_lx_ = static_cast<int>(density_center_x - density_width / 2);
+  d_ly_ = static_cast<int>(density_center_y - density_height / 2);
+  d_ux_ = static_cast<int>(density_center_x + density_width / 2);
+  d_uy_ = static_cast<int>(density_center_y + density_height / 2);
 }
 int Instance::getDieId() const {
   return die_id_;
 }
 bool Instance::isHybridBond() const {
-  assert(die_id_ == -1);
   return is_hybrid_bond_;
 }
 void Instance::setAsHybridBond() {
@@ -265,6 +264,7 @@ void Instance::setAsHybridBond() {
   width_ = 0;
   height_ = 0;
   die_id_ = -1;
+  this->setLibName("HYBRID_BOND");
 }
 Pin *Instance::getHybridBondPin() const {
   return hybrid_bond_pin_;
@@ -296,7 +296,7 @@ void Instance::setLibrary(dbMaster *master) {
   assert(!libName_.empty());
   assert(db_inst_ == nullptr);
   assert(db_database_ == nullptr);
-  dbBlock* db_block = db_database_->getChip()->getBlock();
+  dbBlock *db_block = db_database_->getChip()->getBlock();
   db_inst_ = dbInst::create(db_block, master, name_.c_str());
 }
 uint Instance::getCenterX() {

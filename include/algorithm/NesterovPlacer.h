@@ -309,7 +309,7 @@ class Chip::NesterovPlacer {
                            vector<pair<float, float>> b);
   pair<float, float> getWireLengthGradientWA(Instance *gCell, float wlCoeffX, float wlCoeffY) const;
   static pair<float, float> getWireLengthGradientPinWA(Pin *gPin, float wlCoeffX, float wlCoeffY);
-  void updateBinsGCellDensityArea(vector<Instance *> vector_1);
+  void updateBinsGCellDensityArea(vector<Instance *> cells);
   void setDensityValuesAsDefault();
   void updateDensityCoordiLayoutInside(Instance *gCell);
   void updateInitialPrevSLPCoordi();
@@ -333,15 +333,15 @@ class Chip::NesterovPlacer {
   // class variables for nestrov place
   // int maxNesterovIter = 5000;
   int maxNesterovIter = 100;
-  int maxBackTrack = 10;
-  float initDensityPenalty = 0.00008;           // INIT_LAMBDA
-  float initWireLengthCoef = 0.25;           // base_wcof
-  float targetOverflow = 0.1;               // overflow
-  float minPhiCoef = 0.95;                   // pcof_min
-  float maxPhiCoef = 1.05;                   // pcof_max
-  float minPreconditioner = 1.0;            // MIN_PRE
-  float initialPrevCoordiUpdateCoef = 100;  // z_ref_alpha
-  float referenceHpwl = 446000000;                // refDeltaHpwl
+  int max_back_track_ = 10;
+  float initDensityPenalty = 0.00008;         // INIT_LAMBDA
+  float initWireLengthCoef = 0.25;            // base_wcof
+  float targetOverflow = 0.1;                 // overflow
+  float minPhiCoef = 0.95;                    // pcof_min
+  float max_phi_coef_ = 1.05;                    // pcof_max
+  float minPreconditioner = 1.0;              // MIN_PRE
+  float initialPrevCoordiUpdateCoef = 100;    // z_ref_alpha
+  float referenceHpwl = 446000000;            // refDeltaHpwl
   float routabilityCheckOverflow = 0.20;
 
   float curA = 1.0;
@@ -384,22 +384,22 @@ class Chip::NesterovPlacer {
   // SLP is Step Length Prediction.
   //
   // y_st, y_dst, y_wdst, w_pdst
-  std::vector<pair<float, float>> cur_SLP_coordinates_;
-  std::vector<pair<float, float>> cur_SLP_wire_length_grads_;
-  std::vector<pair<float, float>> cur_SLP_density_grads_;
-  std::vector<pair<float, float>> cur_SLP_sum_grads_;
+  std::vector<pair<float, float>> cur_slp_coordinates_;
+  std::vector<pair<float, float>> cur_slp_wire_length_grads_;
+  std::vector<pair<float, float>> cur_slp_density_grads_;
+  std::vector<pair<float, float>> cur_slp_sum_grads_;
 
   // y0_st, y0_dst, y0_wdst, y0_pdst
-  std::vector<pair<float, float>> next_SLP_coordinates_;
-  std::vector<pair<float, float>> next_SLP_wire_length_grads_;
-  std::vector<pair<float, float>> next_SLP_density_grads_;
-  std::vector<pair<float, float>> next_SLP_sum_grads_;
+  std::vector<pair<float, float>> next_slp_coordinates_;
+  std::vector<pair<float, float>> next_slp_wire_length_grads_;
+  std::vector<pair<float, float>> next_slp_density_grads_;
+  std::vector<pair<float, float>> next_slp_sum_grads_;
 
   // z_st, z_dst, z_wdst, z_pdst
-  std::vector<pair<float, float>> prev_SLP_coordinates_;
-  std::vector<pair<float, float>> prev_SLP_wire_length_grads_;
-  std::vector<pair<float, float>> prev_SLP_density_grads_;
-  std::vector<pair<float, float>> prev_SLP_sum_grads_;
+  std::vector<pair<float, float>> prev_slp_coordinates_;
+  std::vector<pair<float, float>> prev_slp_wire_length_grads_;
+  std::vector<pair<float, float>> prev_slp_density_grads_;
+  std::vector<pair<float, float>> prev_slp_sum_grads_;
 
   // x_st and x0_st
   std::vector<pair<float, float>> cur_coordinates_;
@@ -454,6 +454,9 @@ class Chip::NesterovPlacer {
                      float snapshotWlCoefX,
                      float snapshotWlCoefY,
                      bool &isDivergeTriedRevert);
+  bool stepLengthDivergeCheck();
+  void printStateNesterov(int iter) const;
+  bool finishCheck() const;
 };
 
 class Chip::NesterovPlacer::Bin {

@@ -135,7 +135,7 @@ class Instance {
   // ref: https://github.com/The-OpenROAD-Project/OpenROAD/blob/a5e786eb65f40abfb7004b18312d519dac95cc33/src/gpl/src/placerBase.cpp#L139
   bool isFixed();
 
-  void setDensityCenterLocation(int dCx, int dCy);
+  void setDensityCenterLocation(int d_cx, int d_cy);
 
   /// getter and setters for density variables
   int dLx() const;
@@ -152,10 +152,10 @@ class Instance {
   void setGradientX(float gradient_x);
   float getGradientY() const;
   void setGradientY(float gradient_y);
-  int getDensityCenterX() const { return (dUx_ + dLx_) / 2; }
-  int getDensityCenterY() const { return (dUy_ + dLy_) / 2; }
-  int getDensityDeltaX() const { return dUx_ - dLx_; }
-  int getDensityDeltaY() const { return dUy_ - dLy_; }
+  int getDensityCenterX() const { return (d_ux_ + d_lx_) / 2; }
+  int getDensityCenterY() const { return (d_uy_ + d_ly_) / 2; }
+  int getDensityDeltaX() const { return d_ux_ - d_lx_; }
+  int getDensityDeltaY() const { return d_uy_ - d_ly_; }
   int lx() { return getCoordinate().first; }
   int ly() { return getCoordinate().second; }
   int ux() { return getCoordinate().first + getWidth(); }
@@ -208,15 +208,15 @@ class Instance {
   uint height_ = 0;
 
   /// density location
-  int dLx_{0};
-  int dLy_{0};
-  int dUx_{0};
-  int dUy_{0};
+  int d_lx_{0};
+  int d_ly_{0};
+  int d_ux_{0};
+  int d_uy_{0};
 
   // density variables
-  float densityScale_{0};
-  float gradientX_{};
-  float gradientY_{};
+  float density_scale_{0};
+  float gradient_x_{};
+  float gradient_y_{};
 };
 
 }

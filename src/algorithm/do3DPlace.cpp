@@ -93,10 +93,11 @@ void Chip::generateHybridBonds() {
   data_storage_.hybrid_bonds.reserve(net_pointers_.size());
   data_storage_.hybrid_bond_pins.reserve(net_pointers_.size());
 
+  int hybrid_num = 0;
+
   // check whether the partitioning was done or not
   for (Instance *instance : instance_pointers_) {
-    if (instance->getDieId() == 0)
-      assert(0);
+    assert(instance->getDieId() != 0);
   }
 
   // detect any intersection on the nets
@@ -119,6 +120,7 @@ void Chip::generateHybridBonds() {
     // If there is an intersection in this net,
     // we make a hybrid bond for this net.
     if (intersection) {
+      hybrid_num += 1;
       net->setAsIntersected();
 
       // make objects for hybrid bond
@@ -133,6 +135,9 @@ void Chip::generateHybridBonds() {
 
       Instance *hybrid_bond = &data_storage_.hybrid_bonds.at(data_storage_.hybrid_bonds.size() - 1);
       Pin *hybrid_bond_pin = &data_storage_.hybrid_bond_pins.at(data_storage_.hybrid_bond_pins.size() - 1);
+
+      // set name
+      hybrid_bond->setInstName("hybrid_bond_" + to_string(hybrid_num));
 
       // link them
       hybrid_bond->setHybridBondPin(hybrid_bond_pin); // pin and instance
@@ -152,6 +157,8 @@ void Chip::generateHybridBonds() {
       pin_pointers_.push_back(hybrid_bond_pin);
     }
   }
+
+  assert(hybrid_num == data_storage_.hybrid_bonds.size());
   cout << "Hybrid bond #: " << data_storage_.hybrid_bonds.size() << endl;
   this->drawDies("after_hybrid_bond_generation");
 }
