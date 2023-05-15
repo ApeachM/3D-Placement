@@ -280,8 +280,8 @@ void Chip::drawDies(const string &pseudo_die_name,
     for (HybridBond *hybrid_bond : hybrid_bond_pointers_) {
       int ll_x = hybrid_bond->getCoordinate().first / scale_factor;
       int ll_y = hybrid_bond->getCoordinate().second / scale_factor;
-      int ur_x = (ll_x + hybrid_size_x_) / scale_factor;
-      int ur_y = (ll_y + hybrid_size_y_) / scale_factor;
+      int ur_x = (hybrid_bond->getCoordinate().first + hybrid_size_x_) / scale_factor;
+      int ur_y = (hybrid_bond->getCoordinate().second + hybrid_size_y_) / scale_factor;
       if (as_dot)
         top_die.drawHybridBond(ll_x, ll_y, ll_x, ll_y);
       else

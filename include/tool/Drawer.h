@@ -32,7 +32,8 @@ class Drawer {
       ur_x += 1;
     if (ll_y == ur_y)
       ur_y += 1;
-    image_->draw_rectangle(ll_x, ll_y, ur_x, ur_y, color_);
+    image_->draw_rectangle(ll_x, ll_y, ur_x, ur_y, Color::DIM_GRAY);
+    image_->draw_rectangle(ll_x+1, ll_y+1, ur_x-1, ur_y-1, color_);
   }
   void drawHybridBond(int ll_x, int ll_y, int ur_x, int ur_y) {
     int x = static_cast<int>((ll_x + ur_x) / 2);
