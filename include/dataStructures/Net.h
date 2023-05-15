@@ -41,6 +41,13 @@
 #include "storages.h"
 namespace VLSI_backend {
 using namespace std;
+enum DIE_ID {
+  PSEUDO_DIE = 0,
+  TOP_DIE = 1,
+  BOTTOM_DIE = 2,
+  INTERSECTED = -1 // This means the object is sharing two dies; top and bottom both.
+};
+
 class Net {
  public:
   /// Constructors
@@ -158,13 +165,13 @@ class Net {
   void setAsIntersected();
   int getDieId() const;
   void setDieId(int die_id);
-  Pin *getHybridBondPin() const;
-  void setHybridBondPin(Pin *hybrid_bond_pin);
+  HybridBond *getHybridBond() const;
+  void setHybridBond(HybridBond *hybrid_bond_pin);
 
   void setConnectedPins(const vector<Pin *> &connected_pins);
   const vector<Instance *> &getConnectedInstances() const;
   void setConnectedInstances(const vector<Instance *> &connected_instances);
-  void addConnectedInstance(Instance* instance){
+  void addConnectedInstance(Instance *instance) {
     connected_instances_.push_back(instance);
   }
 
@@ -172,8 +179,8 @@ class Net {
   odb::dbDatabase *db_database_ = nullptr;
   odb::dbNet *db_net_ = nullptr;
 
-  vector<Pin*> connected_pins_;
-  vector<Instance*> connected_instances_;
+  vector<Pin *> connected_pins_;
+  vector<Instance *> connected_instances_;
 
   std::string name_;
 
@@ -203,7 +210,7 @@ class Net {
    waExpMaxSumX_ : store sigma {exp(-x_i/gamma)}
    waXExpMaxSumX_: store sigma {x_i*exp(-x_i/gamma)}
   */
-  double  waExpMinSumX_ = 0;
+  double waExpMinSumX_ = 0;
   double waXExpMinSumX_ = 0;
 
   double waExpMaxSumX_ = 0;
@@ -231,7 +238,7 @@ class Net {
   // if this net is on virtual, then this value will be zero.
   int die_id_ = 0;
   // this should be nullptr only when `intersected_` is false
-  Pin* hybrid_bond_pin_ = nullptr;
+  HybridBond *hybrid_bond_ = nullptr;
 
 };
 

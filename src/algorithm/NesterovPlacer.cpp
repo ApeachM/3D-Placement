@@ -86,17 +86,18 @@ bool Chip::NesterovPlacer::initNestrovPlace(bool is_pseudo_die) {
   // bin
   updateGCellDensityCenterLocation(cur_slp_coordinates_);
   prev_hpwl_ = getHpwl();
-  cout << "[replace] np init: InitialHPWL: " << prev_hpwl_ << endl;
   // FFT update
   updateDensityForceBin();
   base_wire_length_coefficient_ = initWireLengthCoef / (static_cast<float>(bin_size_x_ + bin_size_y_) * 0.5);
-  cout << "[replace] np init: BaseWireLengthCoef: " << base_wire_length_coefficient_ << endl;
   sum_overflow_ = static_cast<float>(overflow_area_) / static_cast<float>(nesterovInstsArea());
   sum_overflow_unscaled_ = static_cast<float>(overflow_area_unscaled_) / static_cast<float>(nesterovInstsArea());
+  updateWireLengthCoef(sum_overflow_);
+  // TODO: check whether it is proper to print these in this order, also below one.
+  cout << "[replace] np init: InitialHPWL: " << prev_hpwl_ << endl;
+  cout << "[replace] np init: BaseWireLengthCoef: " << base_wire_length_coefficient_ << endl;
   cout << "[replace] np init: OverflowArea: " << overflow_area_ << endl;
   cout << "[replace] np init: NesterovInstArea: " << nesterovInstsArea() << endl;
   cout << "[replace] np init: InitSumOverflow: " << sum_overflow_unscaled_ << endl;
-  updateWireLengthCoef(sum_overflow_);
   cout << "[replace] np init: WireLengthCoef: " << wire_length_coefficient_x_ << endl;
 
   // WL update
@@ -121,14 +122,14 @@ bool Chip::NesterovPlacer::initNestrovPlace(bool is_pseudo_die) {
 
   if (is_diverged_) { return false; }
 
-  cout << "[replace] np init: WireLengthGradSum: " << wire_length_grad_sum_ << endl;
-  cout << "[replace] np init: DensityGradSum: " << density_grad_sum_ << endl;
   density_penalty_ = (wire_length_grad_sum_ / density_grad_sum_) * initDensityPenalty;
-  cout << "[replace] np init: InitDensityPenalty: " << density_penalty_ << endl;
   sum_overflow_ = static_cast<float>(overflow_area_) / static_cast<float>(nesterovInstsArea());
   sum_overflow_unscaled_ = static_cast<float>(overflow_area_unscaled_) / static_cast<float>(nesterovInstsArea());
-  cout << "[replace] np init: PrevSumOverflow: " << sum_overflow_unscaled_ << endl;
   step_length_ = getStepLength();
+  cout << "[replace] np init: WireLengthGradSum: " << wire_length_grad_sum_ << endl;
+  cout << "[replace] np init: DensityGradSum: " << density_grad_sum_ << endl;
+  cout << "[replace] np init: InitDensityPenalty: " << density_penalty_ << endl;
+  cout << "[replace] np init: PrevSumOverflow: " << sum_overflow_unscaled_ << endl;
   cout << "[replace] np init: InitialStepLength: " << step_length_ << endl;
 
   if ((isnan(step_length_) || isinf(step_length_)) && recursion_cnt_init_slp_coef_ < maxRecursionInitSLPCoef) {
@@ -742,8 +743,6 @@ void Chip::NesterovPlacer::updateWireLengthForceWA(double wlCoeffX, double wlCoe
             pin_set.push_back(pin);
         } else if (pin->isBlockPin()) {
           // TODO: more accurate method is needed.
-          pin_set.push_back(pin);
-        } else if (pin->isHybridBondPin()) {
           pin_set.push_back(pin);
         }
       }

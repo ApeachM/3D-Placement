@@ -91,7 +91,6 @@ void Chip::partition() {
 void Chip::generateHybridBonds() {
   // reserve hybrid_bonds and hybrid_bond_pins for preventing to change the addresses
   data_storage_.hybrid_bonds.reserve(net_pointers_.size());
-  data_storage_.hybrid_bond_pins.reserve(net_pointers_.size());
 
   int hybrid_num = 0;
 
@@ -124,39 +123,26 @@ void Chip::generateHybridBonds() {
       net->setAsIntersected();
 
       // make objects for hybrid bond
-      Instance hybrid_bond_object;
-      Pin hybrid_bond_pin_object;
-      hybrid_bond_object.setAsHybridBond();
-      hybrid_bond_pin_object.setAsHybridBondPin();
-
+      HybridBond hybrid_bond_object(hybrid_size_x_, hybrid_size_y_, hybrid_spacing_);
       // store them in storage
       data_storage_.hybrid_bonds.push_back(hybrid_bond_object);
-      data_storage_.hybrid_bond_pins.push_back(hybrid_bond_pin_object);
-
-      Instance *hybrid_bond = &data_storage_.hybrid_bonds.at(data_storage_.hybrid_bonds.size() - 1);
-      Pin *hybrid_bond_pin = &data_storage_.hybrid_bond_pins.at(data_storage_.hybrid_bond_pins.size() - 1);
+      HybridBond *hybrid_bond = &data_storage_.hybrid_bonds.at(data_storage_.hybrid_bonds.size() - 1);
 
       // set name
-      hybrid_bond->setInstName("hybrid_bond_" + to_string(hybrid_num));
+      hybrid_bond->setName("hybrid_bond_" + to_string(hybrid_num));
 
-      // link them: instance - pin - net
-      hybrid_bond->setHybridBondPin(hybrid_bond_pin); // instance -> pin
-      hybrid_bond_pin->setHybridBond(hybrid_bond); // pin -> instance
-      net->setHybridBondPin(hybrid_bond_pin); // pin -> net
-      hybrid_bond_pin->setIntersectedNet(net); // net -> pin
-      hybrid_bond->setConnectedNets({net}); // instance -> net
-      net->addConnectedInstance(hybrid_bond); // net -> instance
+      // link hybrid bond and net
+      net->setHybridBond(hybrid_bond); // pin -> net
+      hybrid_bond->setConnectedNet(net); // instance -> net
 
       // set coordinate of hybrid bond
       // p.s. net box would be updated in the first placement phase (Nestrov in virtual die)
       int center_x = static_cast<int>((net->ux() + net->lx()) / 2);
       int center_y = static_cast<int>((net->uy() + net->ly()) / 2);
-      hybrid_bond->setCoordinate(center_x, center_y);
-
+      hybrid_bond->setCoordinate({center_x, center_y});
 
       // for iteration
-      instance_pointers_.push_back(hybrid_bond);
-      pin_pointers_.push_back(hybrid_bond_pin);
+      hybrid_bond_pointers_.push_back(hybrid_bond);
     }
   }
 
@@ -181,12 +167,7 @@ void Chip::placement2DieSynchronously() {
 
   for (Instance *instance : instance_pointers_) {
     int die_id = instance->getDieId();
-    if (die_id == -1) {
-      // if die_id == -1, it is a hybrid bond
-      assert(instance->isHybridBond());
-      dieVar1.instance_pointers.push_back(instance);
-      dieVar2.instance_pointers.push_back(instance);
-    } else if (die_id == 1) {
+    if (die_id == 1) {
       dieVar1.instance_pointers.push_back(instance);
     } else if (die_id == 2) {
       dieVar2.instance_pointers.push_back(instance);
@@ -204,15 +185,15 @@ void Chip::placement2DieSynchronously() {
           break;
         }
     }
-    if (die_id == -1) {
-      // intersected
+    if (die_id == DIE_ID::INTERSECTED) {
+      // the net is on top die and bottom die both
       dieVar1.net_pointers_.push_back(net);
       dieVar2.net_pointers_.push_back(net);
-    } else if (die_id == 1)
-      // the net is on die 1
+    } else if (die_id == DIE_ID::TOP_DIE)
+      // the net is on die top die
       dieVar1.net_pointers_.push_back(net);
-    else if (die_id == 2)
-      // the net is on die 2
+    else if (die_id == DIE_ID::BOTTOM_DIE)
+      // the net is on bottom die
       dieVar2.net_pointers_.push_back(net);
     else
       // there will be no net on the virtual die on this step.
@@ -225,14 +206,12 @@ void Chip::placement2DieSynchronously() {
       // pass floating pins
       continue;
     die_id = pin->getNet()->getDieId();
-
-    if (die_id == -1) {
-      // intersected
+    if (die_id == DIE_ID::TOP_DIE) {
       dieVar1.pin_pointers_.push_back(pin);
+    } else if (die_id == DIE_ID::BOTTOM_DIE) {
       dieVar2.pin_pointers_.push_back(pin);
-    } else if (die_id == 1) {
+    } else if (die_id == DIE_ID::INTERSECTED) {
       dieVar1.pin_pointers_.push_back(pin);
-    } else if (die_id == 2) {
       dieVar2.pin_pointers_.push_back(pin);
     } else
       assert(0);
@@ -261,6 +240,9 @@ void Chip::placement2DieSynchronously() {
 
   nestrov_placer1.initNestrovPlace(false);
   nestrov_placer2.initNestrovPlace(false);
+  nestrov_placer1.updateDB();
+  nestrov_placer2.updateDB();
+  updateHybridBondPositions();
 
   if (nestrov_placer1.getMaxNesterovIter() != nestrov_placer2.getMaxNesterovIter())
     assert(0);
@@ -272,9 +254,10 @@ void Chip::placement2DieSynchronously() {
     if (nestrov_iter1 >= nestrov_placer1.getMaxNesterovIter()
         || nestrov_iter2 >= nestrov_placer2.getMaxNesterovIter())
       break;
-    // ONLY FOR DEBUGGING
     nestrov_placer1.updateDB();
     nestrov_placer2.updateDB();
+    updateHybridBondPositions();
+
     string file_name;
     std::stringstream ss;
     ss << std::setw(4) << std::setfill('0') << i;

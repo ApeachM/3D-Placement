@@ -173,6 +173,8 @@ class Chip {
    * */
   void placement2DieSynchronously();
 
+  void updateHybridBondPositions();
+
   /**
  * \author
  * Minjae Kim \n
@@ -249,6 +251,7 @@ class Chip {
   std::vector<Pin *> pin_pointers_;  // This vector includes instance pin pointers and pad pin pointers
   std::vector<Pin *> pad_pointers_;
   std::vector<Die *> die_pointers_;
+  std::vector<HybridBond *> hybrid_bond_pointers_;
 
   int num_technologies_ = 0;
 

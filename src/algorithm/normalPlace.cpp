@@ -75,7 +75,7 @@ void Chip::doNestrovPlace() {
       this->pad_pointers_,
       this->die_pointers_.at(0));
   nestrov_placer.initNestrovPlace();
-  nestrov_placer.setMaxNesterovIter(30);
+  nestrov_placer.setMaxNesterovIter(100);
   nestrov_placer.doNestrovPlace(0);
 }
 int Chip::getInstanceNumber() const {
@@ -98,6 +98,11 @@ dbDatabase *Chip::getDbDatabase() const {
 void Chip::setDbDatabase(dbDatabase *db_database) {
   parser_.db_database_ = db_database;
   db_database_ = db_database;
+}
+void Chip::updateHybridBondPositions() {
+  for(HybridBond *hybrid_bond : hybrid_bond_pointers_) {
+    hybrid_bond->updatePosition();
+  }
 }
 
 } // VLSI_backend

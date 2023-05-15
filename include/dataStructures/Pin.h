@@ -81,8 +81,6 @@ class Pin {
   unsigned char hasMinExpSumX_: 1;
   unsigned char hasMinExpSumY_: 1;
 
-  bool is_hybrid_bond_pin_ = false;
-  Instance* hybrid_bond_ = nullptr;
   Net* intersected_net_ = nullptr;
 
  public:
@@ -155,14 +153,6 @@ class Pin {
   bool hasMaxExpSumY() const { return (hasMaxExpSumY_ == 1); }
   bool hasMinExpSumX() const { return (hasMinExpSumX_ == 1); }
   bool hasMinExpSumY() const { return (hasMinExpSumY_ == 1); }
-
-  bool isHybridBondPin() const;
-  void setAsHybridBondPin();
-  Net *getIntersectedNet() const;
-  void setIntersectedNet(Net *intersected_net);
-  Instance *getHybridBond() const;
-  void setHybridBond(Instance *hybrid_bond);
-  void setHybridBondCoordinate(int x, int y);
 
 };
 }

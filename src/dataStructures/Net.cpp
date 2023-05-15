@@ -49,11 +49,8 @@ dbNet *Net::getDbNet() const {
 vector<Pin *> Net::getConnectedPins() {
   // TODO: can be more simplified?
   vector<Pin *> pins;
-  for (Pin* pin: connected_pins_) {
+  for (Pin *pin : connected_pins_) {
     pins.push_back(pin);
-  }
-  if (isIntersected()) {
-    pins.push_back(hybrid_bond_pin_);
   }
   return pins;
 }
@@ -120,12 +117,12 @@ void Net::updateBox(int die_ID) {
   } else {
     for (Pin *gPin : getConnectedPins()) {
       if (!gPin->isBlockPin()) {
-        if (die_ID == gPin->getInstance()->getDieId()) {
+        // if (die_ID == gPin->getInstance()->getDieId()) {
           lx_ = std::min(gPin->cx(), lx_);
           ly_ = std::min(gPin->cy(), ly_);
           ux_ = std::max(gPin->cx(), ux_);
           uy_ = std::max(gPin->cy(), uy_);
-        }
+        // }
       } else {
         // TODO: need to more accuracy method for block pins
         lx_ = std::min(gPin->cx(), lx_);
@@ -141,7 +138,7 @@ bool Net::isIntersected() const {
 }
 void Net::setAsIntersected() {
   Net::intersected_ = true;
-  die_id_ = -1;
+  die_id_ = DIE_ID::INTERSECTED;
 }
 int Net::getDieId() const {
   return die_id_;
@@ -149,16 +146,14 @@ int Net::getDieId() const {
 void Net::setDieId(int die_id) {
   die_id_ = die_id;
 }
-Pin *Net::getHybridBondPin() const {
+HybridBond *Net::getHybridBond() const {
   if (intersected_ == false)
     assert(0);
-  return hybrid_bond_pin_;
+  return hybrid_bond_;
 }
-void Net::setHybridBondPin(Pin *hybrid_bond_pin) {
-  if (intersected_ == false)
-    assert(0);
-  hybrid_bond_pin_ = hybrid_bond_pin;
-  connected_pins_.push_back(hybrid_bond_pin);
+void Net::setHybridBond(HybridBond *hybrid_bond_pin) {
+  assert(intersected_ == true);
+  hybrid_bond_ = hybrid_bond_pin;
 }
 void Net::setConnectedPins(const vector<Pin *> &connected_pins) {
   connected_pins_ = connected_pins;

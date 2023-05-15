@@ -86,11 +86,11 @@ class Instance {
   /// get area of the instance(cell)
   uint getArea();
 
-  void setWidth(uint width){
+  void setWidth(uint width) {
     // this function will be called when making a filler
     width_ = width;
   }
-  void setHeight(uint height){
+  void setHeight(uint height) {
     // this function will be called when making a filler
     height_ = height;
   }
@@ -173,10 +173,6 @@ class Instance {
   bool isFiller();
   void setDensityLocation(float dLx, float dLy);
   int getDieId() const;
-  bool isHybridBond() const;
-  void setAsHybridBond();
-  Pin *getHybridBondPin() const;
-  void setHybridBondPin(Pin *hybrid_bond_pin);
   const vector<Net *> &getConnectedNets() const;
   void setConnectedPins(vector<Pin *> connected_pins);
   void setConnectedNets(vector<Net *> connected_nets);
@@ -195,11 +191,9 @@ class Instance {
   int die_id_ = 0;
   bool is_macro_ = false;
   bool is_locked_ = false;
-  bool is_hybrid_bond_ = false;
-  Pin* hybrid_bond_pin_ = nullptr;
 
-  vector<Pin*> connected_pins_;
-  vector<Net*> connected_nets_;
+  vector<Pin *> connected_pins_;
+  vector<Net *> connected_nets_;
 
   /// This is lower left position of instance
   /// This is same with the origin of db_inst_ pointer
@@ -218,7 +212,47 @@ class Instance {
   float gradient_x_{};
   float gradient_y_{};
 };
+class HybridBond {
+ public:
+  HybridBond() = default;
+  HybridBond(int width, int height, int spacing) {
+    width_ = width;
+    height_ = height;
+    spacing_ = spacing;
+  }
+  const string &getName() const {
+    return name_;
+  }
+  void setName(const string &name) {
+    name_ = name;
+  }
+  const pair<int, int> &getCoordinate() const {
+    return position_;
+  }
+  void setCoordinate(const pair<int, int> center_position) {
+    position_.first = center_position.first - width_ / 2;
+    position_.second = center_position.second - height_ / 2;
+  }
+  Net *getConnectedNet() const {
+    return connected_net_;
+  }
+  void setConnectedNet(Net *connected_net) {
+    connected_net_ = connected_net;
+  }
+  void updatePosition();
 
+
+
+
+ private:
+  pair<int, int> position_ = pair<int, int>{0, 0}; // lower left
+  Net *connected_net_ = nullptr;
+  vector<Pin *> connected_pins_;
+  string name_;
+  int width_ = 0;
+  int height_ = 0;
+  int spacing_ = 0;
+};
 }
 
 #endif //PLACER_INCLUDE_DATASTRUCTURES_INSTANCE_H_
