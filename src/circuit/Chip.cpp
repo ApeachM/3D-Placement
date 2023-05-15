@@ -262,22 +262,29 @@ void Chip::drawDies(const string &pseudo_die_name,
       if (instance->getDieId() == 1) {
         // top die
         if (as_dot)
-          top_die.drawCell(ll_x, ll_y, ll_x + 1, ll_y + 1);
+          top_die.drawCell(ll_x, ll_y, ll_x, ll_y);
         else
           top_die.drawCell(ll_x, ll_y, ur_x, ur_y);
       } else if (instance->getDieId() == 2) {
         // bottom die
         if (as_dot)
-          bottom_die.drawCell(ll_x, ll_y, ll_x + 1, ll_y + 1);
+          bottom_die.drawCell(ll_x, ll_y, ll_x, ll_y);
         else
           bottom_die.drawCell(ll_x, ll_y, ur_x, ur_y);
-      } else if (instance->getDieId() == -1) {
-        // hybrid bond pin
-        top_die.drawHybridBond(ll_x, ll_y, ll_x + 1, ll_y + 1);
-        bottom_die.drawHybridBond(ll_x, ll_y, ll_x + 1, ll_y + 1);
       } else {
         assert(0);
       }
+    }
+    // Draw hbrid bonds
+    for (HybridBond *hybrid_bond : hybrid_bond_pointers_) {
+      int ll_x = hybrid_bond->getCoordinate().first / scale_factor;
+      int ll_y = hybrid_bond->getCoordinate().second / scale_factor;
+      int ur_x = (ll_x + hybrid_size_x_) / scale_factor;
+      int ur_y = (ll_y + hybrid_size_y_) / scale_factor;
+      if (as_dot)
+        top_die.drawHybridBond(ll_x, ll_y, ll_x, ll_y);
+      else
+        top_die.drawHybridBond(ll_x, ll_y, ur_x, ur_y);
     }
 
     if (draw_same_canvas)

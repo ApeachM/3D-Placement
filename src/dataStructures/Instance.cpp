@@ -87,9 +87,6 @@ std::vector<Pin *> Instance::getPins() {
       pins.push_back(pin);
     }
   }
-  if (is_hybrid_bond_) {
-    pins.push_back(hybrid_bond_pin_);
-  }
   return pins;
 }
 uint Instance::getArea() {
@@ -102,10 +99,6 @@ void Instance::setCoordinate(int x, int y) {
     // if this is normal(not filler) instance,
     db_inst_->setPlacementStatus(odb::dbPlacementStatus::PLACED);
     db_inst_->setLocation(x, y);
-  } else if (is_hybrid_bond_) {
-    // if this is a hybrid bond, the pin coordinate is not automatically adjusted when instance is moved.
-    // so, we should adjust the pin coordinate manually.
-    hybrid_bond_pin_->setHybridBondCoordinate(x, y);
   }
 }
 bool Instance::isPlaced() {
@@ -259,25 +252,6 @@ void Instance::setDensitySize(float density_width, float density_height) {
 int Instance::getDieId() const {
   return die_id_;
 }
-bool Instance::isHybridBond() const {
-  return is_hybrid_bond_;
-}
-void Instance::setAsHybridBond() {
-  is_hybrid_bond_ = true;
-  width_ = 0;
-  height_ = 0;
-  die_id_ = -1;
-  this->setLibName("HYBRID_BOND");
-}
-Pin *Instance::getHybridBondPin() const {
-  return hybrid_bond_pin_;
-}
-void Instance::setHybridBondPin(Pin *hybrid_bond_pin) {
-  if (!hybrid_bond_pin->isHybridBondPin())
-    assert(0); // This pin is not a pin for hybrid bond.
-  hybrid_bond_pin_ = hybrid_bond_pin;
-  connected_pins_.push_back(hybrid_bond_pin);
-}
 void Instance::setConnectedPins(vector<Pin *> connected_pins) {
   connected_pins_ = connected_pins;
 }
@@ -322,4 +296,9 @@ const vector<Net *> &Instance::getConnectedNets() const {
   return connected_nets_;
 }
 
+void HybridBond::updatePosition() {
+  int center_x = static_cast<int>((connected_net_->ux()+ connected_net_->lx())/2);
+  int center_y = static_cast<int>((connected_net_->uy()+ connected_net_->ly())/2);
+  setCoordinate({center_x, center_y});
+}
 } // VLSI_backend

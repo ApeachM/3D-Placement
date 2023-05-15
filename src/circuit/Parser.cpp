@@ -500,16 +500,13 @@ void Chip::writeICCAD(const string &output_file_name) {
   int num_instances_top = 0;
   int num_instances_bottom = 0;
   int num_terminals = 0;
-  vector<Instance *> terminals;
+  vector<HybridBond *> terminals;
   for (int i = 0; i < instance_pointers_.size(); ++i) {
     Instance *instance = instance_pointers_.at(i);
     if (instance->getDieId() == 1) {
       num_instances_top++;
     } else if (instance->getDieId() == 2) {
       num_instances_bottom++;
-    } else if (instance->isHybridBond()) {
-      num_terminals++;
-      terminals.push_back(instance);
     }
   }
 
@@ -533,11 +530,11 @@ void Chip::writeICCAD(const string &output_file_name) {
         << instance->getCoordinate().first << " " << instance->getCoordinate().second << endl;
   }
 
-  ofs << "NumTerminals " << num_terminals << endl;
-  for (int i = 0; i < num_terminals; ++i) {
-    Instance *terminal = terminals.at(i);
-    string net_name = terminal->getHybridBondPin()->getNet()->getName();
-    auto position = terminal->getHybridBondPin()->getCoordinate();
+  ofs << "NumTerminals " << hybrid_bond_pointers_.size() << endl;
+  for (int i = 0; i < hybrid_bond_pointers_.size(); ++i) {
+    HybridBond *terminal = terminals.at(i);
+    string net_name = terminal->getConnectedNet()->getName();
+    auto position = terminal->getCoordinate();
     ofs << "Terminal " << net_name << " " << position.first << " " << position.second << endl;
   }
 

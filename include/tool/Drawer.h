@@ -35,10 +35,6 @@ class Drawer {
     image_->draw_rectangle(ll_x, ll_y, ur_x, ur_y, color_);
   }
   void drawHybridBond(int ll_x, int ll_y, int ur_x, int ur_y) {
-    if (ll_x == ur_x)
-      ur_x += 2;
-    if (ll_y == ur_y)
-      ur_y += 2;
     int x = static_cast<int>((ll_x + ur_x) / 2);
     int y = static_cast<int>((ll_y + ur_y) / 2);
     image_->draw_circle(x, y, 2, Color::MINT);
