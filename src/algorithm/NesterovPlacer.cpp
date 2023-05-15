@@ -763,28 +763,40 @@ void Chip::NesterovPlacer::updateWireLengthForceWA(double wlCoeffX, double wlCoe
 
       // min x
       if (expMinX > min_wire_length_force_bar_) {
-        pin->setMinExpSumX(fastExp(expMinX));
+        if (pin->isInstancePin())
+          pin->setMinExpSumX(2 * fastExp(expMinX));
+        else
+          pin->setMinExpSumX(fastExp(expMinX));
         gNet->addWaExpMinSumX(pin->minExpSumX());
         gNet->addWaXExpMinSumX(pin->cx() * pin->minExpSumX());
       }
 
       // max x
       if (expMaxX > min_wire_length_force_bar_) {
-        pin->setMaxExpSumX(fastExp(expMaxX));
+        if (pin->isInstancePin())
+          pin->setMaxExpSumX(2 * fastExp(expMaxX));
+        else
+          pin->setMaxExpSumX(fastExp(expMaxX));
         gNet->addWaExpMaxSumX(pin->maxExpSumX());
         gNet->addWaXExpMaxSumX(pin->cx() * pin->maxExpSumX());
       }
 
       // min y
       if (expMinY > min_wire_length_force_bar_) {
-        pin->setMinExpSumY(fastExp(expMinY));
+        if (pin->isInstancePin())
+          pin->setMinExpSumY(2 * fastExp(expMinY));
+        else
+          pin->setMinExpSumY(fastExp(expMinY));
         gNet->addWaExpMinSumY(pin->minExpSumY());
         gNet->addWaYExpMinSumY(pin->cy() * pin->minExpSumY());
       }
 
       // max y
       if (expMaxY > min_wire_length_force_bar_) {
-        pin->setMaxExpSumY(fastExp(expMaxY));
+        if (pin->isInstancePin())
+          pin->setMaxExpSumY(2 * fastExp(expMaxY));
+        else
+          pin->setMaxExpSumY(fastExp(expMaxY));
         gNet->addWaExpMaxSumY(pin->maxExpSumY());
         gNet->addWaYExpMaxSumY(pin->cy() * pin->maxExpSumY());
       }

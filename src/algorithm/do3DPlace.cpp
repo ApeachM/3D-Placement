@@ -257,6 +257,7 @@ void Chip::placement2DieSynchronously() {
     nestrov_placer1.updateDB();
     nestrov_placer2.updateDB();
     updateHybridBondPositions();
+    cout << "[HPWL]: " << this->getHPWL() << endl;
 
     string file_name;
     std::stringstream ss;

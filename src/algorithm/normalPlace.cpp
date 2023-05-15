@@ -77,6 +77,7 @@ void Chip::doNestrovPlace() {
   nestrov_placer.initNestrovPlace();
   nestrov_placer.setMaxNesterovIter(100);
   nestrov_placer.doNestrovPlace(0);
+  cout << "[HPWL] : " << getHPWL() << endl;
 }
 int Chip::getInstanceNumber() const {
   return instance_number_;

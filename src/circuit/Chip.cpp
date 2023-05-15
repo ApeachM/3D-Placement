@@ -209,6 +209,7 @@ void Chip::init() {
 ulong Chip::getHPWL() {
   ulong HPWL = 0;
   for (Net *net : net_pointers_) {
+    net->updateBox();
     HPWL += net->getHPWL();
   }
   return HPWL;
