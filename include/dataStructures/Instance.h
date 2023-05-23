@@ -86,11 +86,11 @@ class Instance {
   /// get area of the instance(cell)
   uint getArea();
 
-  void setWidth(uint width){
+  void setWidth(uint width) {
     // this function will be called when making a filler
     width_ = width;
   }
-  void setHeight(uint height){
+  void setHeight(uint height) {
     // this function will be called when making a filler
     height_ = height;
   }
@@ -135,7 +135,7 @@ class Instance {
   // ref: https://github.com/The-OpenROAD-Project/OpenROAD/blob/a5e786eb65f40abfb7004b18312d519dac95cc33/src/gpl/src/placerBase.cpp#L139
   bool isFixed();
 
-  void setDensityCenterLocation(int dCx, int dCy);
+  void setDensityCenterLocation(int d_cx, int d_cy);
 
   /// getter and setters for density variables
   int dLx() const;
@@ -152,10 +152,10 @@ class Instance {
   void setGradientX(float gradient_x);
   float getGradientY() const;
   void setGradientY(float gradient_y);
-  int getDensityCenterX() const { return (dUx_ + dLx_) / 2; }
-  int getDensityCenterY() const { return (dUy_ + dLy_) / 2; }
-  int getDensityDeltaX() const { return dUx_ - dLx_; }
-  int getDensityDeltaY() const { return dUy_ - dLy_; }
+  int getDensityCenterX() const { return (d_ux_ + d_lx_) / 2; }
+  int getDensityCenterY() const { return (d_uy_ + d_ly_) / 2; }
+  int getDensityDeltaX() const { return d_ux_ - d_lx_; }
+  int getDensityDeltaY() const { return d_uy_ - d_ly_; }
   int lx() { return getCoordinate().first; }
   int ly() { return getCoordinate().second; }
   int ux() { return getCoordinate().first + getWidth(); }
@@ -173,10 +173,6 @@ class Instance {
   bool isFiller();
   void setDensityLocation(float dLx, float dLy);
   int getDieId() const;
-  bool isHybridBond() const;
-  void setAsHybridBond();
-  Pin *getHybridBondPin() const;
-  void setHybridBondPin(Pin *hybrid_bond_pin);
   const vector<Net *> &getConnectedNets() const;
   void setConnectedPins(vector<Pin *> connected_pins);
   void setConnectedNets(vector<Net *> connected_nets);
@@ -195,11 +191,9 @@ class Instance {
   int die_id_ = 0;
   bool is_macro_ = false;
   bool is_locked_ = false;
-  bool is_hybrid_bond_ = false;
-  Pin* hybrid_bond_pin_ = nullptr;
 
-  vector<Pin*> connected_pins_;
-  vector<Net*> connected_nets_;
+  vector<Pin *> connected_pins_;
+  vector<Net *> connected_nets_;
 
   /// This is lower left position of instance
   /// This is same with the origin of db_inst_ pointer
@@ -208,17 +202,57 @@ class Instance {
   uint height_ = 0;
 
   /// density location
-  int dLx_{0};
-  int dLy_{0};
-  int dUx_{0};
-  int dUy_{0};
+  int d_lx_{0};
+  int d_ly_{0};
+  int d_ux_{0};
+  int d_uy_{0};
 
   // density variables
-  float densityScale_{0};
-  float gradientX_{};
-  float gradientY_{};
+  float density_scale_{0};
+  float gradient_x_{};
+  float gradient_y_{};
 };
+class HybridBond {
+ public:
+  HybridBond() = default;
+  HybridBond(int width, int height, int spacing) {
+    width_ = width;
+    height_ = height;
+    spacing_ = spacing;
+  }
+  const string &getName() const {
+    return name_;
+  }
+  void setName(const string &name) {
+    name_ = name;
+  }
+  const pair<int, int> &getCoordinate() const {
+    return position_;
+  }
+  void setCoordinate(const pair<int, int> center_position) {
+    position_.first = center_position.first - width_ / 2;
+    position_.second = center_position.second - height_ / 2;
+  }
+  Net *getConnectedNet() const {
+    return connected_net_;
+  }
+  void setConnectedNet(Net *connected_net) {
+    connected_net_ = connected_net;
+  }
+  void updatePosition();
 
+
+
+
+ private:
+  pair<int, int> position_ = pair<int, int>{0, 0}; // lower left
+  Net *connected_net_ = nullptr;
+  vector<Pin *> connected_pins_;
+  string name_;
+  int width_ = 0;
+  int height_ = 0;
+  int spacing_ = 0;
+};
 }
 
 #endif //PLACER_INCLUDE_DATASTRUCTURES_INSTANCE_H_

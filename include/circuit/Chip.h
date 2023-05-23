@@ -48,6 +48,7 @@
 #include "Die.h"
 #include "fft.h"
 #include "HierRTLMP.h"
+#include "Drawer.h"
 
 #define REPLACE_SQRT2 1.414213562373095048801L
 
@@ -60,7 +61,7 @@ typedef Eigen::SparseMatrix<float, Eigen::RowMajor> SMatrix;
 namespace VLSI_backend {
 using namespace odb;
 // https://codingforspeed.com/using-faster-exponential-approximation/
-static float fastExp(float a);
+static double fastExp(float a);
 
 /**\brief
  * This will do 3d placement (D2D placement). \n
@@ -136,25 +137,6 @@ class Chip {
   // Data initialization
   void init();
 
-  /**
-   * \author
-   * Minjae Kim \n
-   * GitHub: ApeachM (https://github.com/ApeachM)
-   * */
-  void setTargetDensity(vector<double> densities);
-  /**
-   * \author
-   * Minjae Kim \n
-   * GitHub: ApeachM (https://github.com/ApeachM)
-   * */
-  void doInitialPlace();
-  /**
-   * \author
-   * Minjae Kim \n
-   * GitHub: ApeachM (https://github.com/ApeachM)
-   * */
-  void doNestrovPlace();
-
   /**\brief
    * One die (virtual die) placement before partitioning
    * \author
@@ -191,6 +173,27 @@ class Chip {
    * */
   void placement2DieSynchronously();
 
+  void updateHybridBondPositions();
+
+  /**
+ * \author
+ * Minjae Kim \n
+ * GitHub: ApeachM (https://github.com/ApeachM)
+ * */
+  void setTargetDensity(vector<double> densities);
+  /**
+   * \author
+   * Minjae Kim \n
+   * GitHub: ApeachM (https://github.com/ApeachM)
+   * */
+  void doInitialPlace();
+  /**
+   * \author
+   * Minjae Kim \n
+   * GitHub: ApeachM (https://github.com/ApeachM)
+   * */
+  void doNestrovPlace();
+
   /**\brief
    * get unit of micro
    * \details
@@ -221,6 +224,14 @@ class Chip {
   void setNetNumber(int net_number);
   dbDatabase *getDbDatabase() const;
   void setDbDatabase(dbDatabase *db_database);
+
+  void drawDies(const string &pseudo_die_name = "pseudo_die",
+                const string &top_die_name = "topDie",
+                const string &bottom_die_name = "bottomDie",
+                int scale_factor = 1,
+                bool as_dot = true,
+                bool draw_same_canvas = true);
+
  protected:
   utl::Logger logger_;
   // For pseudo die
@@ -240,6 +251,7 @@ class Chip {
   std::vector<Pin *> pin_pointers_;  // This vector includes instance pin pointers and pad pin pointers
   std::vector<Pin *> pad_pointers_;
   std::vector<Die *> die_pointers_;
+  std::vector<HybridBond *> hybrid_bond_pointers_;
 
   int num_technologies_ = 0;
 
@@ -256,7 +268,7 @@ class Chip {
   // first one is for top, the second one is for bottom. This info will be copied at die.
   pair<RowInfo, RowInfo> row_infos_;
 
-  HierRTLMPartition* hier_rtl_;
+  HierRTLMPartition *hier_rtl_;
 };
 
 } // VLSI_backend

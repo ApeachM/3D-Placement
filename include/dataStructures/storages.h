@@ -43,6 +43,7 @@ using namespace odb;
 class Instance;
 class Net;
 class Pin;
+class HybridBond;
 
 /// data storages
 struct data_storage {
@@ -52,8 +53,7 @@ struct data_storage {
   std::vector<Die> dies;
 
   // for hybrid bonds
-  std::vector<Instance> hybrid_bonds; // set this object as Instance for placing compatibility
-  std::vector<Pin> hybrid_bond_pins; // one hybrid bond has one `hybrid_bond_pin`.
+  std::vector<HybridBond> hybrid_bonds; // set this object as Instance for placing compatibility
 };
 }
 #endif //PLACER_INCLUDE_DATASTRUCTURES_STRUCTURES_H_

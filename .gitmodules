@@ -1,3 +1,6 @@
 [submodule "submodules/OpenROAD"]
 	path = submodules/OpenROAD
 	url = https://github.com/ApeachM/OpenROAD.git
+[submodule "submodules/CImg"]
+	path = submodules/CImg
+	url = https://github.com/GreycLab/CImg.git

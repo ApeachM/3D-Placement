@@ -209,11 +209,115 @@ void Chip::init() {
 ulong Chip::getHPWL() {
   ulong HPWL = 0;
   for (Net *net : net_pointers_) {
+    net->updateBox();
     HPWL += net->getHPWL();
   }
   return HPWL;
 }
 int Chip::getUnitOfMicro() const {
   return db_database_->getTech()->getDbUnitsPerMicron();
+}
+void Chip::drawDies(const string &pseudo_die_name,
+                    const string &top_die_name,
+                    const string &bottom_die_name,
+                    int scale_factor,
+                    bool as_dot,
+                    bool draw_same_canvas) {
+  if (instance_pointers_.size() > 10e6) {
+    scale_factor = 1000;
+  } else if (instance_pointers_.size() > 10e3) {
+    scale_factor = 100;
+  } else {
+    scale_factor = 10;
+  }
+
+  if (!data_storage_.hybrid_bonds.empty()) {
+    uint top_die_w = die_pointers_.at(0)->getWidth() / scale_factor;
+    uint top_die_h = die_pointers_.at(0)->getHeight() / scale_factor;
+    uint bottom_die_w = die_pointers_.at(1)->getWidth() / scale_factor;
+    uint bottom_die_h = die_pointers_.at(1)->getHeight() / scale_factor;
+
+    Drawer top_die(top_die_w, top_die_h);
+    Drawer bottom_die(bottom_die_w, bottom_die_h);
+
+    if (draw_same_canvas) {
+      bottom_die.linkImg(top_die.getImage());
+      top_die.setCellColor(Color::BLACK);
+      bottom_die.setCellColor(Color::RED);
+    } else {
+      top_die.setCellColor(Color::BLACK);
+      bottom_die.setCellColor(Color::BLACK);
+    }
+
+    // ID setting
+    top_die.setDieId(1);
+    bottom_die.setDieId(2);
+
+    // Draw cells
+    for (Instance *instance : instance_pointers_) {
+      int ll_x = instance->getCoordinate().first / scale_factor;
+      int ll_y = instance->getCoordinate().second / scale_factor;
+      int ur_x = ll_x + instance->getWidth() / scale_factor;
+      int ur_y = ll_y + instance->getHeight() / scale_factor;
+
+      if (instance->getDieId() == 1) {
+        // top die
+        if (as_dot)
+          top_die.drawCell(ll_x, ll_y, ll_x, ll_y);
+        else
+          top_die.drawCell(ll_x, ll_y, ur_x, ur_y);
+      } else if (instance->getDieId() == 2) {
+        // bottom die
+        if (as_dot)
+          bottom_die.drawCell(ll_x, ll_y, ll_x, ll_y);
+        else
+          bottom_die.drawCell(ll_x, ll_y, ur_x, ur_y);
+      } else {
+        assert(0);
+      }
+    }
+    // Draw hbrid bonds
+    for (HybridBond *hybrid_bond : hybrid_bond_pointers_) {
+      int ll_x = hybrid_bond->getCoordinate().first / scale_factor;
+      int ll_y = hybrid_bond->getCoordinate().second / scale_factor;
+      int ur_x = (hybrid_bond->getCoordinate().first + hybrid_size_x_) / scale_factor;
+      int ur_y = (hybrid_bond->getCoordinate().second + hybrid_size_y_) / scale_factor;
+      if (as_dot)
+        top_die.drawHybridBond(ll_x, ll_y, ll_x, ll_y);
+      else
+        top_die.drawHybridBond(ll_x, ll_y, ur_x, ur_y);
+    }
+
+    if (draw_same_canvas)
+      top_die.saveImg(pseudo_die_name);
+    else {
+      top_die.saveImg(top_die_name);
+      bottom_die.saveImg(bottom_die_name);
+    }
+  } else {
+    uint pseudo_die_w = die_pointers_.at(0)->getWidth() / scale_factor;
+    uint pseudo_die_h = die_pointers_.at(0)->getHeight() / scale_factor;
+
+    Drawer pseudo_die(pseudo_die_w, pseudo_die_h);
+    pseudo_die.setDieId(0);
+
+    // Draw cells
+    for (Instance *instance : instance_pointers_) {
+      int ll_x = instance->getCoordinate().first / scale_factor;
+      int ll_y = instance->getCoordinate().second / scale_factor;
+      int ur_x = ll_x + instance->getWidth() / scale_factor;
+      int ur_y = ll_y + instance->getHeight() / scale_factor;
+      if (instance->getDieId() != 0)
+        assert(0);
+      if (as_dot)
+        pseudo_die.drawCell(ll_x, ll_y, ll_x + 1, ll_y + 1);
+      else
+        pseudo_die.drawCell(ll_x, ll_y, ur_x, ur_y);
+
+    }
+
+    pseudo_die.saveImg(pseudo_die_name);
+  }
+
 }
 } // VLSI_backend

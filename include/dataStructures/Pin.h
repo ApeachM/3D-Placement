@@ -65,11 +65,11 @@ class Pin {
   // minExpSum_: holds exp(-x_i/gamma)
   // the x_i is equal to cx_ variable.
   //
-  float maxExpSumX_{};
-  float maxExpSumY_{};
+  double maxExpSumX_{};
+  double maxExpSumY_{};
 
-  float minExpSumX_{};
-  float minExpSumY_{};
+  double minExpSumX_{};
+  double minExpSumY_{};
 
   // flag variables
   //
@@ -81,8 +81,6 @@ class Pin {
   unsigned char hasMinExpSumX_: 1;
   unsigned char hasMinExpSumY_: 1;
 
-  bool is_hybrid_bond_pin_ = false;
-  Instance* hybrid_bond_ = nullptr;
   Net* intersected_net_ = nullptr;
 
  public:
@@ -146,23 +144,15 @@ class Pin {
   void setMaxExpSumY(float maxExpSumY);
   void setMinExpSumX(float minExpSumX);
   void setMinExpSumY(float minExpSumY);
-  float maxExpSumX() const { return maxExpSumX_; }
-  float maxExpSumY() const { return maxExpSumY_; }
-  float minExpSumX() const { return minExpSumX_; }
-  float minExpSumY() const { return minExpSumY_; }
+  double maxExpSumX() const { return maxExpSumX_; }
+  double maxExpSumY() const { return maxExpSumY_; }
+  double minExpSumX() const { return minExpSumX_; }
+  double minExpSumY() const { return minExpSumY_; }
 
   bool hasMaxExpSumX() const { return (hasMaxExpSumX_ == 1); }
   bool hasMaxExpSumY() const { return (hasMaxExpSumY_ == 1); }
   bool hasMinExpSumX() const { return (hasMinExpSumX_ == 1); }
   bool hasMinExpSumY() const { return (hasMinExpSumY_ == 1); }
-
-  bool isHybridBondPin() const;
-  void setAsHybridBondPin();
-  Net *getIntersectedNet() const;
-  void setIntersectedNet(Net *intersected_net);
-  Instance *getHybridBond() const;
-  void setHybridBond(Instance *hybrid_bond);
-  void setHybridBondCoordinate(int x, int y);
 
 };
 }

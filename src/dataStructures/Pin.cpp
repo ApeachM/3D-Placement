@@ -63,11 +63,7 @@ bool Pin::isBlockPin() {
     return false;
 }
 Net *Pin::getNet() {
-  if (isHybridBondPin()) {
-    return intersected_net_;
-  } else {
-    return connected_net;
-  }
+  return connected_net;
 }
 string Pin::getSignalType() {
   if (isInstancePin())
@@ -90,20 +86,13 @@ pair<int, int> Pin::getCoordinate() {
         y = (box->yMin() + (int) box->getDY());
       }
     }
-  } else if (isHybridBondPin()) {
-    if (!this->getInstance()->isHybridBond())
-      assert(0);
-    x = this->getInstance()->getCoordinate().first;
-    y = this->getInstance()->getCoordinate().second;
   }
   return pair<int, int>{x, y};
 }
 Instance *Pin::getInstance() {
   if (isInstancePin())
     return connected_instance;
-  else if (isHybridBondPin()) {
-    return hybrid_bond_;
-  } else
+  else
     return nullptr;
 }
 string Pin::getPinName() {
@@ -125,6 +114,10 @@ void Pin::initDensityCoordinate() {
     offsetCy_ = cy_ - getInstance()->getCoordinate().second;
   } else if (db_b_term_) {
     // TODO: ??? is this right ???
+    offsetCx_ = cx_;
+    offsetCy_ = cy_;
+  } else {
+    // if this is a pin for hybrid
     offsetCx_ = cx_;
     offsetCy_ = cy_;
   }
@@ -152,33 +145,6 @@ bool Pin::isMaxPinX() const {
 }
 bool Pin::isMaxPinY() const {
   return max_pin_y_field_;
-}
-bool Pin::isHybridBondPin() const {
-  return is_hybrid_bond_pin_;
-}
-void Pin::setAsHybridBondPin() {
-  is_hybrid_bond_pin_ = true;
-}
-void Pin::setHybridBondCoordinate(int x, int y) {
-  if (!is_hybrid_bond_pin_)
-    assert(0);
-  // use density coordinate because hybrid bond will be considered only in Nestrov
-  cx_ = x;
-  cy_ = y;
-}
-Net *Pin::getIntersectedNet() const {
-  return intersected_net_;
-}
-void Pin::setIntersectedNet(Net *intersected_net) {
-  if (!this->isHybridBondPin())
-    assert(0);
-  intersected_net_ = intersected_net;
-}
-Instance *Pin::getHybridBond() const {
-  return hybrid_bond_;
-}
-void Pin::setHybridBond(Instance *hybrid_bond) {
-  hybrid_bond_ = hybrid_bond;
 }
 Instance *Pin::getConnectedInstance() const {
   return connected_instance;
@@ -210,17 +176,21 @@ void Pin::clearWaVars() {
 void Pin::setMaxExpSumX(float maxExpSumX) {
   hasMaxExpSumX_ = 1;
   maxExpSumX_ = maxExpSumX;
+  assert(!(isnan(maxExpSumX) || isinf(maxExpSumX)));
 }
 void Pin::setMaxExpSumY(float maxExpSumY) {
   hasMaxExpSumY_ = 1;
   maxExpSumY_ = maxExpSumY;
+  assert(!(isnan(maxExpSumY) || isinf(maxExpSumY)));
 }
 void Pin::setMinExpSumX(float minExpSumX) {
   hasMinExpSumX_ = 1;
   minExpSumX_ = minExpSumX;
+  assert(!(isnan(minExpSumX) || isinf(minExpSumX)));
 }
 void Pin::setMinExpSumY(float minExpSumY) {
   hasMinExpSumY_ = 1;
   minExpSumY_ = minExpSumY;
+  assert(!(isnan(minExpSumY) || isinf(minExpSumY)));
 }
 } // VLSI_backend
