@@ -137,6 +137,8 @@ class Chip {
   // Data initialization
   void init();
 
+  void printDataInfo() const;
+
   /**\brief
    * One die (virtual die) placement before partitioning
    * \author
@@ -225,12 +227,7 @@ class Chip {
   dbDatabase *getDbDatabase() const;
   void setDbDatabase(dbDatabase *db_database);
 
-  void drawDies(const string &pseudo_die_name = "pseudo_die",
-                const string &top_die_name = "topDie",
-                const string &bottom_die_name = "bottomDie",
-                int scale_factor = 1,
-                bool as_dot = true,
-                bool draw_same_canvas = true);
+  void drawDies(const string &die_name = "die", bool as_dot = true, bool draw_same_canvas = true);
 
  protected:
   utl::Logger logger_;

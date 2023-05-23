@@ -217,25 +217,27 @@ ulong Chip::getHPWL() {
 int Chip::getUnitOfMicro() const {
   return db_database_->getTech()->getDbUnitsPerMicron();
 }
-void Chip::drawDies(const string &pseudo_die_name,
-                    const string &top_die_name,
-                    const string &bottom_die_name,
-                    int scale_factor,
-                    bool as_dot,
-                    bool draw_same_canvas) {
-  if (instance_pointers_.size() > 10e6) {
-    scale_factor = 1000;
-  } else if (instance_pointers_.size() > 10e3) {
-    scale_factor = 100;
+void Chip::drawDies(const string &die_name, bool as_dot, bool draw_same_canvas) {
+  int scale_factor;
+  int die_height_fix = 500;
+  if (hybrid_bond_pointers_.empty()) {
+    // pseudo die drawing mode
+    // let the pixel of the die height be 500
+    scale_factor = static_cast<int>(die_pointers_.at(DIE_ID::PSEUDO_DIE)->getHeight() / die_height_fix);
   } else {
-    scale_factor = 10;
+    // top and bottom die drawing mode
+    // let the pixel of the die height be 2000
+    // note: top and bottom die size is same here
+    scale_factor = static_cast<int>(die_pointers_.at(DIE_ID::TOP_DIE)->getHeight() / die_height_fix);
   }
 
+  if (scale_factor == 0) scale_factor = 10;
+
   if (!data_storage_.hybrid_bonds.empty()) {
-    uint top_die_w = die_pointers_.at(0)->getWidth() / scale_factor;
-    uint top_die_h = die_pointers_.at(0)->getHeight() / scale_factor;
-    uint bottom_die_w = die_pointers_.at(1)->getWidth() / scale_factor;
-    uint bottom_die_h = die_pointers_.at(1)->getHeight() / scale_factor;
+    uint top_die_w = die_pointers_.at(DIE_ID::TOP_DIE)->getWidth() / scale_factor;
+    uint top_die_h = die_pointers_.at(DIE_ID::TOP_DIE)->getHeight() / scale_factor;
+    uint bottom_die_w = die_pointers_.at(DIE_ID::BOTTOM_DIE)->getWidth() / scale_factor;
+    uint bottom_die_h = die_pointers_.at(DIE_ID::BOTTOM_DIE)->getHeight() / scale_factor;
 
     Drawer top_die(top_die_w, top_die_h);
     Drawer bottom_die(bottom_die_w, bottom_die_h);
@@ -289,14 +291,14 @@ void Chip::drawDies(const string &pseudo_die_name,
     }
 
     if (draw_same_canvas)
-      top_die.saveImg(pseudo_die_name);
+      top_die.saveImg(die_name);
     else {
-      top_die.saveImg(top_die_name);
-      bottom_die.saveImg(bottom_die_name);
+      top_die.saveImg("top" + die_name);
+      bottom_die.saveImg("bottom" + die_name);
     }
   } else {
-    uint pseudo_die_w = die_pointers_.at(0)->getWidth() / scale_factor;
-    uint pseudo_die_h = die_pointers_.at(0)->getHeight() / scale_factor;
+    uint pseudo_die_w = die_pointers_.at(DIE_ID::PSEUDO_DIE)->getWidth() / scale_factor;
+    uint pseudo_die_h = die_pointers_.at(DIE_ID::PSEUDO_DIE)->getHeight() / scale_factor;
 
     Drawer pseudo_die(pseudo_die_w, pseudo_die_h);
     pseudo_die.setDieId(0);
@@ -316,8 +318,12 @@ void Chip::drawDies(const string &pseudo_die_name,
 
     }
 
-    pseudo_die.saveImg(pseudo_die_name);
+    pseudo_die.saveImg(die_name);
   }
 
 }
+void Chip::printDataInfo() const {
+  
+}
+
 } // VLSI_backend

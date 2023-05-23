@@ -38,7 +38,7 @@ class Drawer {
   void drawHybridBond(int ll_x, int ll_y, int ur_x, int ur_y) {
     int x = static_cast<int>((ll_x + ur_x) / 2);
     int y = static_cast<int>((ll_y + ur_y) / 2);
-    image_->draw_circle(x, y, 2, Color::MINT);
+    image_->draw_circle(x, y, 1, Color::MINT);
   }
   void saveImg(const string &file_name) {
     string save_file_name = file_path + file_name + ".bmp";

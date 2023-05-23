@@ -46,6 +46,9 @@ target_link_libraries(placer
         mpl2_lib
         Eigen3::Eigen
         X11
+
+        gtest
+        gtest_main
         )
 target_include_directories(mpl2_lib
         PUBLIC
