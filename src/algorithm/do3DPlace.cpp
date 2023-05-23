@@ -148,7 +148,7 @@ void Chip::generateHybridBonds() {
 
   assert(hybrid_num == data_storage_.hybrid_bonds.size());
   cout << "Hybrid bond #: " << data_storage_.hybrid_bonds.size() << endl;
-  this->drawDies("after_hybrid_bond_generation", "", "",1, false);
+  this->drawDies("after_hybrid_bond_generation", false, false);
 }
 
 void Chip::placement2DieSynchronously() {
@@ -227,7 +227,7 @@ void Chip::placement2DieSynchronously() {
       dieVar1.net_pointers_,
       dieVar1.pin_pointers_,
       dieVar1.pad_pointers_,
-      this->die_pointers_.at(1)
+      this->die_pointers_.at(DIE_ID::TOP_DIE)
   );
   NesterovPlacer nestrov_placer2(
       this->db_database_,
@@ -235,7 +235,7 @@ void Chip::placement2DieSynchronously() {
       dieVar2.net_pointers_,
       dieVar2.pin_pointers_,
       dieVar2.pad_pointers_,
-      this->die_pointers_.at(2)
+      this->die_pointers_.at(DIE_ID::BOTTOM_DIE)
   );
 
   nestrov_placer1.initNestrovPlace(false);
@@ -263,7 +263,7 @@ void Chip::placement2DieSynchronously() {
     std::stringstream ss;
     ss << std::setw(4) << std::setfill('0') << i;
     ss >> file_name;;
-    this->drawDies(file_name, "", "",1, false);
+    this->drawDies(file_name, false, true);
   }
   nestrov_placer1.updateDB();
   nestrov_placer2.updateDB();

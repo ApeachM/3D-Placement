@@ -73,7 +73,7 @@ void Chip::doNestrovPlace() {
       this->net_pointers_,
       this->pin_pointers_,
       this->pad_pointers_,
-      this->die_pointers_.at(0));
+      this->die_pointers_.at(DIE_ID::PSEUDO_DIE));
   nestrov_placer.initNestrovPlace();
   nestrov_placer.setMaxNesterovIter(100);
   nestrov_placer.doNestrovPlace(0);
