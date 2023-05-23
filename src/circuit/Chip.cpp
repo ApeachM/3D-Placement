@@ -205,6 +205,7 @@ void Chip::init() {
   * Then there will be no problem.
   * */
 
+  printDataInfo();
 }
 ulong Chip::getHPWL() {
   ulong HPWL = 0;
@@ -252,8 +253,8 @@ void Chip::drawDies(const string &die_name, bool as_dot, bool draw_same_canvas) 
     }
 
     // ID setting
-    top_die.setDieId(1);
-    bottom_die.setDieId(2);
+    top_die.setDieId(DIE_ID::TOP_DIE);
+    bottom_die.setDieId(DIE_ID::BOTTOM_DIE);
 
     // Draw cells
     for (Instance *instance : instance_pointers_) {
@@ -323,7 +324,14 @@ void Chip::drawDies(const string &die_name, bool as_dot, bool draw_same_canvas) 
 
 }
 void Chip::printDataInfo() const {
-  
+  cout << "======================" << endl;
+  cout << "Instance #: " << instance_pointers_.size() << endl;
+  cout << "Net #: " << net_pointers_.size() << endl;
+  cout << "Pin #:" << pin_pointers_.size() << endl;
+  cout << "Die size (x, y): "
+       << die_pointers_.at(DIE_ID::PSEUDO_DIE)->getWidth() << ", "
+       << die_pointers_.at(DIE_ID::PSEUDO_DIE)->getHeight() << endl;
+  cout << "======================" << endl;
 }
 
 } // VLSI_backend
