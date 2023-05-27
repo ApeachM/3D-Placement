@@ -238,6 +238,8 @@ void Chip::placement2DieSynchronously() {
       this->die_pointers_.at(DIE_ID::BOTTOM_DIE)
   );
 
+  nestrov_placer1.setDebugMode(true);
+  nestrov_placer2.setDebugMode(true);
   nestrov_placer1.initNestrovPlace(false);
   nestrov_placer2.initNestrovPlace(false);
   nestrov_placer1.updateDB();

@@ -76,7 +76,7 @@ void Chip::doNestrovPlace() {
       this->die_pointers_.at(DIE_ID::PSEUDO_DIE));
   nestrov_placer.initNestrovPlace();
   nestrov_placer.setMaxNesterovIter(100);
-  nestrov_placer.doNestrovPlace(0);
+  nestrov_placer.doNestrovPlace();
   cout << "[HPWL] : " << getHPWL() << endl;
 }
 int Chip::getInstanceNumber() const {
