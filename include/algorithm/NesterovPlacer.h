@@ -34,11 +34,13 @@
 #ifndef INC_3D_PLACEMENT_INCLUDE_ALGORITHM_NESTEROVPLACER_H_
 #define INC_3D_PLACEMENT_INCLUDE_ALGORITHM_NESTEROVPLACER_H_
 #include "Chip.h"
+#include "CImg.h"
 
 namespace VLSI_backend {
 class Chip::NesterovPlacer {
   class Bin;
   class biNormalParameters;
+  class Drawer;
  public:
   NesterovPlacer(odb::dbDatabase *db_database,
                  std::vector<Instance *> instance_pointers,
@@ -46,20 +48,18 @@ class Chip::NesterovPlacer {
                  std::vector<Pin *> pin_pointers,
                  std::vector<Pin *> pad_pointers,
                  Die *die_pointer);
-  bool initNestrovPlace(bool is_pseudo_die=true);
+  bool initNestrovPlace(bool is_pseudo_die = true);
   /*!
    * \brief
    * Do Nestrov Placement. The core function of this class
    * \return
    * the iteration number will be returned by this function
    */
-  int doNestrovPlace(int start_iter, bool only_one_iter = false);
+  int doNestrovPlace(int start_iter = 0, bool only_one_iter = false);
   void updateDB();
 
-  int getMaxNesterovIter() const;
-  void setMaxNesterovIter(int max_nesterov_iter){
-    max_nesterov_iter_ = max_nesterov_iter;
-  }
+  int getMaxNesterovIter() const { return max_nesterov_iter_; }
+  void setMaxNesterovIter(int max_nesterov_iter) { max_nesterov_iter_ = max_nesterov_iter; }
  private:
   /*!
    * \name
@@ -317,8 +317,24 @@ class Chip::NesterovPlacer {
   void updateDensityCoordiLayoutInside(Instance *gCell);
   void updateInitialPrevSLPCoordi();
   void initSLPStepsVars();
+ public:
+  void setDebugMode(bool debug_mode);
 
  private:
+  void handleDiverge(const vector<pair<float, float>> &snapshotCoordi,
+                     const vector<pair<float, float>> &snapshotSLPCoordi,
+                     const vector<pair<float, float>> &snapshotSLPSumGrads,
+                     float snapshotA,
+                     float snapshotDensityPenalty,
+                     float snapshotStepLength,
+                     float snapshotWlCoefX,
+                     float snapshotWlCoefY,
+                     bool &isDivergeTriedRevert);
+  bool stepLengthDivergeCheck();
+  void printStateNesterov(int iter) const;
+  bool finishCheck() const;
+  void drawDie(const string &filename);
+
   odb::dbDatabase *db_database_;
   std::vector<Instance *> instance_pointers_;
   std::vector<Instance *> dummyInsts_;
@@ -447,19 +463,7 @@ class Chip::NesterovPlacer {
   int recursion_cnt_init_slp_coef_{0};
 
   bool is_base_initialized_ = false;
-
-  void handleDiverge(const vector<pair<float, float>> &snapshotCoordi,
-                     const vector<pair<float, float>> &snapshotSLPCoordi,
-                     const vector<pair<float, float>> &snapshotSLPSumGrads,
-                     float snapshotA,
-                     float snapshotDensityPenalty,
-                     float snapshotStepLength,
-                     float snapshotWlCoefX,
-                     float snapshotWlCoefY,
-                     bool &isDivergeTriedRevert);
-  bool stepLengthDivergeCheck();
-  void printStateNesterov(int iter) const;
-  bool finishCheck() const;
+  bool debug_mode_ = false;
 };
 
 class Chip::NesterovPlacer::Bin {
@@ -548,6 +552,25 @@ class Chip::NesterovPlacer::biNormalParameters {
   float ly;
   float ux;
   float uy;
+};
+class Chip::NesterovPlacer::Drawer {
+  using Image = cimg_library::CImg<unsigned char>;
+ public:
+  explicit Drawer(uint width = 0, uint height = 0);
+  virtual ~Drawer();
+  void drawCell(int ll_x, int ll_y, int ur_x, int ur_y);
+  void drawFiller(int ll_x, int ll_y, int ur_x, int ur_y);
+  void setCellColor(const unsigned char *cell_color);
+  void setFillerColor(const unsigned char *filler_color);
+  void saveImg(const string &file_name);
+
+ private:
+  uint width_;
+  uint height_;
+  Image *image_;
+  const unsigned char *cell_color_ = Color::BLACK;
+  const unsigned char *filler_color_ = Color::RED;
+  string file_path_ = "../output/images/";
 };
 }
 

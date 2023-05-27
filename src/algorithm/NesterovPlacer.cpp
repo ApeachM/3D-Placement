@@ -226,9 +226,7 @@ int Chip::NesterovPlacer::doNestrovPlace(int start_iter, bool only_one_iter) {
     if (max_back_track_ == num_back_trak) {
       cout << "Backtracking limit reached so a small step will be taken" << endl;
     }
-    if (is_diverged_) {
-      break;
-    }
+    if (is_diverged_) { break; }
 
     updateNextIter();
     printStateNesterov(iter);
@@ -255,6 +253,20 @@ int Chip::NesterovPlacer::doNestrovPlace(int start_iter, bool only_one_iter) {
       iter = max_nesterov_iter_;
       break;
     }
+    if (debug_mode_) {
+      string file_name;
+      std::stringstream ss;
+      ss << std::setw(4) << std::setfill('0') << iter;
+      ss >> file_name;;
+      if (this->die_pointer_->getDieId() == DIE_ID::TOP_DIE)
+        file_name = "top_" + file_name;
+      else if (this->die_pointer_->getDieId() == DIE_ID::BOTTOM_DIE)
+        file_name = "bottom_" + file_name;
+      else if (this->die_pointer_->getDieId() == DIE_ID::PSEUDO_DIE)
+        file_name = "pseudo_" + file_name;
+      drawDie(file_name);
+    }
+
     if (only_one_iter)
       return iter;
   }
@@ -1251,8 +1263,35 @@ void Chip::NesterovPlacer::updateDB() {
     instance->setCoordinate(instance->getDensityCenterX(), instance->getDensityCenterY());
   }
 }
-int Chip::NesterovPlacer::getMaxNesterovIter() const {
-  return max_nesterov_iter_;
+void Chip::NesterovPlacer::setDebugMode(bool debug_mode) {
+  debug_mode_ = debug_mode;
+}
+void Chip::NesterovPlacer::drawDie(const string &filename) {
+  assert(debug_mode_);
+  int fixed_die_height = 500;
+  int scale_factor = die_pointer_->getHeight() / fixed_die_height;
+
+  uint die_w = die_pointer_->getWidth() / scale_factor;
+  uint die_h = die_pointer_->getHeight() / scale_factor;
+  Drawer drawer(die_w, die_h);
+
+  // Draw cells and fillers
+  for (int i = 0; i < instance_pointers_.size(); ++i) {
+    Instance *instance = instance_pointers_.at(i);
+    pair<float, float> coordinate = cur_coordinates_.at(i);
+    int instance_width = instance->dx();
+    int instance_height = instance->dy();
+
+    int ll_x = static_cast<int>(coordinate.first / scale_factor);
+    int ll_y = static_cast<int>(coordinate.second / scale_factor);
+    int ur_x = ll_x + static_cast<int>(instance_width / scale_factor);
+    int ur_y = ll_y + static_cast<int>(instance_height / scale_factor);
+    if (!instance->isFiller())
+      drawer.drawCell(ll_x, ll_y, ur_x, ur_y);
+    else
+      drawer.drawFiller(ll_x, ll_y, ur_x, ur_y);
+  }
+  drawer.saveImg(filename);
 }
 double fastExp(float a) {
   a = 1.0f + a / 1024.0f;
@@ -1267,5 +1306,39 @@ double fastExp(float a) {
   a *= a;
   a *= a;
   return a;
+}
+Chip::NesterovPlacer::Drawer::Drawer(uint width, uint height) {
+  width_ = width;
+  height_ = height;
+  image_ = new Image(width_, height_, 1, 3, 255);
+}
+Chip::NesterovPlacer::Drawer::~Drawer() {
+  delete image_;
+}
+void Chip::NesterovPlacer::Drawer::setCellColor(const unsigned char *cell_color) {
+  cell_color_ = cell_color;
+}
+void Chip::NesterovPlacer::Drawer::setFillerColor(const unsigned char *filler_color) {
+  filler_color_ = filler_color;
+}
+void Chip::NesterovPlacer::Drawer::drawCell(int ll_x, int ll_y, int ur_x, int ur_y) {
+  if (ll_x == ur_x)
+    ur_x += 1;
+  if (ll_y == ur_y)
+    ur_y += 1;
+  image_->draw_rectangle(ll_x, ll_y, ur_x, ur_y, Color::DIM_GRAY);
+  image_->draw_rectangle(ll_x + 1, ll_y + 1, ur_x - 1, ur_y - 1, cell_color_);
+}
+void Chip::NesterovPlacer::Drawer::drawFiller(int ll_x, int ll_y, int ur_x, int ur_y) {
+  if (ll_x == ur_x)
+    ur_x += 1;
+  if (ll_y == ur_y)
+    ur_y += 1;
+  image_->draw_rectangle(ll_x, ll_y, ur_x, ur_y, Color::DIM_GRAY);
+  image_->draw_rectangle(ll_x + 1, ll_y + 1, ur_x - 1, ur_y - 1, filler_color_);
+}
+void Chip::NesterovPlacer::Drawer::saveImg(const string &file_name) {
+  string save_file_name = file_path_ + file_name + ".bmp";
+  image_->save(save_file_name.c_str());
 }
 } // VLSI_backend
