@@ -253,8 +253,20 @@ int Chip::NesterovPlacer::doNestrovPlace(int start_iter, bool only_one_iter) {
       iter = max_nesterov_iter_;
       break;
     }
-    if (debug_mode_)
-      drawDie(to_string(this->die_pointer_->getDieId()) + to_string(iter));
+    if (debug_mode_) {
+      string file_name;
+      std::stringstream ss;
+      ss << std::setw(4) << std::setfill('0') << iter;
+      ss >> file_name;;
+      if (this->die_pointer_->getDieId() == DIE_ID::TOP_DIE)
+        file_name = "top_" + file_name;
+      else if (this->die_pointer_->getDieId() == DIE_ID::BOTTOM_DIE)
+        file_name = "bottom_" + file_name;
+      else if (this->die_pointer_->getDieId() == DIE_ID::PSEUDO_DIE)
+        file_name = "pseudo_" + file_name;
+      drawDie(file_name);
+    }
+
     if (only_one_iter)
       return iter;
   }
@@ -1279,7 +1291,7 @@ void Chip::NesterovPlacer::drawDie(const string &filename) {
     else
       drawer.drawFiller(ll_x, ll_y, ur_x, ur_y);
   }
-
+  drawer.saveImg(filename);
 }
 double fastExp(float a) {
   a = 1.0f + a / 1024.0f;

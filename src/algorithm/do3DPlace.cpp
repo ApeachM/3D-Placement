@@ -265,7 +265,7 @@ void Chip::placement2DieSynchronously() {
     std::stringstream ss;
     ss << std::setw(4) << std::setfill('0') << i;
     ss >> file_name;;
-    this->drawDies(file_name, false, true);
+    // this->drawDies(file_name, false, true);
   }
   nestrov_placer1.updateDB();
   nestrov_placer2.updateDB();
