@@ -25,7 +25,8 @@ set(SOURCES
         src/tool/fftsg2d.cpp
 
         src/etc/dbTutorial.cpp
-        include/tool/Drawer.cpp include/tool/Drawer.h)
+        src/tool/Drawer.cpp
+        )
 
 set(INCLUDE_DIRS
         ${PROJECT_SOURCE_DIR}/include/algorithm

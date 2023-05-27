@@ -39,6 +39,7 @@ namespace VLSI_backend {
 class Chip::NesterovPlacer {
   class Bin;
   class biNormalParameters;
+  class Drawer;
  public:
   NesterovPlacer(odb::dbDatabase *db_database,
                  std::vector<Instance *> instance_pointers,
@@ -46,7 +47,7 @@ class Chip::NesterovPlacer {
                  std::vector<Pin *> pin_pointers,
                  std::vector<Pin *> pad_pointers,
                  Die *die_pointer);
-  bool initNestrovPlace(bool is_pseudo_die=true);
+  bool initNestrovPlace(bool is_pseudo_die = true);
   /*!
    * \brief
    * Do Nestrov Placement. The core function of this class
@@ -57,7 +58,7 @@ class Chip::NesterovPlacer {
   void updateDB();
 
   int getMaxNesterovIter() const;
-  void setMaxNesterovIter(int max_nesterov_iter){
+  void setMaxNesterovIter(int max_nesterov_iter) {
     max_nesterov_iter_ = max_nesterov_iter;
   }
  private:
@@ -548,6 +549,9 @@ class Chip::NesterovPlacer::biNormalParameters {
   float ly;
   float ux;
   float uy;
+};
+class Chip::NesterovPlacer::Drawer {
+
 };
 }
 
