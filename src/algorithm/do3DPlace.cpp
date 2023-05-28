@@ -37,8 +37,13 @@
 namespace VLSI_backend {
 void Chip::do3DPlace() {
 
+  this->partitionIGraph();
+
+/*
   // 0. target density setting
-  /* manually setting in code level */
+  */
+/* manually setting in code level *//*
+
   vector<double> densities;
   densities.push_back(2.0); // pseudo die util = top die util + bottom die util
   densities.push_back(1.0);
@@ -56,6 +61,7 @@ void Chip::do3DPlace() {
 
   // 4. placement synchronously
   this->placement2DieSynchronously();
+*/
 }
 
 void Chip::normalPlacement() {

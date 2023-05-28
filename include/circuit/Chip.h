@@ -41,6 +41,7 @@
 #include <algorithm>
 #include <Eigen/IterativeLinearSolvers>
 #include <Eigen/SparseCore>
+#include <igraph.h>
 #include "Parser.h"
 #include "Instance.h"
 #include "Net.h"
@@ -157,6 +158,74 @@ class Chip {
    * GitHub: ApeachM (https://github.com/ApeachM)
    * */
   void partition();
+
+  int print_minciut(const igraph_t *graph, igraph_real_t value,
+                    const igraph_vector_int_t *partition,
+                    const igraph_vector_int_t *partition2,
+                    const igraph_vector_int_t *cut,
+                    const igraph_vector_t *capacity) {
+
+    igraph_integer_t i, nc = igraph_vector_int_size(cut);
+    igraph_bool_t directed = igraph_is_directed(graph);
+
+    printf("mincut value: %g\n", (double) value);
+    printf("first partition:  ");
+    igraph_vector_int_print(partition);
+    printf("second partition: ");
+    igraph_vector_int_print(partition2);
+    printf("edges in the cut: ");
+    for (i = 0; i < nc; i++) {
+      igraph_integer_t edge = VECTOR(*cut)[i];
+      igraph_integer_t from = IGRAPH_FROM(graph, edge);
+      igraph_integer_t to = IGRAPH_TO  (graph, edge);
+      if (!directed && from > to) {
+        igraph_integer_t tmp = from;
+        from = to;
+        to = tmp;
+      }
+      printf("%" IGRAPH_PRId "-%" IGRAPH_PRId " (%g), ", from, to, VECTOR(*capacity)[edge]);
+    }
+    printf("\n");
+
+    return 0;
+  }
+
+  void partitionIGraph() {
+    igraph_t graph;
+    igraph_vector_int_t edges;
+    igraph_vector_int_t partition, partition2, cut;
+    igraph_vector_t weights;
+    igraph_real_t value;
+
+    igraph_vector_int_init(&partition, 0);
+    igraph_vector_int_init(&partition2, 0);
+    igraph_vector_int_init(&cut, 0);
+
+    /* ----------------------------- */
+    // graph construction //
+    /* Create a directed graph with no vertices or edges. */
+    igraph_empty(&graph, 0, IGRAPH_UNDIRECTED);
+    /* Add vertices. Vertex IDs will range from 0 to n-1, inclusive. */
+    igraph_add_vertices(&graph, this->instance_number_, nullptr);
+
+    // test
+    vector<int> test_vector{0, 1, 0, 4, 1, 2, 1, 4, 1, 5, 2, 3, 2, 6, 3, 6, 3, 7, 4, 5, 5, 6, 6, 7};
+    for (int j = 0; j < test_vector.size(); ++j) {
+      igraph_integer_t edge_info = test_vector.at(j);
+      igraph_vector_int_push_back(&edges, edge_info);
+    }
+    igraph_vector_init_int_end(&weights, -1, 2, 3, 3, 2, 2, 4, 2, 2, 2, 3, 1, 3, -1);
+
+
+    igraph_mincut(&graph, &value, &partition, &partition2, &cut, &weights);
+    print_minciut(&graph, value, &partition, &partition2, &cut, &weights);
+
+    igraph_vector_destroy(&weights);
+    igraph_vector_int_destroy(&partition);
+    igraph_vector_int_destroy(&partition2);
+    igraph_vector_int_destroy(&cut);
+    igraph_destroy(&graph);
+  }
 
   /**\brief
    * After partitioning, the
