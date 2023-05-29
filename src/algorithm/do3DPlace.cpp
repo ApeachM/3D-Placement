@@ -37,14 +37,8 @@
 namespace VLSI_backend {
 void Chip::do3DPlace() {
 
-  this->partitionIGraph();
-  this->generateHybridBonds();
-
-/*
   // 0. target density setting
-  */
-/* manually setting in code level *//*
-
+  // manually setting in code level
   vector<double> densities;
   densities.push_back(2.0); // pseudo die util = top die util + bottom die util
   densities.push_back(1.0);
@@ -52,17 +46,23 @@ void Chip::do3DPlace() {
   setTargetDensity(densities);
 
   // 1. do3DPlace the cells in the pseudo die
+  phase_ = PHASE::INITIAL_PLACE;
   this->normalPlacement();
 
   // 2. partition
-  this->partition();  // temporary code
+  phase_ = PHASE::PARTITION;
+//  this->partition();  // temporary code
+ this->partitionIGraph();  // temporary code
 
   // 3. hybrid bond generate and placement
+  phase_ = PHASE::GENERATE_HYBRID_BOND;
   this->generateHybridBonds();
 
   // 4. placement synchronously
+  phase_ = PHASE::TWO_DIE_PLACE;
   this->placement2DieSynchronously();
-*/
+
+  phase_ = PHASE::END;
 }
 
 void Chip::normalPlacement() {

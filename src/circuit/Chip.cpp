@@ -222,20 +222,22 @@ int Chip::getUnitOfMicro() const {
 void Chip::drawDies(const string &die_name, bool as_dot, bool draw_same_canvas) {
   int scale_factor;
   int die_height_fix = 500;
-  if (hybrid_bond_pointers_.empty()) {
+  if (phase_ < PHASE::GENERATE_HYBRID_BOND){
     // pseudo die drawing mode
     // let the pixel of the die height be 500
     scale_factor = static_cast<int>(die_pointers_.at(DIE_ID::PSEUDO_DIE)->getHeight() / die_height_fix);
-  } else {
+  } else if (phase_ > PHASE::GENERATE_HYBRID_BOND){
     // top and bottom die drawing mode
     // let the pixel of the die height be 2000
     // note: top and bottom die size is same here
     scale_factor = static_cast<int>(die_pointers_.at(DIE_ID::TOP_DIE)->getHeight() / die_height_fix);
+  } else{
+    assert(false);
   }
 
   if (scale_factor == 0) scale_factor = 10;
 
-  if (!data_storage_.hybrid_bonds.empty()) {
+  if (phase_ > PHASE::GENERATE_HYBRID_BOND) {
     uint top_die_w = die_pointers_.at(DIE_ID::TOP_DIE)->getWidth() / scale_factor;
     uint top_die_h = die_pointers_.at(DIE_ID::TOP_DIE)->getHeight() / scale_factor;
     uint bottom_die_w = die_pointers_.at(DIE_ID::BOTTOM_DIE)->getWidth() / scale_factor;

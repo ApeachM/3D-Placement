@@ -239,6 +239,15 @@ class Chip {
   void drawDies(const string &die_name = "die", bool as_dot = true, bool draw_same_canvas = true);
 
  protected:
+  enum PHASE{
+    START,
+    INITIAL_PLACE,
+    PARTITION,
+    GENERATE_HYBRID_BOND,
+    TWO_DIE_PLACE,
+    END
+  };
+  PHASE phase_ = START;
   utl::Logger logger_;
   // For pseudo die
   odb::dbDatabase *db_database_{};
