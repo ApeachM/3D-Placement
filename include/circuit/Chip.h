@@ -213,26 +213,30 @@ class Chip {
     igraph_add_vertices(&graph, num_of_vertices, nullptr);
 
     vector<int> edges_list{};
+    vector<int> weights_list{};
     for (int net_index = 0; net_index < net_number_; ++net_index) {
       Net *net = net_pointers_.at(net_index);
       for (auto instance : net->getConnectedInstances()) {
         edges_list.push_back(net_number_ + net_index);
         edges_list.push_back(instance->getId());
+        weights_list.push_back(static_cast<int>(instance->getArea()));
       }
     }
     igraph_vector_int_init(&edges, static_cast<igraph_integer_t>(edges_list.size()));
-    igraph_vector_init(&weights, static_cast<igraph_integer_t>(edges_list.size()));
+    igraph_vector_init(&weights, static_cast<igraph_integer_t>(edges_list.size() / 2));
 
     for (int i = 0; i < edges_list.size(); ++i) {
       VECTOR(edges)[i] = edges_list.at(i);
-      VECTOR(weights)[i] = 1;
     }
+    for (int j = 0; j < weights_list.size() / 2; ++j) {
+      VECTOR(weights)[j] = weights_list.at(j);
+    }
+    igraph_add_vertices(&graph, num_of_vertices, nullptr);
     igraph_add_edges(&graph, &edges, nullptr);
     igraph_vector_int_destroy(&edges);
 
     cout << "igraph construction time: " << double(clock() - time_start) / CLOCKS_PER_SEC << "[s]" << endl;
     /* ----------------------------- */
-
     igraph_mincut(&graph, &value, &partition, &partition2, &cut, &weights);
     print_minciut(&graph, value, &partition, &partition2, &cut, &weights);
 
