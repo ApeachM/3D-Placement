@@ -48,14 +48,14 @@ class Chip::NesterovPlacer {
                  std::vector<Pin *> pin_pointers,
                  std::vector<Pin *> pad_pointers,
                  Die *die_pointer);
-  bool initNestrovPlace(bool is_pseudo_die = true);
+  bool initNesterovPlace(bool is_pseudo_die = true);
   /*!
    * \brief
-   * Do Nestrov Placement. The core function of this class
+   * Do Nesterov Placement. The core function of this class
    * \return
    * the iteration number will be returned by this function
    */
-  int doNestrovPlace(int start_iter = 0, bool only_one_iter = false);
+  int doNesterovPlace(int start_iter = 0, bool only_one_iter = false);
   void updateDB();
 
   int getMaxNesterovIter() const { return max_nesterov_iter_; }
@@ -70,7 +70,7 @@ class Chip::NesterovPlacer {
    *
    * \details
    * The set variables are next: `place_instances_area_`, `macro_instances_area_`, and `std_instances_area_`. \n
-   * This code should be called at initialization of Nestrov.\n\n
+   * This code should be called at initialization of Nesterov.\n\n
    * This method highly refers to https://github.com/The-OpenROAD-Project/OpenROAD/blob/a5e786eb65f40abfb7004b18312d519dac95cc33/src/gpl/src/placerBase.cpp#L798 \n
    * , which is name of `void PlacerBase::init()`.
    * */
@@ -349,7 +349,7 @@ class Chip::NesterovPlacer {
   std::vector<Instance> fillers_;
   std::vector<Bin> binStor_;
 
-  // class variables for nestrov place
+  // class variables for nesterov place
   // int max_nesterov_iter_ = 5000;
   int max_nesterov_iter_ = 200;
   int max_back_track_ = 10;

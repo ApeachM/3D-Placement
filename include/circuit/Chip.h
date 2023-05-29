@@ -263,7 +263,7 @@ class Chip {
    * Minjae Kim \n
    * GitHub: ApeachM (https://github.com/ApeachM)
    * */
-  void doNestrovPlace();
+  void doNesterovPlace();
 
   /**\brief
    * get unit of micro

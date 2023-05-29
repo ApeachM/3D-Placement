@@ -66,7 +66,7 @@ void Chip::do3DPlace() {
 
 void Chip::normalPlacement() {
   doInitialPlace();
-  doNestrovPlace();
+    doNesterovPlace();
   this->drawDies();
 }
 
@@ -142,7 +142,7 @@ void Chip::generateHybridBonds() {
       hybrid_bond->setConnectedNet(net); // instance -> net
 
       // set coordinate of hybrid bond
-      // p.s. net box would be updated in the first placement phase (Nestrov in virtual die)
+      // p.s. net box would be updated in the first placement phase (Nesterov in virtual die)
       int center_x = static_cast<int>((net->ux() + net->lx()) / 2);
       int center_y = static_cast<int>((net->uy() + net->ly()) / 2);
       hybrid_bond->setCoordinate({center_x, center_y});
@@ -223,11 +223,11 @@ void Chip::placement2DieSynchronously() {
       assert(0);
   }
 
-  // skip the pad pointers because the nestrov optimizer doesn't use them.
+  // skip the pad pointers because the nesterov optimizer doesn't use them.
 
 
   /////////////////////////////////////////////////////////////////////////
-  NesterovPlacer nestrov_placer1(
+  NesterovPlacer nesterov_placer1(
       this->db_database_,
       dieVar1.instance_pointers,
       dieVar1.net_pointers_,
@@ -235,7 +235,7 @@ void Chip::placement2DieSynchronously() {
       dieVar1.pad_pointers_,
       this->die_pointers_.at(DIE_ID::TOP_DIE)
   );
-  NesterovPlacer nestrov_placer2(
+  NesterovPlacer nesterov_placer2(
       this->db_database_,
       dieVar2.instance_pointers,
       dieVar2.net_pointers_,
@@ -244,26 +244,26 @@ void Chip::placement2DieSynchronously() {
       this->die_pointers_.at(DIE_ID::BOTTOM_DIE)
   );
 
-  nestrov_placer1.setDebugMode(true);
-  nestrov_placer2.setDebugMode(true);
-  nestrov_placer1.initNestrovPlace(false);
-  nestrov_placer2.initNestrovPlace(false);
-  nestrov_placer1.updateDB();
-  nestrov_placer2.updateDB();
+  nesterov_placer1.setDebugMode(true);
+  nesterov_placer2.setDebugMode(true);
+    nesterov_placer1.initNesterovPlace(false);
+    nesterov_placer2.initNesterovPlace(false);
+  nesterov_placer1.updateDB();
+  nesterov_placer2.updateDB();
   updateHybridBondPositions();
 
-  if (nestrov_placer1.getMaxNesterovIter() != nestrov_placer2.getMaxNesterovIter())
+  if (nesterov_placer1.getMaxNesterovIter() != nesterov_placer2.getMaxNesterovIter())
     assert(0);
 
-  for (int i = 0; i < nestrov_placer1.getMaxNesterovIter(); ++i) {
-    int nestrov_iter1, nestrov_iter2;
-    nestrov_iter1 = nestrov_placer1.doNestrovPlace(i, true);
-    nestrov_iter2 = nestrov_placer2.doNestrovPlace(i, true);
-    if (nestrov_iter1 >= nestrov_placer1.getMaxNesterovIter()
-        || nestrov_iter2 >= nestrov_placer2.getMaxNesterovIter())
+  for (int i = 0; i < nesterov_placer1.getMaxNesterovIter(); ++i) {
+    int nesterov_iter1, nesterov_iter2;
+    nesterov_iter1 = nesterov_placer1.doNesterovPlace(i, true);
+    nesterov_iter2 = nesterov_placer2.doNesterovPlace(i, true);
+    if (nesterov_iter1 >= nesterov_placer1.getMaxNesterovIter()
+        || nesterov_iter2 >= nesterov_placer2.getMaxNesterovIter())
       break;
-    nestrov_placer1.updateDB();
-    nestrov_placer2.updateDB();
+    nesterov_placer1.updateDB();
+    nesterov_placer2.updateDB();
     updateHybridBondPositions();
     cout << "[HPWL]: " << this->getHPWL() << endl;
 
@@ -273,7 +273,7 @@ void Chip::placement2DieSynchronously() {
     ss >> file_name;;
     // this->drawDies(file_name, false, true);
   }
-  nestrov_placer1.updateDB();
-  nestrov_placer2.updateDB();
+  nesterov_placer1.updateDB();
+  nesterov_placer2.updateDB();
 }
 }
