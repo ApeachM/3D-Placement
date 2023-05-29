@@ -203,19 +203,35 @@ class Chip {
 
     /* ----------------------------- */
     // graph construction //
-    /* Create a directed graph with no vertices or edges. */
+    // due to hyper graph data structure, instance_number_ + net_number_.
+    clock_t time_start = clock();
+
+    igraph_rng_seed(igraph_rng_default(), 42);
     igraph_empty(&graph, 0, IGRAPH_UNDIRECTED);
-    /* Add vertices. Vertex IDs will range from 0 to n-1, inclusive. */
-    igraph_add_vertices(&graph, this->instance_number_, nullptr);
 
-    // test
-    vector<int> test_vector{0, 1, 0, 4, 1, 2, 1, 4, 1, 5, 2, 3, 2, 6, 3, 6, 3, 7, 4, 5, 5, 6, 6, 7};
-    for (int j = 0; j < test_vector.size(); ++j) {
-      igraph_integer_t edge_info = test_vector.at(j);
-      igraph_vector_int_push_back(&edges, edge_info);
+    igraph_integer_t num_of_vertices{static_cast<int>(instance_number_ + net_number_)};
+    igraph_add_vertices(&graph, num_of_vertices, nullptr);
+
+    vector<int> edges_list{};
+    for (int net_index = 0; net_index < net_number_; ++net_index) {
+      Net *net = net_pointers_.at(net_index);
+      for (auto instance : net->getConnectedInstances()) {
+        edges_list.push_back(net_number_ + net_index);
+        edges_list.push_back(instance->getId());
+      }
     }
-    igraph_vector_init_int_end(&weights, -1, 2, 3, 3, 2, 2, 4, 2, 2, 2, 3, 1, 3, -1);
+    igraph_vector_int_init(&edges, static_cast<igraph_integer_t>(edges_list.size()));
+    igraph_vector_init(&weights, static_cast<igraph_integer_t>(edges_list.size()));
 
+    for (int i = 0; i < edges_list.size(); ++i) {
+      VECTOR(edges)[i] = edges_list.at(i);
+      VECTOR(weights)[i] = 1;
+    }
+    igraph_add_edges(&graph, &edges, nullptr);
+    igraph_vector_int_destroy(&edges);
+
+    cout << "igraph construction time: " << double(clock() - time_start) / CLOCKS_PER_SEC << "[s]" << endl;
+    /* ----------------------------- */
 
     igraph_mincut(&graph, &value, &partition, &partition2, &cut, &weights);
     print_minciut(&graph, value, &partition, &partition2, &cut, &weights);
