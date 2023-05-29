@@ -38,6 +38,7 @@ namespace VLSI_backend {
 void Chip::do3DPlace() {
 
   this->partitionIGraph();
+  this->generateHybridBonds();
 
 /*
   // 0. target density setting
@@ -66,7 +67,7 @@ void Chip::do3DPlace() {
 
 void Chip::normalPlacement() {
   doInitialPlace();
-    doNesterovPlace();
+  doNesterovPlace();
   this->drawDies();
 }
 
@@ -246,8 +247,8 @@ void Chip::placement2DieSynchronously() {
 
   nesterov_placer1.setDebugMode(true);
   nesterov_placer2.setDebugMode(true);
-    nesterov_placer1.initNesterovPlace(false);
-    nesterov_placer2.initNesterovPlace(false);
+  nesterov_placer1.initNesterovPlace(false);
+  nesterov_placer2.initNesterovPlace(false);
   nesterov_placer1.updateDB();
   nesterov_placer2.updateDB();
   updateHybridBondPositions();

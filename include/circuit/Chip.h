@@ -237,8 +237,24 @@ class Chip {
 
     cout << "igraph construction time: " << double(clock() - time_start) / CLOCKS_PER_SEC << "[s]" << endl;
     /* ----------------------------- */
+    clock_t time_start2 = clock();
     igraph_mincut(&graph, &value, &partition, &partition2, &cut, &weights);
-    print_minciut(&graph, value, &partition, &partition2, &cut, &weights);
+    cout << "igraph mincut time: " << double(clock() - time_start2) / CLOCKS_PER_SEC << "[s]" << endl;
+    // print_minciut(&graph, value, &partition, &partition2, &cut, &weights);
+
+    // partitioning
+    // bottom die assign
+    for (auto idx = partition.stor_begin; idx < partition.stor_end; ++idx) {
+      if (*idx >= instance_number_)
+        continue;
+      instance_pointers_.at(*idx)->assignDie(DIE_ID::BOTTOM_DIE);
+    }
+    // top die assign
+    for (auto idx = partition2.stor_begin; idx < partition2.stor_end; ++idx) {
+      if (*idx >= instance_number_)
+        continue;
+      instance_pointers_.at(*idx)->assignDie(DIE_ID::TOP_DIE);
+    }
 
     igraph_vector_destroy(&weights);
     igraph_vector_int_destroy(&partition);
