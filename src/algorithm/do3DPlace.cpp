@@ -155,7 +155,7 @@ void Chip::generateHybridBonds() {
 
   assert(hybrid_num == data_storage_.hybrid_bonds.size());
   cout << "Hybrid bond #: " << data_storage_.hybrid_bonds.size() << endl;
-  this->drawDies("after_hybrid_bond_generation", false, false);
+  this->drawDies("after_hybrid_bond_generation", false, true);
 }
 
 void Chip::placement2DieSynchronously() {

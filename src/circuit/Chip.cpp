@@ -226,18 +226,16 @@ void Chip::drawDies(const string &die_name, bool as_dot, bool draw_same_canvas) 
     // pseudo die drawing mode
     // let the pixel of the die height be 500
     scale_factor = static_cast<int>(die_pointers_.at(DIE_ID::PSEUDO_DIE)->getHeight() / die_height_fix);
-  } else if (phase_ > PHASE::GENERATE_HYBRID_BOND){
+  } else if (phase_ >= PHASE::GENERATE_HYBRID_BOND){
     // top and bottom die drawing mode
     // let the pixel of the die height be 2000
     // note: top and bottom die size is same here
     scale_factor = static_cast<int>(die_pointers_.at(DIE_ID::TOP_DIE)->getHeight() / die_height_fix);
-  } else{
-    assert(false);
   }
 
   if (scale_factor == 0) scale_factor = 10;
 
-  if (phase_ > PHASE::GENERATE_HYBRID_BOND) {
+  if (phase_ >= PHASE::GENERATE_HYBRID_BOND) {
     uint top_die_w = die_pointers_.at(DIE_ID::TOP_DIE)->getWidth() / scale_factor;
     uint top_die_h = die_pointers_.at(DIE_ID::TOP_DIE)->getHeight() / scale_factor;
     uint bottom_die_w = die_pointers_.at(DIE_ID::BOTTOM_DIE)->getWidth() / scale_factor;
@@ -364,7 +362,7 @@ void Chip::partitionIGraph() {
   for (int net_index = 0; net_index < net_number_; ++net_index) {
     Net *net = net_pointers_.at(net_index);
     for (auto instance : net->getConnectedInstances()) {
-      edges_list.push_back(net_number_ + net_index);
+      edges_list.push_back(instance_number_ + net_index);
       edges_list.push_back(instance->getId());
       weights_list.push_back(static_cast<int>(instance->getArea()));
     }
@@ -378,7 +376,6 @@ void Chip::partitionIGraph() {
   for (int j = 0; j < weights_list.size() / 2; ++j) {
     VECTOR(weights)[j] = weights_list.at(j);
   }
-  igraph_add_vertices(&graph, num_of_vertices, nullptr);
   igraph_add_edges(&graph, &edges, nullptr);
   igraph_vector_int_destroy(&edges);
 
