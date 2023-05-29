@@ -66,18 +66,18 @@ void Chip::doInitialPlace() {
       break;
   }
 }
-void Chip::doNestrovPlace() {
-  NesterovPlacer nestrov_placer(
+void Chip::doNesterovPlace() {
+  NesterovPlacer nesterov_placer(
       this->db_database_,
       this->instance_pointers_,
       this->net_pointers_,
       this->pin_pointers_,
       this->pad_pointers_,
       this->die_pointers_.at(DIE_ID::PSEUDO_DIE));
-  nestrov_placer.setDebugMode(true);
-  nestrov_placer.initNestrovPlace();
-  nestrov_placer.setMaxNesterovIter(300);
-  nestrov_placer.doNestrovPlace();
+  nesterov_placer.setDebugMode(true);
+  nesterov_placer.initNesterovPlace();
+  nesterov_placer.setMaxNesterovIter(300);
+  nesterov_placer.doNesterovPlace();
   cout << "[HPWL] : " << getHPWL() << endl;
 }
 int Chip::getInstanceNumber() const {
@@ -102,7 +102,7 @@ void Chip::setDbDatabase(dbDatabase *db_database) {
   db_database_ = db_database;
 }
 void Chip::updateHybridBondPositions() {
-  for(HybridBond *hybrid_bond : hybrid_bond_pointers_) {
+  for (HybridBond *hybrid_bond : hybrid_bond_pointers_) {
     hybrid_bond->updatePosition();
   }
 }

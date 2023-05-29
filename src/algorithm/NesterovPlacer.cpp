@@ -27,7 +27,7 @@ Chip::NesterovPlacer::NesterovPlacer(odb::dbDatabase *db_database,
     initDensityPenalty = 0.1;
 
 }
-bool Chip::NesterovPlacer::initNestrovPlace(bool is_pseudo_die) {
+bool Chip::NesterovPlacer::initNesterovPlace(bool is_pseudo_die) {
   if (!is_base_initialized_) {
     // refer to: https://github.com/The-OpenROAD-Project/OpenROAD/blob/402c5cff5d5dac9868f812fec69edb064a5bfbb3/src/gpl/src/nesterovBase.cpp#L1054
     // bool Replace::initNesterovPlace()
@@ -137,7 +137,7 @@ bool Chip::NesterovPlacer::initNestrovPlace(bool is_pseudo_die) {
     cout << "np init: steplength = 0 detected. Rerunning Nesterov::init() with initPrevSLPCoef: "
          << initialPrevCoordiUpdateCoef << endl;
     recursion_cnt_init_slp_coef_++;
-    initNestrovPlace(is_pseudo_die);
+      initNesterovPlace(is_pseudo_die);
   }
 
   if (isnan(step_length_) || isinf(step_length_)) {
@@ -146,7 +146,7 @@ bool Chip::NesterovPlacer::initNestrovPlace(bool is_pseudo_die) {
 
   return true;
 }
-int Chip::NesterovPlacer::doNestrovPlace(int start_iter, bool only_one_iter) {
+int Chip::NesterovPlacer::doNesterovPlace(int start_iter, bool only_one_iter) {
   // refer: https://github.com/The-OpenROAD-Project/OpenROAD/blob/a5e786eb65f40abfb7004b18312d519dac95cc33/src/gpl/src/nesterovPlace.cpp#L482
   // int NesterovPlace::doNesterovPlace(int start_iter)
 
@@ -359,7 +359,7 @@ void Chip::NesterovPlacer::setInstancesArea() {
     if (instance->isInstance()) {
       if (instance->isFixed()) {
         // TODO
-        //  we didn't specify the each die for nestrov.
+        //  we didn't specify the each die for nesterov.
         //  Therefore, we remain this part as blank
         // Check whether fixed instance is
         // within the core area
