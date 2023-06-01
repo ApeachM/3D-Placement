@@ -41,7 +41,6 @@
 #include <algorithm>
 #include <Eigen/IterativeLinearSolvers>
 #include <Eigen/SparseCore>
-#include <igraph.h>
 #include "Parser.h"
 #include "Instance.h"
 #include "Net.h"
@@ -158,14 +157,6 @@ class Chip {
    * GitHub: ApeachM (https://github.com/ApeachM)
    * */
   void partition();
-
-  int print_minciut(const igraph_t *graph, igraph_real_t value,
-                    const igraph_vector_int_t *partition,
-                    const igraph_vector_int_t *partition2,
-                    const igraph_vector_int_t *cut,
-                    const igraph_vector_t *capacity);
-
-  void partitionIGraph();
 
   /**\brief
    * After partitioning, the

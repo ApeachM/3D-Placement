@@ -5,26 +5,12 @@ set(CMAKE_CXX_STANDARD 17)
 set(SOURCES
         src/main.cpp
 
-        src/circuit/Chip.cpp
-        src/circuit/Parser.cpp
-
-        src/dataStructures/Die.cpp
-        src/dataStructures/Instance.cpp
-        src/dataStructures/Net.cpp
-        src/dataStructures/Pin.cpp
-        src/dataStructures/Bin.cpp
-
-        src/algorithm/do3DPlace.cpp
-        src/algorithm/normalPlace.cpp
-        src/algorithm/InitialPlacer.cpp
-        src/algorithm/NesterovPlacer.cpp
-        src/algorithm/HierRTLMP.cpp
+        src/Chip.cpp
+        src/dataStructures.cpp
 
         src/tool/fft.cpp
         src/tool/fftsg.cpp
         src/tool/fftsg2d.cpp
-
-        src/etc/dbTutorial.cpp
         src/tool/Drawer.cpp
         )
 
@@ -40,7 +26,7 @@ add_executable(placer ${SOURCES})
 target_include_directories(placer PRIVATE ${INCLUDE_DIRS})
 
 find_package(Eigen3 REQUIRED)
-add_subdirectory(submodules/igraph)
+#add_subdirectory(submodules/igraph)
 add_subdirectory(submodules/OpenROAD)
 target_link_libraries(placer
         PUBLIC
@@ -48,7 +34,7 @@ target_link_libraries(placer
         mpl2_lib
         Eigen3::Eigen
         X11
-        igraph
+#        igraph
         )
 target_include_directories(mpl2_lib
         PUBLIC
