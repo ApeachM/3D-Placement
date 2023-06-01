@@ -26,7 +26,6 @@ add_executable(placer ${SOURCES})
 target_include_directories(placer PRIVATE ${INCLUDE_DIRS})
 
 find_package(Eigen3 REQUIRED)
-#add_subdirectory(submodules/igraph)
 add_subdirectory(submodules/OpenROAD)
 target_link_libraries(placer
         PUBLIC
@@ -34,7 +33,6 @@ target_link_libraries(placer
         mpl2_lib
         Eigen3::Eigen
         X11
-#        igraph
         )
 target_include_directories(mpl2_lib
         PUBLIC
