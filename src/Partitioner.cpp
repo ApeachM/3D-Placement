@@ -1,6 +1,7 @@
+#include "Partitioner.h"
 #include "HierRTLMP.h"
 namespace VLSI_backend{
-// Partitioner //
+// Hier-RTL-MP partition //
 void HierRTLMPartition::init() {
   int max_num_macro = hyper_parameters_.max_num_macro;
   int min_num_macro = hyper_parameters_.min_num_macro;
@@ -164,5 +165,4 @@ void HierRTLMPartition::partition() {
   printPhysicalHierarchyTree(root_cluster_, 0);
 
 }
-
 }

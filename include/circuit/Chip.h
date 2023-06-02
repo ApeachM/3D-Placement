@@ -85,6 +85,7 @@ class Chip {
   /* Placers */
   class InitialPlacer;
   class NesterovPlacer;
+  class Partitioner;
 
  public:
   Chip();

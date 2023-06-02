@@ -21,6 +21,9 @@ set(INCLUDE_DIRS
         ${PROJECT_SOURCE_DIR}/include/dataStructures
         ${PROJECT_SOURCE_DIR}/include/tool
         ${PROJECT_SOURCE_DIR}/submodules/CImg
+
+        ${PROJECT_SOURCE_DIR}/submodules/OpenROAD/src/par/src
+        ${PROJECT_SOURCE_DIR}/submodules/OpenROAD/src/mpl2/src
         )
 
 add_executable(placer ${SOURCES})
@@ -32,10 +35,12 @@ target_link_libraries(placer
         PUBLIC
         odb
         mpl2_lib
+        par_lib
         Eigen3::Eigen
         X11
         )
-target_include_directories(mpl2_lib
-        PUBLIC
-        submodules/OpenROAD/src/mpl2/src
-        )
+
+#target_include_directories(mpl2_lib
+#        PUBLIC
+#        submodules/OpenROAD/src/mpl2/src
+#        )
