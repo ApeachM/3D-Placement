@@ -80,7 +80,7 @@ class HierRTLMPartition : public mpl2::HierRTLMP {
   HierRTLMPartition(sta::dbNetwork *network,
                     odb::dbDatabase *db,
                     sta::dbSta *sta,
-                    Logger *logger,
+                    utl::Logger *logger,
                     par::PartitionMgr *tritonpart) : HierRTLMP(network, db, sta, logger, tritonpart) {
   }
   ~HierRTLMPartition() {

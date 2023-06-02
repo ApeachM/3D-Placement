@@ -7,6 +7,7 @@ set(SOURCES
 
         src/Chip.cpp
         src/dataStructures.cpp
+        src/Partitioner.cpp
 
         src/tool/fft.cpp
         src/tool/fftsg.cpp
