@@ -159,6 +159,29 @@ class Chip {
    * */
   void partition();
   void partitionSimple();
+  bool checkPartitionFile() {
+    ifstream partition_info_file(design_name_ + "_partition_info");
+    if (partition_info_file.fail())
+      return false;
+    else
+      return true;
+  }
+  void readPartitionFile() {
+    ifstream partition_info_file(design_name_ + "_partition_info");
+    if (partition_info_file.fail())
+      assert(0);
+
+    string instance_name;
+    int partition_info;
+    for (int i = 0; i < instance_number_; ++i) {
+      partition_info_file >> instance_name >> partition_info;
+      dbInst *db_inst = db_database_->getChip()->getBlock()->findInst(instance_name.c_str());
+      Instance *instance = mapping_.inst_map[db_inst];
+      instance->assignDie(partition_info);
+    }
+
+    // TODO: do for BlockTerminals. This will be for BENCH_TYPE::NORMAL case.
+  }
 
   /**\brief
    * After partitioning, the
@@ -228,24 +251,7 @@ class Chip {
   void setNetNumber(int net_number);
   dbDatabase *getDbDatabase() const;
   void setDbDatabase(dbDatabase *db_database);
-  void setDesignName(const string &input_file_name) {
-    if (bench_type_ == BENCH_TYPE::ICCAD) {
-      if (input_file_name == "../test/benchmarks/iccad2022/case2.txt")
-        design_name_ = "case2";
-      else if (input_file_name == "../test/benchmarks/iccad2022/case2_hidden.txt")
-        design_name_ = "case2_hidden";
-      else if (input_file_name == "../test/benchmarks/iccad2022/case3.txt")
-        design_name_ = "case3";
-      else if (input_file_name == "../test/benchmarks/iccad2022/case3_hidden.txt")
-        design_name_ = "case3_hidden";
-      else if (input_file_name == "../test/benchmarks/iccad2022/case4.txt")
-        design_name_ = "case4";
-      else if (input_file_name == "../test/benchmarks/iccad2022/case4_hidden.txt")
-        design_name_ = "case4_hidden";
-    } else {
-      design_name_ = "normal"; // TODO: re-specify this
-    }
-  }
+  void setDesignName(const string &input_file_name);
 
   void drawDies(const string &die_name = "die", bool as_dot = true, bool draw_same_canvas = true);
 
@@ -262,6 +268,17 @@ class Chip {
     ICCAD,
     NORMAL
   };
+  /// this is for connection between the objects
+  struct DataMapping {
+    std::unordered_map<dbInst *, Instance *> inst_map;
+    std::unordered_map<dbNet *, Net *> net_map;
+    /// mapping_ for terminals on instance (pins on cell)
+    std::unordered_map<dbITerm *, Pin *> pin_map_i;
+    /// mapping_ for terminals on blocks (includes fixed pins on die)
+    std::unordered_map<dbBTerm *, Pin *> pin_map_b;
+  };
+  DataMapping mapping_;
+
   PHASE phase_ = START;
   BENCH_TYPE bench_type_ = NORMAL;
   string design_name_;
@@ -276,7 +293,7 @@ class Chip {
 
   Parser parser_;
   data_storage data_storage_;
-  // data_mapping data_mapping_;
+  // DataMapping data_mapping_;
 
   std::vector<Instance *> instance_pointers_;
   std::vector<Net *> net_pointers_;

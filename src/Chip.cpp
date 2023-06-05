@@ -85,11 +85,15 @@ void Chip::normalPlacement() {
   this->drawDies();
 }
 void Chip::partition() {
-  partitioner_ = new Partitioner(nullptr, db_database_, nullptr, &logger_);
-  partitioner_->init(design_name_);
-  partitioner_->doPartitioning();
-  partitioner_->writeSolution();
-  delete partitioner_;
+  if (!checkPartitionFile()){
+    partitioner_ = new Partitioner(nullptr, db_database_, nullptr, &logger_);
+    partitioner_->init(design_name_);
+    partitioner_->doPartitioning();
+    partitioner_->writeSolution();
+    delete partitioner_;
+  } else {
+    readPartitionFile();
+  }
 /*
   auto *sta = new sta::dbSta;
   sta::dbNetwork *network = sta->getDbNetwork();
@@ -297,20 +301,9 @@ void Chip::placement2DieSynchronously() {
 }
 
 void Chip::init() {
-  /// this is for connection between the objects in initialization
-  struct data_mapping {
-    std::unordered_map<dbInst *, Instance *> inst_map;
-    std::unordered_map<dbNet *, Net *> net_map;
-    /// mapping for terminals on instance (pins on cell)
-    std::unordered_map<dbITerm *, Pin *> pin_map_i;
-    /// mapping for terminals on blocks (includes fixed pins on die)
-    std::unordered_map<dbBTerm *, Pin *> pin_map_b;
-  };
-
   dbBlock *block = db_database_->getChip()->getBlock();
   dbSet<dbInst> db_instances = block->getInsts();
   dbSet<dbNet> db_nets = block->getNets();
-  data_mapping mapping;
 
   /**
    * @brief
@@ -319,7 +312,7 @@ void Chip::init() {
    * @details
    * 1. It makes real instance data and store in \c data_storage.instances. \n
    * 2. Then it makes pointer set for \c Chip class, \n
-   * 3. And also makes mapping from \c db_instance to instance pointer. \n\n
+   * 3. And also makes mapping_ from \c db_instance to instance pointer. \n\n
    * */
   data_storage_.instances.reserve(db_instances.size());  // real data for instance
   instance_pointers_.reserve(db_instances.size());  // pointer data for instances
@@ -334,7 +327,7 @@ void Chip::init() {
   for (int i = 0; i < data_storage_.instances.size(); ++i) {
     Instance *instance = &data_storage_.instances.at(i);
     instance_pointers_.push_back(instance);
-    mapping.inst_map[instance->getDbInst()] = instance;
+    mapping_.inst_map[instance->getDbInst()] = instance;
   }
 
   /**
@@ -363,9 +356,9 @@ void Chip::init() {
     Pin *pin_pointer = &pin;
     pin_pointers_.push_back(pin_pointer);
     if (pin_pointer->isInstancePin()) {
-      mapping.pin_map_i[pin_pointer->getDbITerm()] = pin_pointer;
+      mapping_.pin_map_i[pin_pointer->getDbITerm()] = pin_pointer;
     } else if (pin_pointer->isBlockPin()) {
-      mapping.pin_map_b[pin_pointer->getDbBTerm()] = pin_pointer;
+      mapping_.pin_map_b[pin_pointer->getDbBTerm()] = pin_pointer;
       pad_pointers_.push_back(pin_pointer);
     }
   }
@@ -388,7 +381,7 @@ void Chip::init() {
   for (auto &net : data_storage_.nets) {
     Net *net_pointer = &net;
     net_pointers_.push_back(net_pointer);
-    mapping.net_map[net_pointer->getDbNet()] = net_pointer;
+    mapping_.net_map[net_pointer->getDbNet()] = net_pointer;
   }
 
   /// Die setting
@@ -411,8 +404,8 @@ void Chip::init() {
     vector<Net *> nets;
     vector<Pin *> pins;
     for (dbITerm *db_i_term : instance->getDbInst()->getITerms()) {
-      Net *net = mapping.net_map[db_i_term->getNet()];
-      Pin *pin = mapping.pin_map_i[db_i_term];
+      Net *net = mapping_.net_map[db_i_term->getNet()];
+      Pin *pin = mapping_.pin_map_i[db_i_term];
       nets.push_back(net);
       pins.push_back(pin);
     }
@@ -426,10 +419,10 @@ void Chip::init() {
     Net *connected_net;
     if (pin->isBlockPin()) {
       connected_instance = nullptr;
-      connected_net = mapping.net_map[pin->getDbBTerm()->getNet()];
+      connected_net = mapping_.net_map[pin->getDbBTerm()->getNet()];
     } else if (pin->isInstancePin()) {
-      connected_instance = mapping.inst_map[pin->getDbITerm()->getInst()];
-      connected_net = mapping.net_map[pin->getDbITerm()->getNet()];
+      connected_instance = mapping_.inst_map[pin->getDbITerm()->getInst()];
+      connected_net = mapping_.net_map[pin->getDbITerm()->getNet()];
     }
     pin->setConnectedInstance(connected_instance);
     pin->setConnectedNet(connected_net);
@@ -440,13 +433,13 @@ void Chip::init() {
     vector<Instance *> instances;
     vector<Pin *> pins;
     for (dbITerm *i_term : net->getDbNet()->getITerms()) {
-      Instance *instance = mapping.inst_map[i_term->getInst()];
-      Pin *pin = mapping.pin_map_i[i_term];
+      Instance *instance = mapping_.inst_map[i_term->getInst()];
+      Pin *pin = mapping_.pin_map_i[i_term];
       instances.push_back(instance);
       pins.push_back(pin);
     }
     for (dbBTerm *b_term : net->getDbNet()->getBTerms()) {
-      Pin *pin = mapping.pin_map_b[b_term];
+      Pin *pin = mapping_.pin_map_b[b_term];
       pins.push_back(pin);
     }
     net->setConnectedInstances(instances);
@@ -1502,6 +1495,24 @@ dbDatabase *Chip::getDbDatabase() const {
 void Chip::setDbDatabase(dbDatabase *db_database) {
   parser_.db_database_ = db_database;
   db_database_ = db_database;
+}
+void Chip::setDesignName(const string &input_file_name) {
+  if (bench_type_ == BENCH_TYPE::ICCAD) {
+    if (input_file_name == "../test/benchmarks/iccad2022/case2.txt")
+      design_name_ = "CASE2";
+    else if (input_file_name == "../test/benchmarks/iccad2022/case2_hidden.txt")
+      design_name_ = "CASE2_HIDDEN";
+    else if (input_file_name == "../test/benchmarks/iccad2022/case3.txt")
+      design_name_ = "CASE3";
+    else if (input_file_name == "../test/benchmarks/iccad2022/case3_hidden.txt")
+      design_name_ = "CASE3_HIDDEN";
+    else if (input_file_name == "../test/benchmarks/iccad2022/case4.txt")
+      design_name_ = "CASE4";
+    else if (input_file_name == "../test/benchmarks/iccad2022/case4_hidden.txt")
+      design_name_ = "CASE4_HIDDEN";
+  } else {
+    design_name_ = "NORMAL"; // TODO: re-specify this
+  }
 }
 void Chip::updateHybridBondPositions() {
   for (HybridBond *hybrid_bond : hybrid_bond_pointers_) {
