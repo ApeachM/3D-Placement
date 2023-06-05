@@ -165,7 +165,7 @@ void HierRTLMPartition::partition() {
   printPhysicalHierarchyTree(root_cluster_, 0);
 
 }
-void Chip::Partitioner::init() {
+void Chip::Partitioner::init(const string &design_name) {
   // refer to the example of "OpenROAD/src/par/examples/timing-aware-partitioning"
   SetNetWeight(vector<float>{1});
   SetVertexWeight(vector<float>{1});
@@ -209,7 +209,7 @@ void Chip::Partitioner::init() {
   std::string fixed_file;
   std::string community_file;
   std::string group_file;
-  solution_file = "solution_filename"; // TODO: rename the file name respect to the cases
+  solution_file = design_name;
   logger_->info(utl::PAR, 102, "Number of partitions = {}", num_parts_);
   logger_->info(utl::PAR, 16, "UBfactor = {}", ub_factor_);
   logger_->info(utl::PAR, 17, "Seed = {}", seed_);

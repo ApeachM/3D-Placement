@@ -86,7 +86,7 @@ void Chip::normalPlacement() {
 }
 void Chip::partition() {
   partitioner_ = new Partitioner(nullptr, db_database_, nullptr, &logger_);
-  partitioner_->init();
+  partitioner_->init(design_name_);
   partitioner_->doPartitioning();
   partitioner_->writeSolution();
   delete partitioner_;
@@ -863,6 +863,9 @@ void Chip::write(const string &out_file_name) {
   parser_.writeDef(out_file_name);
 }
 void Chip::parseICCAD(const string &input_file_name) {
+  bench_type_ = BENCH_TYPE::ICCAD;
+  setDesignName(input_file_name);
+
   struct LibPinInfo {
     string pin_name;
     int pin_location_x;

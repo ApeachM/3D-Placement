@@ -228,11 +228,29 @@ class Chip {
   void setNetNumber(int net_number);
   dbDatabase *getDbDatabase() const;
   void setDbDatabase(dbDatabase *db_database);
+  void setDesignName(const string &input_file_name) {
+    if (bench_type_ == BENCH_TYPE::ICCAD) {
+      if (input_file_name == "../test/benchmarks/iccad2022/case2.txt")
+        design_name_ = "case2";
+      else if (input_file_name == "../test/benchmarks/iccad2022/case2_hidden.txt")
+        design_name_ = "case2_hidden";
+      else if (input_file_name == "../test/benchmarks/iccad2022/case3.txt")
+        design_name_ = "case3";
+      else if (input_file_name == "../test/benchmarks/iccad2022/case3_hidden.txt")
+        design_name_ = "case3_hidden";
+      else if (input_file_name == "../test/benchmarks/iccad2022/case4.txt")
+        design_name_ = "case4";
+      else if (input_file_name == "../test/benchmarks/iccad2022/case4_hidden.txt")
+        design_name_ = "case4_hidden";
+    } else {
+      design_name_ = "normal"; // TODO: re-specify this
+    }
+  }
 
   void drawDies(const string &die_name = "die", bool as_dot = true, bool draw_same_canvas = true);
 
  protected:
-  enum PHASE{
+  enum PHASE {
     START,
     INITIAL_PLACE,
     PARTITION,
@@ -240,7 +258,13 @@ class Chip {
     TWO_DIE_PLACE,
     END
   };
+  enum BENCH_TYPE {
+    ICCAD,
+    NORMAL
+  };
   PHASE phase_ = START;
+  BENCH_TYPE bench_type_ = NORMAL;
+  string design_name_;
   utl::Logger logger_;
   // For pseudo die
   odb::dbDatabase *db_database_{};
@@ -277,7 +301,7 @@ class Chip {
   pair<RowInfo, RowInfo> row_infos_;
 
   HierRTLMPartition *hier_rtl_;
-  Partitioner* partitioner_;
+  Partitioner *partitioner_;
 };
 
 } // VLSI_backend

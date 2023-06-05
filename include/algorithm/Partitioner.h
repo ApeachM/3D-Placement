@@ -14,7 +14,7 @@ class Chip::Partitioner : par::TritonPart {
   /**
    * Refer to PartitionMgr::tritonPartDesign()
    * */
-  void init();
+  void init(const string &design_name);
 
   void doPartitioning();
 
