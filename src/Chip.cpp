@@ -63,6 +63,7 @@ void Chip::do3DPlace() {
   this->normalPlacement();
 */
 
+/*
   // 2. partition
   phase_ = PHASE::PARTITION;
   this->partition();  // temporary code
@@ -70,6 +71,7 @@ void Chip::do3DPlace() {
   // 3. hybrid bond generate and placement
   phase_ = PHASE::GENERATE_HYBRID_BOND;
   this->generateHybridBonds();
+*/
 
 /*
   // 4. placement synchronously
@@ -85,6 +87,9 @@ void Chip::normalPlacement() {
   this->drawDies();
 }
 void Chip::partition() {
+/*
+  partitionSimple();
+*/
   if (!checkPartitionFile()) {
     partitioner_ = new Partitioner(nullptr, db_database_, nullptr, &logger_);
     partitioner_->init(design_name_);

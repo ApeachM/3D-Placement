@@ -233,6 +233,25 @@ class Chip {
   void setDesignName(const string &input_file_name);
 
   void drawDies(const string &die_name = "die", bool as_dot = true, bool draw_same_canvas = true);
+  void dbCapture(const string &file_name) {
+    FILE *stream = std::fopen((design_name_ + file_name).c_str(), "w");
+    if (stream) {
+      db_database_->write(stream);
+      std::fclose(stream);
+    }
+  }
+  void dbCaptureRead(const string &file_name) {
+    if (db_database_ == NULL) {
+      db_database_ = odb::dbDatabase::create();
+    }
+    std::ifstream file;
+    file.exceptions(std::ifstream::failbit | std::ifstream::badbit
+                        | std::ios::eofbit);
+    file.open(file_name, std::ios::binary);
+    db_database_->read(file);
+
+    init();
+  }
 
  protected:
   enum PHASE {
