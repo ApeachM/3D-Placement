@@ -57,11 +57,9 @@ void Chip::do3DPlace() {
   densities.push_back(1.0);
   setTargetDensity(densities);
 
-/*
   // 1. do3DPlace the cells in the pseudo die
   phase_ = PHASE::INITIAL_PLACE;
   this->normalPlacement();
-*/
 
 /*
   // 2. partition
@@ -82,8 +80,12 @@ void Chip::do3DPlace() {
   phase_ = PHASE::END;
 }
 void Chip::normalPlacement() {
+//  if (!checkDbFile()) {
   doInitialPlace();
   doNesterovPlace();
+//  } else {
+//    this->dbCaptureRead("db_" + design_name_);
+//  }
   this->drawDies();
 }
 void Chip::partition() {
@@ -1396,7 +1398,9 @@ void Chip::writeICCAD(const string &output_file_name) {
 
 }
 void Chip::test() {
-
+  design_name_ = "db_outputCASE2";
+  this->dbCaptureRead(design_name_);
+  this->drawDies("test", false, true);;
 }
 odb::defout::Version Parser::stringToDefVersion(const string &version) {
   if (version == "5.8")

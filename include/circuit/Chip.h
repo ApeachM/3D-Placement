@@ -243,14 +243,23 @@ class Chip {
   void dbCaptureRead(const string &file_name) {
     if (db_database_ == NULL) {
       db_database_ = odb::dbDatabase::create();
+    } else {
+      odb::dbDatabase::destroy(db_database_);
+      db_database_ = odb::dbDatabase::create();
     }
     std::ifstream file;
-    file.exceptions(std::ifstream::failbit | std::ifstream::badbit
-                        | std::ios::eofbit);
+    file.exceptions(std::ifstream::failbit | std::ifstream::badbit | std::ios::eofbit);
     file.open(file_name, std::ios::binary);
     db_database_->read(file);
 
     init();
+  }
+  bool checkDbFile() {
+    std::ifstream db_file("db_" + design_name_);
+    if (db_file.fail())
+      return false;
+    else
+      return true;
   }
 
  protected:

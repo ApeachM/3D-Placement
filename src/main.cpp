@@ -82,7 +82,6 @@ int main(int argc, char **argv) {
 
   if (mainParse(argc, argv, test_case_name, test_dir, test_case_path, is_for_contest))
     return 1;
-
   if (is_for_contest) {
     VLSI_backend::Chip chip;
     chip.parseICCAD(test_case_path);
