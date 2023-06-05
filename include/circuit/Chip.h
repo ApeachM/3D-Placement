@@ -159,29 +159,8 @@ class Chip {
    * */
   void partition();
   void partitionSimple();
-  bool checkPartitionFile() {
-    ifstream partition_info_file(design_name_ + "_partition_info");
-    if (partition_info_file.fail())
-      return false;
-    else
-      return true;
-  }
-  void readPartitionFile() {
-    ifstream partition_info_file(design_name_ + "_partition_info");
-    if (partition_info_file.fail())
-      assert(0);
-
-    string instance_name;
-    int partition_info;
-    for (int i = 0; i < instance_number_; ++i) {
-      partition_info_file >> instance_name >> partition_info;
-      dbInst *db_inst = db_database_->getChip()->getBlock()->findInst(instance_name.c_str());
-      Instance *instance = mapping_.inst_map[db_inst];
-      instance->assignDie(partition_info);
-    }
-
-    // TODO: do for BlockTerminals. This will be for BENCH_TYPE::NORMAL case.
-  }
+  bool checkPartitionFile();
+  void readPartitionFile();
 
   /**\brief
    * After partitioning, the

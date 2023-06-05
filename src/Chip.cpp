@@ -67,11 +67,11 @@ void Chip::do3DPlace() {
   phase_ = PHASE::PARTITION;
   this->partition();  // temporary code
 
-/*
   // 3. hybrid bond generate and placement
   phase_ = PHASE::GENERATE_HYBRID_BOND;
   this->generateHybridBonds();
 
+/*
   // 4. placement synchronously
   phase_ = PHASE::TWO_DIE_PLACE;
   this->placement2DieSynchronously();
@@ -85,7 +85,7 @@ void Chip::normalPlacement() {
   this->drawDies();
 }
 void Chip::partition() {
-  if (!checkPartitionFile()){
+  if (!checkPartitionFile()) {
     partitioner_ = new Partitioner(nullptr, db_database_, nullptr, &logger_);
     partitioner_->init(design_name_);
     partitioner_->doPartitioning();
@@ -105,18 +105,6 @@ void Chip::partition() {
 
   delete hier_rtl_;
 */
-}
-void Chip::partitionSimple() {
-  /* Temporal code */
-  int cell_num = static_cast<int>(instance_pointers_.size());
-  for (int i = 0; i < floor(cell_num / 2); ++i) {
-    Instance *instance = instance_pointers_.at(i);
-    instance->assignDie(1);
-  }
-  for (int i = floor(cell_num / 2); i < cell_num; ++i) {
-    Instance *instance = instance_pointers_.at(i);
-    instance->assignDie(2);
-  }
 }
 void Chip::generateHybridBonds() {
   // reserve hybrid_bonds and hybrid_bond_pins for preventing to change the addresses
@@ -582,6 +570,41 @@ void Chip::printDataInfo() const {
        << die_pointers_.at(DIE_ID::PSEUDO_DIE)->getWidth() << ", "
        << die_pointers_.at(DIE_ID::PSEUDO_DIE)->getHeight() << endl;
   cout << "======================" << endl;
+}
+void Chip::partitionSimple() {
+  /* Temporal code */
+  int cell_num = static_cast<int>(instance_pointers_.size());
+  for (int i = 0; i < floor(cell_num / 2); ++i) {
+    Instance *instance = instance_pointers_.at(i);
+    instance->assignDie(1);
+  }
+  for (int i = floor(cell_num / 2); i < cell_num; ++i) {
+    Instance *instance = instance_pointers_.at(i);
+    instance->assignDie(2);
+  }
+}
+bool Chip::checkPartitionFile() {
+  ifstream partition_info_file(design_name_ + "_partition_info");
+  if (partition_info_file.fail())
+    return false;
+  else
+    return true;
+}
+void Chip::readPartitionFile() {
+  ifstream partition_info_file(design_name_ + "_partition_info");
+  if (partition_info_file.fail())
+    assert(0);
+
+  string instance_name;
+  int partition_info;
+  for (int i = 0; i < instance_number_; ++i) {
+    partition_info_file >> instance_name >> partition_info;
+    dbInst *db_inst = db_database_->getChip()->getBlock()->findInst(instance_name.c_str());
+    Instance *instance = mapping_.inst_map[db_inst];
+    instance->assignDie(partition_info + 1);
+  }
+
+  // TODO: do for BlockTerminals. This will be for BENCH_TYPE::NORMAL case.
 }
 
 // initial placer //
