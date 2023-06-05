@@ -158,6 +158,7 @@ class Chip {
    * GitHub: ApeachM (https://github.com/ApeachM)
    * */
   void partition();
+  void partitionSimple();
 
   /**\brief
    * After partitioning, the
@@ -276,6 +277,7 @@ class Chip {
   pair<RowInfo, RowInfo> row_infos_;
 
   HierRTLMPartition *hier_rtl_;
+  Partitioner* partitioner_;
 };
 
 } // VLSI_backend

@@ -37,6 +37,7 @@
 #include "Chip.h"
 #include "NesterovPlacer.h"
 #include "InitialPlacer.h"
+#include "Partitioner.h"
 #include "HierRTLMP.h"
 
 using namespace std;
@@ -56,15 +57,17 @@ void Chip::do3DPlace() {
   densities.push_back(1.0);
   setTargetDensity(densities);
 
+/*
   // 1. do3DPlace the cells in the pseudo die
   phase_ = PHASE::INITIAL_PLACE;
   this->normalPlacement();
+*/
 
   // 2. partition
   phase_ = PHASE::PARTITION;
   this->partition();  // temporary code
-  //  this->partitionIGraph();  // temporary code
 
+/*
   // 3. hybrid bond generate and placement
   phase_ = PHASE::GENERATE_HYBRID_BOND;
   this->generateHybridBonds();
@@ -72,6 +75,7 @@ void Chip::do3DPlace() {
   // 4. placement synchronously
   phase_ = PHASE::TWO_DIE_PLACE;
   this->placement2DieSynchronously();
+*/
 
   phase_ = PHASE::END;
 }
@@ -81,16 +85,11 @@ void Chip::normalPlacement() {
   this->drawDies();
 }
 void Chip::partition() {
-  /* Temporal code */
-  int cell_num = static_cast<int>(instance_pointers_.size());
-  for (int i = 0; i < floor(cell_num / 2); ++i) {
-    Instance *instance = instance_pointers_.at(i);
-    instance->assignDie(1);
-  }
-  for (int i = floor(cell_num / 2); i < cell_num; ++i) {
-    Instance *instance = instance_pointers_.at(i);
-    instance->assignDie(2);
-  }
+  partitioner_ = new Partitioner(nullptr, db_database_, nullptr, &logger_);
+  partitioner_->init();
+  partitioner_->doPartitioning();
+  partitioner_->writeSolution();
+  delete partitioner_;
 /*
   auto *sta = new sta::dbSta;
   sta::dbNetwork *network = sta->getDbNetwork();
@@ -102,6 +101,18 @@ void Chip::partition() {
 
   delete hier_rtl_;
 */
+}
+void Chip::partitionSimple() {
+  /* Temporal code */
+  int cell_num = static_cast<int>(instance_pointers_.size());
+  for (int i = 0; i < floor(cell_num / 2); ++i) {
+    Instance *instance = instance_pointers_.at(i);
+    instance->assignDie(1);
+  }
+  for (int i = floor(cell_num / 2); i < cell_num; ++i) {
+    Instance *instance = instance_pointers_.at(i);
+    instance->assignDie(2);
+  }
 }
 void Chip::generateHybridBonds() {
   // reserve hybrid_bonds and hybrid_bond_pins for preventing to change the addresses
@@ -285,7 +296,6 @@ void Chip::placement2DieSynchronously() {
   nesterov_placer2.updateDB();
 }
 
-
 void Chip::init() {
   /// this is for connection between the objects in initialization
   struct data_mapping {
@@ -468,11 +478,11 @@ int Chip::getUnitOfMicro() const {
 void Chip::drawDies(const string &die_name, bool as_dot, bool draw_same_canvas) {
   int scale_factor;
   int die_height_fix = 500;
-  if (phase_ < PHASE::GENERATE_HYBRID_BOND){
+  if (phase_ < PHASE::GENERATE_HYBRID_BOND) {
     // pseudo die drawing mode
     // let the pixel of the die height be 500
     scale_factor = static_cast<int>(die_pointers_.at(DIE_ID::PSEUDO_DIE)->getHeight() / die_height_fix);
-  } else if (phase_ >= PHASE::GENERATE_HYBRID_BOND){
+  } else if (phase_ >= PHASE::GENERATE_HYBRID_BOND) {
     // top and bottom die drawing mode
     // let the pixel of the die height be 2000
     // note: top and bottom die size is same here
@@ -841,7 +851,6 @@ pair<float, float> Chip::InitialPlacer::cpuSparseSolve() {
   return error;
 }
 
-
 // parser //
 void Chip::parse(const string &lef_name, const string &def_name) {
   db_database_ = dbDatabase::create();
@@ -1142,7 +1151,15 @@ void Chip::parseICCAD(const string &input_file_name) {
       for (int j = 0; j < lib_cell_info.pin_number; ++j) {
         LibPinInfo pin_info = lib_cell_info.lib_pin_infos.at(j);
         // (refer to `void lefin::pin` function in submodule/OpenDB/src/lefin/lefin.cpp)
-        dbIoType io_type = dbIoType::INOUT;  // There's no information in this contest benchmarks.
+        // dbIoType io_type = dbIoType::INOUT;  // There's no information in this contest benchmarks.
+        // for partitioning, we should make any flow of IO.
+        // let the last pin has the output pin, and the others has input flow
+        dbIoType io_type;
+        if (j != lib_cell_info.pin_number - 1)
+          io_type = dbIoType::INPUT;
+        else
+          io_type = dbIoType::OUTPUT;
+
         dbSigType sig_type = dbSigType::SIGNAL;  // There's no information in this contest benchmarks.
         dbMTerm *master_terminal = dbMTerm::create(master, pin_info.pin_name.c_str());
         dbMPin *db_m_pin = dbMPin::create(master_terminal);
@@ -1194,7 +1211,14 @@ void Chip::parseICCAD(const string &input_file_name) {
       assert(height > pin_location_y);
 
       // (refer to `void lefin::pin` function in submodule/OpenDB/src/lefin/lefin.cpp)
-      dbIoType io_type = dbIoType::INOUT;  // There's no information in this contest benchmarks.
+      // dbIoType io_type = dbIoType::INOUT;  // There's no information in this contest benchmarks.
+      // for partitioning, we should make any flow of IO.
+      // let the last pin has the output pin, and the others has input flow
+      dbIoType io_type;
+      if (j != lib_cell_info_top->pin_number - 1)
+        io_type = dbIoType::INPUT;
+      else
+        io_type = dbIoType::OUTPUT;
       dbSigType sig_type = dbSigType::SIGNAL;  // There's no information in this contest benchmarks.
       dbMTerm *master_terminal = dbMTerm::create(master, pin_name.c_str(), io_type, sig_type);
       dbMPin *db_m_pin = dbMPin::create(master_terminal);
@@ -2824,7 +2848,6 @@ void Chip::NesterovPlacer::Drawer::saveImg(const string &file_name) {
 __attribute__((unused)) void Chip::dbTutorial() const {
   cout << this->db_database_->getChip()->getBlock()->getBBox()->getDX() << endl;
 
-
   dbBlock *block = db_database_->getChip()->getBlock();
   for (int i = 0; i < 4; ++i) {
     cout << endl;
@@ -2877,18 +2900,17 @@ __attribute__((unused)) void Chip::dbTutorial() const {
 
       cout << endl << endl;
       cout << "get origin: " << x << " " << y << endl;
-      for (auto instanceTerminal: db_instance->getITerms()) {
+      for (auto instanceTerminal : db_instance->getITerms()) {
         instanceTerminal->getAvgXY(&x, &y);
         cout << x << " " << y << endl;
       }
       db_instance->setOrigin(100, 200);
       db_instance->getOrigin(x, y);
       cout << "get origin: " << x << " " << y << endl;
-      for (auto instanceTerminal: db_instance->getITerms()) {
+      for (auto instanceTerminal : db_instance->getITerms()) {
         instanceTerminal->getAvgXY(&x, &y);
         cout << x << " " << y << endl;
       }
-
 
       cout << "instance end." << endl << endl;
       cellIdx++;
