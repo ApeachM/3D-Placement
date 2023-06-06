@@ -56,7 +56,6 @@ void Chip::do3DPlace(const string &def_name, const string &lef_name) {
     parse(def_name, lef_name);
 
     phase_ = PHASE::INITIAL_PLACE;
-    this->drawDies();  // I don't know why, but if this line of code doesn't exist, then the case4 doesn't work.
     this->normalPlacement();  // 1. do3DPlace the cells in the pseudo die
     this->dbCapture("db_" + design_name_);
   } else {
@@ -1519,7 +1518,7 @@ void Chip::doNesterovPlace() {
   nesterov_placer.setParent(this);
   nesterov_placer.setDebugMode(true);
   nesterov_placer.initNesterovPlace();
-  nesterov_placer.setMaxNesterovIter(10);
+  nesterov_placer.setMaxNesterovIter(300);
 //  nesterov_placer.setMaxNesterovIter(1);
   nesterov_placer.doNesterovPlace();
   cout << "[HPWL] : " << getHPWL() << endl;
@@ -1626,7 +1625,6 @@ bool Chip::NesterovPlacer::initNesterovPlace(bool is_pseudo_die) {
     initBins();
 
     // initialize fft structure based on bins
-    delete fft_;
     fft_ = new gpl::FFT(bin_cnt_x_, bin_cnt_y_, bin_size_x_, bin_size_y_);
 
     for (Instance *instance : instance_pointers_) {
@@ -1924,6 +1922,14 @@ void Chip::NesterovPlacer::handleDiverge(const vector<pair<float, float>> &snaps
   is_routability_need_ = false;
 }
 
+static unsigned int roundDownToPowerOfTwo(unsigned int x) {
+  x |= (x >> 1);
+  x |= (x >> 2);
+  x |= (x >> 4);
+  x |= (x >> 8);
+  x |= (x >> 16);
+  return x ^ (x >> 1);
+}
 void Chip::NesterovPlacer::setInstancesArea() {
   // refer to: https://github.com/The-OpenROAD-Project/OpenROAD/blob/a5e786eb65f40abfb7004b18312d519dac95cc33/src/gpl/src/placerBase.cpp#L798
   // void PlacerBase::init()
@@ -2062,56 +2068,62 @@ void Chip::NesterovPlacer::initBins() {
   int lx_ = die_pointer_->getLowerLeftX();
   int uy_ = die_pointer_->getUpperRightY();
   int ly_ = die_pointer_->getLowerLeftY();
-  int64_t totalBinArea = static_cast<int64_t>(ux_ - lx_) * static_cast<int64_t>(uy_ - ly_);
-  int64_t averagePlaceInstArea = place_instances_area_ / (instance_pointers_.size() - fillers_.size());
+  int64_t total_bin_area = static_cast<int64_t>(ux_ - lx_) * static_cast<int64_t>(uy_ - ly_);
+  int64_t average_place_inst_area = place_instances_area_ / (instance_pointers_.size());
 
-  int64_t idealBinArea = std::round(static_cast<float>(averagePlaceInstArea) / target_density_);
-  int idealBinCnt = totalBinArea / idealBinArea;
-  if (idealBinCnt < 4)   // the smallest we allow is 2x2 bins
-    idealBinCnt = 4;
+  int64_t ideal_bin_area = std::round(static_cast<float>(average_place_inst_area) / target_density_);
+  int ideal_bin_cnt = total_bin_area / ideal_bin_area;
+  if (ideal_bin_cnt < 4)   // the smallest we allow is 2x2 bins
+    ideal_bin_cnt = 4;
 /*
       log_->info(GPL, 23, "TargetDensity: {:.2f}", targetDensity_);
-      log_->info(GPL, 24, "AveragePlaceInstArea: {}", averagePlaceInstArea);
-      log_->info(GPL, 25, "IdealBinArea: {}", idealBinArea);
-      log_->info(GPL, 26, "IdealBinCnt: {}", idealBinCnt);
-      log_->info(GPL, 27, "TotalBinArea: {}", totalBinArea);
+      log_->info(GPL, 24, "AveragePlaceInstArea: {}", average_place_inst_area);
+      log_->info(GPL, 25, "IdealBinArea: {}", ideal_bin_area);
+      log_->info(GPL, 26, "IdealBinCnt: {}", ideal_bin_cnt);
+      log_->info(GPL, 27, "TotalBinArea: {}", total_bin_area);
 */
-  int foundBinCnt = 2;
-  // find binCnt: 2, 4, 8, 16, 32, 64, ...
-  // s.t. binCnt^2 <= idealBinCnt <= (binCnt*2)^2.
-  for (foundBinCnt = 2; foundBinCnt <= 1024; foundBinCnt *= 2) {
-    if (foundBinCnt * foundBinCnt <= idealBinCnt
-        && 4 * foundBinCnt * foundBinCnt > idealBinCnt) {
-      break;
+  if (!is_set_bin_cnt_) {
+    // Consider the apect ratio of the block when computing the number
+    // of bins so that the bins remain relatively square.
+    const int width = ux_ - lx_;
+    const int height = uy_ - ly_;
+    const int ratio = roundDownToPowerOfTwo(std::max(width, height) / std::min(width, height));
+    int foundBinCnt = 2;
+    // find binCnt: 2, 4, 8, 16, 32, 64, ...
+    // s.t. binCnt^2 <= ideal_bin_cnt <= (binCnt*2)^2.
+    for (foundBinCnt = 2; foundBinCnt <= 1024; foundBinCnt *= 2) {
+      if (foundBinCnt * foundBinCnt <= ideal_bin_cnt
+          && 4 * foundBinCnt * foundBinCnt > ideal_bin_cnt) {
+        break;
+      }
+    }
+    if (width > height){
+      setBinCnt(foundBinCnt*ratio, foundBinCnt);
+    } else {
+      setBinCnt(foundBinCnt, foundBinCnt*ratio);
     }
   }
-  bin_cnt_x_ = foundBinCnt;
-  bin_cnt_y_ = foundBinCnt;
+
   // log_->info(GPL, 28, "BinCnt: {} {}", bin_cnt_x_, bin_cnt_y_);
   bin_size_x_ = ceil(static_cast<float>((ux_ - lx_)) / bin_cnt_x_);
   bin_size_y_ = ceil(static_cast<float>((uy_ - ly_)) / bin_cnt_y_);
   // log_->info(GPL, 29, "BinSize: {} {}", bin_size_x_, bin_size_y_);
-  binStor_.resize(bin_cnt_x_ * bin_cnt_y_);
+  binStor_.reserve(bin_cnt_x_ * bin_cnt_y_);
   bins_.reserve(bin_cnt_x_ * bin_cnt_y_);
-  int x = lx_, y = ly_;
-  int idxX = 0, idxY = 0;
-  for (auto &bin : binStor_) {
-    int sizeX = (x + bin_size_x_ > ux_) ? ux_ - x : bin_size_x_;
-    int sizeY = (y + bin_size_y_ > uy_) ? uy_ - y : bin_size_y_;
-    bin = Bin(idxX, idxY, x, y, x + sizeX, y + sizeY, target_density_);
-
-    // move x, y coordinates.
-    x += bin_size_x_;
-    idxX += 1;
-    if (x >= ux_) {
-      y += bin_size_y_;
-      x = lx_;
-      idxY++;
-      idxX = 0;
+  for (int idx_y = 0; idx_y < bin_cnt_y_; ++idx_y) {
+    for (int idx_x = 0; idx_x < bin_cnt_x_; ++idx_x) {
+      const int x = lx_ + idx_x * bin_size_x_;
+      const int y = ly_ + idx_y * bin_size_y_;
+      const int size_x = std::min(ux_ - x, bin_size_x_);
+      const int size_y = std::min(uy_ - y, bin_size_y_);
+      binStor_.emplace_back(idx_x, idx_y, x, y, x+size_x, y+size_y, target_density_);
     }
-    bins_.push_back(&bin);
   }
 
+  // for iteration using pointer
+  for(Bin& bin: binStor_){
+    bins_.push_back(&bin);
+  }
 
   // only initialized once
   updateBinsNonPlaceArea();

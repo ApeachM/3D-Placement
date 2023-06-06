@@ -336,6 +336,11 @@ class Chip::NesterovPlacer {
   bool stepLengthDivergeCheck();
   void printStateNesterov(int iter) const;
   bool finishCheck() const;
+  void setBinCnt(int bin_cnt_x, int bin_cnt_y){
+    is_set_bin_cnt_ = true;
+    bin_cnt_x_ = bin_cnt_x;
+    bin_cnt_y_ = bin_cnt_y;
+  }
 
   odb::dbDatabase *db_database_;
   std::vector<Instance *> instance_pointers_;
@@ -468,6 +473,8 @@ class Chip::NesterovPlacer {
 
   bool is_base_initialized_ = false;
   bool debug_mode_ = false;
+
+  bool is_set_bin_cnt_ = false;
   string &getDrawFileName(int iter, string &file_name) const;
 };
 

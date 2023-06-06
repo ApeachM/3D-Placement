@@ -37,6 +37,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <iostream>
+#include <cassert>
 
 #define REPLACE_FFT_PI 3.141592653589793238462L
 
@@ -131,6 +132,8 @@ void FFT::init()
 
 void FFT::updateDensity(int x, int y, float density)
 {
+  assert(x < binCntX_);
+  assert(y < binCntY_);
   binDensity_[x][y] = density;
 }
 
