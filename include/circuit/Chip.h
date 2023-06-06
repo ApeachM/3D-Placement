@@ -101,7 +101,18 @@ class Chip {
    * Minjae Kim \n
    * GitHub: ApeachM (https://github.com/ApeachM)
    * */
-  void do3DPlace();
+  void do3DPlace(const string &def_name, const string &lef_name = "");
+
+  void setBenchType(const string &bench_type);
+
+  void test();
+
+  // etc
+  void dbTutorial() const;
+
+ protected:
+  // Data initialization
+  void init();
 
   /**
    * \brief
@@ -110,9 +121,20 @@ class Chip {
    * Minjae Kim \n
    * GitHub: ApeachM (https://github.com/ApeachM)
    * */
-  void parse(const string &lef_name, const string &def_name);
-  void write(const string &out_file_name);
-
+  void parse(const string &def_name, const string &lef_name = "") {
+    if (bench_type_ == BENCH_TYPE::ICCAD)
+      parseICCAD(def_name);
+    else if (bench_type_ == BENCH_TYPE::NORMAL)
+      parseNORMAL(lef_name, def_name);
+  }
+  void write(const string &file_name) {
+    if (bench_type_ == BENCH_TYPE::ICCAD)
+      writeICCAD(file_name);
+    else if (bench_type_ == BENCH_TYPE::NORMAL)
+      writeNORMAL(file_name);
+  }
+  void parseNORMAL(const string &lef_name, const string &def_name);
+  void writeNORMAL(const string &out_file_name);
   /**
    * \brief
    * This code parses and writes the input data of ICCAD 2022 contest.
@@ -129,14 +151,6 @@ class Chip {
    * */
   void parseICCAD(const string &input_file_name);
   void writeICCAD(const string &output_file_name);
-  void test();
-
-  // etc
-  void dbTutorial() const;
-
- protected:
-  // Data initialization
-  void init();
 
   void printDataInfo() const;
 
@@ -326,6 +340,9 @@ class Chip {
 
   HierRTLMPartition *hier_rtl_;
   Partitioner *partitioner_;
+
+ public:
+  void setTargetDensityManually();
 };
 
 } // VLSI_backend

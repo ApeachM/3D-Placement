@@ -47,45 +47,53 @@ Chip::Chip() {
   parser_.setLoggerPtr(&logger_);
 }
 // main flow //
-void Chip::do3DPlace() {
+void Chip::do3DPlace(const string &def_name, const string &lef_name) {
 
-  // 0. target density setting
+  if (!checkDbFile()) {
+    phase_ = PHASE::START;
+    parse(def_name, lef_name);
+
+    phase_ = PHASE::INITIAL_PLACE;
+    this->normalPlacement();  // 1. do3DPlace the cells in the pseudo die
+  } else {
+    this->dbCaptureRead("db_" + design_name_);
+    this->drawDies();
+  }
+
+/*
+  phase_ = PHASE::PARTITION;
+  this->partition();  // 2. partition
+
+  phase_ = PHASE::GENERATE_HYBRID_BOND;
+  this->generateHybridBonds();  // 3. hybrid bond generate and placement
+
+  phase_ = PHASE::TWO_DIE_PLACE;
+  this->placement2DieSynchronously();  // 4. placement synchronously
+*/
+
+  phase_ = PHASE::END;
+  write("Final_result_" + design_name_);
+}
+void Chip::setTargetDensityManually() {
   // manually setting in code level
   vector<double> densities;
   densities.push_back(2.0); // pseudo die util = top die util + bottom die util
   densities.push_back(1.0);
   densities.push_back(1.0);
   setTargetDensity(densities);
-
-  // 1. do3DPlace the cells in the pseudo die
-  phase_ = PHASE::INITIAL_PLACE;
-  this->normalPlacement();
-
-/*
-  // 2. partition
-  phase_ = PHASE::PARTITION;
-  this->partition();  // temporary code
-
-  // 3. hybrid bond generate and placement
-  phase_ = PHASE::GENERATE_HYBRID_BOND;
-  this->generateHybridBonds();
-*/
-
-/*
-  // 4. placement synchronously
-  phase_ = PHASE::TWO_DIE_PLACE;
-  this->placement2DieSynchronously();
-*/
-
-  phase_ = PHASE::END;
+}
+void Chip::setBenchType(const string &bench_type) {
+  if (bench_type == "ICCAD")
+    bench_type_ = BENCH_TYPE::ICCAD;
+  else if (bench_type == "NORMAL")
+    bench_type_ = BENCH_TYPE::NORMAL;
+  else
+    assert(0);
 }
 void Chip::normalPlacement() {
-//  if (!checkDbFile()) {
+  setTargetDensityManually();
   doInitialPlace();
   doNesterovPlace();
-//  } else {
-//    this->dbCaptureRead("db_" + design_name_);
-//  }
   this->drawDies();
 }
 void Chip::partition() {
@@ -572,7 +580,7 @@ void Chip::printDataInfo() const {
   cout << "======================" << endl;
   cout << "Instance #: " << instance_pointers_.size() << endl;
   cout << "Net #: " << net_pointers_.size() << endl;
-  cout << "Pin #:" << pin_pointers_.size() << endl;
+  cout << "Pin #: " << pin_pointers_.size() << endl;
   cout << "Die size (x, y): "
        << die_pointers_.at(DIE_ID::PSEUDO_DIE)->getWidth() << ", "
        << die_pointers_.at(DIE_ID::PSEUDO_DIE)->getHeight() << endl;
@@ -875,14 +883,14 @@ pair<float, float> Chip::InitialPlacer::cpuSparseSolve() {
 }
 
 // parser //
-void Chip::parse(const string &lef_name, const string &def_name) {
+void Chip::parseNORMAL(const string &lef_name, const string &def_name) {
   db_database_ = dbDatabase::create();
   parser_.db_database_ = db_database_;
   parser_.readLef(lef_name);
   parser_.readDef(def_name);
   this->init();
 }
-void Chip::write(const string &out_file_name) {
+void Chip::writeNORMAL(const string &out_file_name) {
   parser_.writeDef(out_file_name);
 }
 void Chip::parseICCAD(const string &input_file_name) {
@@ -1345,7 +1353,7 @@ void Chip::parseICCAD(const string &input_file_name) {
   hybrid_size_y_ = terminal_info.size_y;
   hybrid_spacing_ = terminal_info.spacing_size;
 
-  // parse end
+  // parseNORMAL end
 
   init();
 }
@@ -1803,15 +1811,7 @@ int Chip::NesterovPlacer::doNesterovPlace(int start_iter, bool only_one_iter) {
     }
     if (debug_mode_) {
       string file_name;
-      std::stringstream ss;
-      ss << std::setw(4) << std::setfill('0') << iter;
-      ss >> file_name;;
-      if (this->die_pointer_->getDieId() == DIE_ID::TOP_DIE)
-        file_name = "top_" + file_name;
-      else if (this->die_pointer_->getDieId() == DIE_ID::BOTTOM_DIE)
-        file_name = "bottom_" + file_name;
-      else if (this->die_pointer_->getDieId() == DIE_ID::PSEUDO_DIE)
-        file_name = "pseudo_" + file_name;
+      file_name = getDrawFileName(iter, file_name);
       drawDie(file_name);
     }
 
@@ -1826,6 +1826,18 @@ int Chip::NesterovPlacer::doNesterovPlace(int start_iter, bool only_one_iter) {
   }
   return iter;
 
+}
+string &Chip::NesterovPlacer::getDrawFileName(int iter, string &file_name) const {
+  stringstream ss;
+  ss << setw(4) << setfill('0') << iter;
+  ss >> file_name;;
+  if (die_pointer_->getDieId() == TOP_DIE)
+    file_name = "top_" + file_name;
+  else if (die_pointer_->getDieId() == BOTTOM_DIE)
+    file_name = "bottom_" + file_name;
+  else if (die_pointer_->getDieId() == PSEUDO_DIE)
+    file_name = "pseudo_" + file_name;
+  return file_name;
 }
 bool Chip::NesterovPlacer::finishCheck() const {
   if (sum_overflow_unscaled_ <= targetOverflow) {
@@ -2816,14 +2828,17 @@ void Chip::NesterovPlacer::setDebugMode(bool debug_mode) {
 }
 void Chip::NesterovPlacer::drawDie(const string &filename) {
   assert(debug_mode_);
-  int fixed_die_height = 500;
+  int fixed_die_height = 1000;
   int scale_factor = die_pointer_->getHeight() / fixed_die_height;
 
   uint die_w = die_pointer_->getWidth() / scale_factor;
   uint die_h = die_pointer_->getHeight() / scale_factor;
-  Drawer drawer(die_w, die_h);
+  uint margin_x = static_cast<uint>(die_w * 0.05);
+  uint margin_y = static_cast<uint>(die_h * 0.05);
+  Drawer drawer(die_w, die_h, margin_x, margin_y);
 
   // Draw cells and fillers
+/*
   for (int i = 0; i < instance_pointers_.size(); ++i) {
     Instance *instance = instance_pointers_.at(i);
     pair<float, float> coordinate = cur_coordinates_.at(i);
@@ -2839,7 +2854,11 @@ void Chip::NesterovPlacer::drawDie(const string &filename) {
     else
       drawer.drawFiller(ll_x, ll_y, ur_x, ur_y);
   }
+*/
   drawer.saveImg(filename);
+}
+Chip::NesterovPlacer::~NesterovPlacer() {
+  delete fft_;
 }
 double fastExp(float a) {
   a = 1.0f + a / 1024.0f;
@@ -2855,10 +2874,13 @@ double fastExp(float a) {
   a *= a;
   return a;
 }
-Chip::NesterovPlacer::Drawer::Drawer(uint width, uint height) {
+Chip::NesterovPlacer::Drawer::Drawer(uint width, uint height, uint margin_x, uint margin_y) {
   width_ = width;
   height_ = height;
-  image_ = new Image(width_, height_, 1, 3, 255);
+  margin_x_ = margin_x;
+  margin_y_ = margin_y;
+  image_ = new Image(width_ + 2 * margin_x, height_ + 2 * margin_y, 1, 3, 0);
+  image_->draw_rectangle(margin_x_, margin_y_, width_ + margin_x_, height_ + margin_y_, Color::WHITE);
 }
 Chip::NesterovPlacer::Drawer::~Drawer() {
   delete image_;
@@ -2871,17 +2893,25 @@ void Chip::NesterovPlacer::Drawer::setFillerColor(const unsigned char *filler_co
 }
 void Chip::NesterovPlacer::Drawer::drawCell(int ll_x, int ll_y, int ur_x, int ur_y) {
   if (ll_x == ur_x)
-    ur_x += 1;
+    ur_x += 4;
   if (ll_y == ur_y)
-    ur_y += 1;
+    ur_y += 4;
+  ll_x += static_cast<int>(margin_x_);
+  ll_y += static_cast<int>(margin_y_);
+  ur_x += static_cast<int>(margin_x_);
+  ur_y += static_cast<int>(margin_y_);
   image_->draw_rectangle(ll_x, ll_y, ur_x, ur_y, Color::DIM_GRAY);
   image_->draw_rectangle(ll_x + 1, ll_y + 1, ur_x - 1, ur_y - 1, cell_color_);
 }
 void Chip::NesterovPlacer::Drawer::drawFiller(int ll_x, int ll_y, int ur_x, int ur_y) {
   if (ll_x == ur_x)
-    ur_x += 1;
-  if (ll_y == ur_y)
-    ur_y += 1;
+    ur_x += 4;
+  if (ll_y = ur_y)
+    ur_y += 4;
+  ll_x += static_cast<int>(margin_x_);
+  ll_y += static_cast<int>(margin_y_);
+  ur_x += static_cast<int>(margin_x_);
+  ur_y += static_cast<int>(margin_y_);
   image_->draw_rectangle(ll_x, ll_y, ur_x, ur_y, Color::DIM_GRAY);
   image_->draw_rectangle(ll_x + 1, ll_y + 1, ur_x - 1, ur_y - 1, filler_color_);
 }

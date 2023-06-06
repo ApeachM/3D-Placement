@@ -48,6 +48,7 @@ class Chip::NesterovPlacer {
                  std::vector<Pin *> pin_pointers,
                  std::vector<Pin *> pad_pointers,
                  Die *die_pointer);
+  virtual ~NesterovPlacer();
   bool initNesterovPlace(bool is_pseudo_die = true);
   /*!
    * \brief
@@ -464,6 +465,7 @@ class Chip::NesterovPlacer {
 
   bool is_base_initialized_ = false;
   bool debug_mode_ = false;
+  string &getDrawFileName(int iter, string &file_name) const;
 };
 
 class Chip::NesterovPlacer::Bin {
@@ -556,7 +558,7 @@ class Chip::NesterovPlacer::biNormalParameters {
 class Chip::NesterovPlacer::Drawer {
   using Image = cimg_library::CImg<unsigned char>;
  public:
-  explicit Drawer(uint width = 0, uint height = 0);
+  explicit Drawer(uint width=0, uint height=0, uint margin_x=0, uint margin_y=0);
   virtual ~Drawer();
   void drawCell(int ll_x, int ll_y, int ur_x, int ur_y);
   void drawFiller(int ll_x, int ll_y, int ur_x, int ur_y);
@@ -567,6 +569,8 @@ class Chip::NesterovPlacer::Drawer {
  private:
   uint width_;
   uint height_;
+  uint margin_x_;
+  uint margin_y_;
   Image *image_;
   const unsigned char *cell_color_ = Color::BLACK;
   const unsigned char *filler_color_ = Color::RED;
