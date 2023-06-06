@@ -2097,10 +2097,10 @@ void Chip::NesterovPlacer::initBins() {
         break;
       }
     }
-    if (width > height){
-      setBinCnt(foundBinCnt*ratio, foundBinCnt);
+    if (width > height) {
+      setBinCnt(foundBinCnt * ratio, foundBinCnt);
     } else {
-      setBinCnt(foundBinCnt, foundBinCnt*ratio);
+      setBinCnt(foundBinCnt, foundBinCnt * ratio);
     }
   }
 
@@ -2116,12 +2116,12 @@ void Chip::NesterovPlacer::initBins() {
       const int y = ly_ + idx_y * bin_size_y_;
       const int size_x = std::min(ux_ - x, bin_size_x_);
       const int size_y = std::min(uy_ - y, bin_size_y_);
-      binStor_.emplace_back(idx_x, idx_y, x, y, x+size_x, y+size_y, target_density_);
+      binStor_.emplace_back(idx_x, idx_y, x, y, x + size_x, y + size_y, target_density_);
     }
   }
 
   // for iteration using pointer
-  for(Bin& bin: binStor_){
+  for (Bin &bin : binStor_) {
     bins_.push_back(&bin);
   }
 
@@ -2860,6 +2860,8 @@ void Chip::NesterovPlacer::drawCircuit(const string &filename) {
   uint margin_x = static_cast<uint>(die_w * 0.05);
   uint margin_y = static_cast<uint>(die_h * 0.05);
   Drawer drawer(die_w, die_h, margin_x, margin_y);
+  drawer.setFillerWidth(filler_width_/scale_factor);
+  drawer.setFillerHeight(filler_height_/scale_factor);
 
   // Draw cells and fillers
   for (int i = 0; i < instance_pointers_.size(); ++i) {
@@ -2910,8 +2912,8 @@ Chip::NesterovPlacer::Drawer::Drawer(uint width, uint height, uint margin_x, uin
   margin_x_ = margin_x;
   margin_y_ = margin_y;
   image_ = Image(width_ + 2 * margin_x, height_ + 2 * margin_y, 1, 3, 255);
-  image_.draw_rectangle(margin_x_ - 1, margin_y_ - 1, width_ + margin_x_ + 1, height_ + margin_y_ + 1, Color::BLACK);
-  image_.draw_rectangle(margin_x_, margin_y_, width_ + margin_x_, height_ + margin_y_, Color::WHITE);
+  image_.draw_rectangle(margin_x_, margin_y_, width_ + margin_x_, height_ + margin_y_, Color::BLACK);
+  image_.draw_rectangle(margin_x_ + 1, margin_y_ + 1, width_ + margin_x_ - 1, height_ + margin_y_ - 1, Color::WHITE);
 }
 Chip::NesterovPlacer::Drawer::~Drawer() {
 
@@ -2923,32 +2925,46 @@ void Chip::NesterovPlacer::Drawer::setFillerColor(const unsigned char *filler_co
   filler_color_ = filler_color;
 }
 void Chip::NesterovPlacer::Drawer::drawCell(int ll_x, int ll_y, int ur_x, int ur_y) {
-  if (ll_x == ur_x)
-    ur_x += 4;
-  if (ll_y == ur_y)
-    ur_y += 4;
-  ll_x += static_cast<int>(margin_x_);
-  ll_y += static_cast<int>(margin_y_);
-  ur_x += static_cast<int>(margin_x_);
-  ur_y += static_cast<int>(margin_y_);
+  if (ll_x == ur_x) {
+    ur_x += 2;
+    ll_x -= 1;
+  }
+  if (ll_y == ur_y) {
+    ur_y += 2;
+    ll_y -= 1;
+  }
+  ll_x += static_cast<int>(margin_x_ - filler_width_ / 2);
+  ll_y += static_cast<int>(margin_y_ - filler_height_ / 2);
+  ur_x += static_cast<int>(margin_x_ - filler_width_ / 2);
+  ur_y += static_cast<int>(margin_y_ - filler_height_ / 2);
   image_.draw_rectangle(ll_x, ll_y, ur_x, ur_y, Color::DIM_GRAY);
   image_.draw_rectangle(ll_x + 1, ll_y + 1, ur_x - 1, ur_y - 1, cell_color_);
 }
 void Chip::NesterovPlacer::Drawer::drawFiller(int ll_x, int ll_y, int ur_x, int ur_y) {
-  if (ll_x == ur_x)
-    ur_x += 4;
-  if (ll_y = ur_y)
-    ur_y += 4;
-  ll_x += static_cast<int>(margin_x_);
-  ll_y += static_cast<int>(margin_y_);
-  ur_x += static_cast<int>(margin_x_);
-  ur_y += static_cast<int>(margin_y_);
+  if (ll_x == ur_x) {
+    ur_x += 2;
+    ll_x -= 1;
+  }
+  if (ll_y == ur_y) {
+    ur_y += 2;
+    ll_y -= 1;
+  }
+  ll_x += static_cast<int>(margin_x_ - filler_width_ / 2);
+  ll_y += static_cast<int>(margin_y_ - filler_height_ / 2);
+  ur_x += static_cast<int>(margin_x_ - filler_width_ / 2);
+  ur_y += static_cast<int>(margin_y_ - filler_height_ / 2);
   image_.draw_rectangle(ll_x, ll_y, ur_x, ur_y, Color::DIM_GRAY);
   image_.draw_rectangle(ll_x + 1, ll_y + 1, ur_x - 1, ur_y - 1, filler_color_);
 }
 void Chip::NesterovPlacer::Drawer::saveImg(const string &file_name) {
   string save_file_name = file_path_ + file_name + ".bmp";
   image_.save_bmp(save_file_name.c_str());
+}
+void Chip::NesterovPlacer::Drawer::setFillerWidth(uint filler_width) {
+  filler_width_ = filler_width;
+}
+void Chip::NesterovPlacer::Drawer::setFillerHeight(uint filler_height) {
+  filler_height_ = filler_height;
 }
 
 // etc //

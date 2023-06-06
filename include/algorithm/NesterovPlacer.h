@@ -574,6 +574,8 @@ class Chip::NesterovPlacer::Drawer {
   void drawFiller(int ll_x, int ll_y, int ur_x, int ur_y);
   void setCellColor(const unsigned char *cell_color);
   void setFillerColor(const unsigned char *filler_color);
+  void setFillerWidth(uint filler_width);
+  void setFillerHeight(uint filler_height);
   void saveImg(const string &file_name);
 
  private:
@@ -581,6 +583,8 @@ class Chip::NesterovPlacer::Drawer {
   uint height_;
   uint margin_x_;
   uint margin_y_;
+  uint filler_width_;
+  uint filler_height_;
   Image image_;
   const unsigned char *cell_color_ = Color::BLACK;
   const unsigned char *filler_color_ = Color::RED;
