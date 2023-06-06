@@ -23,6 +23,9 @@ for filename in filenames:
         elif "pseudo" in file_path:
             pseudo_die_images.append(imageio.imread(file_path))
         # print(filename)
-imageio.mimsave('{}{}.gif'.format(dir, "top"), top_die_images, **speed_spec)
-imageio.mimsave('{}{}.gif'.format(dir, "bottom"), bottom_die_images, **speed_spec)
-imageio.mimsave('{}{}.gif'.format(dir, "pseudo"), pseudo_die_images, **speed_spec)
+if len(top_die_images) > 1:
+    imageio.mimsave('{}{}.gif'.format(dir, "top"), top_die_images, **speed_spec)
+if len(bottom_die_images) > 1:
+    imageio.mimsave('{}{}.gif'.format(dir, "bottom"), bottom_die_images, **speed_spec)
+if len(pseudo_die_images) > 1:
+    imageio.mimsave('{}{}.gif'.format(dir, "pseudo"), pseudo_die_images, **speed_spec)

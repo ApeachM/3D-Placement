@@ -48,7 +48,7 @@ class Chip::NesterovPlacer {
                  std::vector<Pin *> pin_pointers,
                  std::vector<Pin *> pad_pointers,
                  Die *die_pointer);
-  virtual ~NesterovPlacer();
+  ~NesterovPlacer();
   bool initNesterovPlace(bool is_pseudo_die = true);
   /*!
    * \brief
@@ -61,6 +61,8 @@ class Chip::NesterovPlacer {
 
   int getMaxNesterovIter() const { return max_nesterov_iter_; }
   void setMaxNesterovIter(int max_nesterov_iter) { max_nesterov_iter_ = max_nesterov_iter; }
+  void drawCircuit(const string &filename);
+  void setParent(Chip *parent);
  private:
   /*!
    * \name
@@ -334,7 +336,6 @@ class Chip::NesterovPlacer {
   bool stepLengthDivergeCheck();
   void printStateNesterov(int iter) const;
   bool finishCheck() const;
-  void drawDie(const string &filename);
 
   odb::dbDatabase *db_database_;
   std::vector<Instance *> instance_pointers_;
@@ -345,6 +346,8 @@ class Chip::NesterovPlacer {
   std::vector<Pin *> pad_pointers_;
   std::vector<Bin *> bins_;
   Die *die_pointer_ = nullptr;
+
+  Chip *parent_;
 
   // real data storage
   std::vector<Instance> fillers_;
@@ -399,7 +402,7 @@ class Chip::NesterovPlacer {
 
   float min_wire_length_force_bar_ = -300;
 
-  gpl::FFT *fft_{};
+  gpl::FFT *fft_ = nullptr;
 
   // SLP is Step Length Prediction.
   //
@@ -558,7 +561,7 @@ class Chip::NesterovPlacer::biNormalParameters {
 class Chip::NesterovPlacer::Drawer {
   using Image = cimg_library::CImg<unsigned char>;
  public:
-  explicit Drawer(uint width=0, uint height=0, uint margin_x=0, uint margin_y=0);
+  explicit Drawer(uint width = 0, uint height = 0, uint margin_x = 0, uint margin_y = 0);
   virtual ~Drawer();
   void drawCell(int ll_x, int ll_y, int ur_x, int ur_y);
   void drawFiller(int ll_x, int ll_y, int ur_x, int ur_y);
@@ -571,7 +574,7 @@ class Chip::NesterovPlacer::Drawer {
   uint height_;
   uint margin_x_;
   uint margin_y_;
-  Image *image_;
+  Image image_;
   const unsigned char *cell_color_ = Color::BLACK;
   const unsigned char *filler_color_ = Color::RED;
   string file_path_ = "../output/images/";

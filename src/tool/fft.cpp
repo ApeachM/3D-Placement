@@ -65,6 +65,7 @@ FFT::FFT(int binCntX, int binCntY, int binSizeX, int binSizeY)
 
 FFT::~FFT()
 {
+  std::cout << "called destruction of FFT" << std::endl;
   using std::vector;
   for (int i = 0; i < binCntX_; i++) {
     delete[] binDensity_[i];

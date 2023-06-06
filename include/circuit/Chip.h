@@ -104,6 +104,7 @@ class Chip {
   void do3DPlace(const string &def_name, const string &lef_name = "");
 
   void setBenchType(const string &bench_type);
+  const string &getDesignName() const;
 
   void test();
 
@@ -269,7 +270,7 @@ class Chip {
     init();
   }
   bool checkDbFile() {
-    std::ifstream db_file("db_" + design_name_);
+    std::ifstream db_file("db_" + design_name_, std::ios::binary);
     if (db_file.fail())
       return false;
     else
