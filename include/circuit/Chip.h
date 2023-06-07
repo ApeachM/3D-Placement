@@ -85,6 +85,7 @@ class Chip {
   /* Placers */
   class InitialPlacer;
   class NesterovPlacer;
+  class Partitioner;
 
  public:
   Chip();
@@ -100,7 +101,19 @@ class Chip {
    * Minjae Kim \n
    * GitHub: ApeachM (https://github.com/ApeachM)
    * */
-  void do3DPlace();
+  void do3DPlace(const string &def_name, const string &lef_name = "");
+
+  void setBenchType(const string &bench_type);
+  const string &getDesignName() const;
+
+  void test();
+
+  // etc
+  void dbTutorial() const;
+
+ protected:
+  // Data initialization
+  void init();
 
   /**
    * \brief
@@ -109,9 +122,20 @@ class Chip {
    * Minjae Kim \n
    * GitHub: ApeachM (https://github.com/ApeachM)
    * */
-  void parse(const string &lef_name, const string &def_name);
-  void write(const string &out_file_name);
-
+  void parse(const string &def_name, const string &lef_name = "") {
+    if (bench_type_ == BENCH_TYPE::ICCAD)
+      parseICCAD(def_name);
+    else if (bench_type_ == BENCH_TYPE::NORMAL)
+      parseNORMAL(lef_name, def_name);
+  }
+  void write(const string &file_name) {
+    if (bench_type_ == BENCH_TYPE::ICCAD)
+      writeICCAD(file_name);
+    else if (bench_type_ == BENCH_TYPE::NORMAL)
+      writeNORMAL(file_name);
+  }
+  void parseNORMAL(const string &lef_name, const string &def_name);
+  void writeNORMAL(const string &out_file_name);
   /**
    * \brief
    * This code parses and writes the input data of ICCAD 2022 contest.
@@ -128,14 +152,6 @@ class Chip {
    * */
   void parseICCAD(const string &input_file_name);
   void writeICCAD(const string &output_file_name);
-  void test();
-
-  // etc
-  void dbTutorial() const;
-
- protected:
-  // Data initialization
-  void init();
 
   void printDataInfo() const;
 
@@ -157,6 +173,9 @@ class Chip {
    * GitHub: ApeachM (https://github.com/ApeachM)
    * */
   void partition();
+  void partitionSimple();
+  bool checkPartitionFile();
+  void readPartitionFile();
 
   /**\brief
    * After partitioning, the
@@ -226,11 +245,42 @@ class Chip {
   void setNetNumber(int net_number);
   dbDatabase *getDbDatabase() const;
   void setDbDatabase(dbDatabase *db_database);
+  void setDesignName(const string &input_file_name);
+  void drawTotalCircuit(const string &die_name = "die", bool as_dot = false);
+  void dbCapture(const string &file_name) {
+    FILE *stream = std::fopen(file_name.c_str(), "w");
+    if (stream) {
+      db_database_->write(stream);
+      std::fclose(stream);
+    }
+  }
+  void dbCaptureRead(const string &file_name) {
+    if (db_database_ == NULL) {
+      db_database_ = odb::dbDatabase::create();
+    } else {
+      odb::dbDatabase::destroy(db_database_);
+      db_database_ = odb::dbDatabase::create();
+    }
+    std::ifstream file;
+    file.exceptions(std::ifstream::failbit | std::ifstream::badbit | std::ios::eofbit);
+    file.open(file_name, std::ios::binary);
+    db_database_->read(file);
 
-  void drawDies(const string &die_name = "die", bool as_dot = true, bool draw_same_canvas = true);
+    init();
+  }
+  bool checkDbFile() {
+    std::ifstream db_file("db_" + design_name_, std::ios::binary);
+    if (db_file.fail())
+      return false;
+    else
+      return true;
+  }
+  void getAverageInstanceSize();
+  void setTargetDensityManually();
+  void partitionTriton();
 
  protected:
-  enum PHASE{
+  enum PHASE {
     START,
     INITIAL_PLACE,
     PARTITION,
@@ -238,7 +288,24 @@ class Chip {
     TWO_DIE_PLACE,
     END
   };
+  enum BENCH_TYPE {
+    ICCAD,
+    NORMAL
+  };
+  /// this is for connection between the objects
+  struct DataMapping {
+    std::unordered_map<dbInst *, Instance *> inst_map;
+    std::unordered_map<dbNet *, Net *> net_map;
+    /// mapping_ for terminals on instance (pins on cell)
+    std::unordered_map<dbITerm *, Pin *> pin_map_i;
+    /// mapping_ for terminals on blocks (includes fixed pins on die)
+    std::unordered_map<dbBTerm *, Pin *> pin_map_b;
+  };
+  DataMapping mapping_;
+
   PHASE phase_ = START;
+  BENCH_TYPE bench_type_ = NORMAL;
+  string design_name_;
   utl::Logger logger_;
   // For pseudo die
   odb::dbDatabase *db_database_{};
@@ -250,7 +317,7 @@ class Chip {
 
   Parser parser_;
   data_storage data_storage_;
-  // data_mapping data_mapping_;
+  // DataMapping data_mapping_;
 
   std::vector<Instance *> instance_pointers_;
   std::vector<Net *> net_pointers_;
@@ -268,6 +335,8 @@ class Chip {
 
   int instance_number_ = 0;
   int net_number_ = 0;
+  int average_instance_width_ = 0;
+  int average_instance_height_ = 0;
 
   // first one is for top, the second one is for bottom.
   pair<int, int> max_utils_;
@@ -275,6 +344,8 @@ class Chip {
   pair<RowInfo, RowInfo> row_infos_;
 
   HierRTLMPartition *hier_rtl_;
+  Partitioner *partitioner_;
+
 };
 
 } // VLSI_backend

@@ -82,17 +82,14 @@ int main(int argc, char **argv) {
 
   if (mainParse(argc, argv, test_case_name, test_dir, test_case_path, is_for_contest))
     return 1;
-
   if (is_for_contest) {
     VLSI_backend::Chip chip;
-    chip.parseICCAD(test_case_path);
-    chip.do3DPlace();
-    // chip.writeICCAD("../test/output/case1.txt");
+    chip.setBenchType("ICCAD");
+    chip.do3DPlace(test_case_path);
   } else {
     VLSI_backend::Chip chip;
-    chip.parse(test_dir + "Nangate45.lef", test_case_path);
-    chip.do3DPlace();
-    chip.write(output_path_name + test_case_name);
+    chip.setBenchType("NORMAL");
+    chip.do3DPlace(test_case_path, test_dir + "Nangate45.lef");
     // chip.getDbDatabase()->getChip()->getBlock()->saveLef((output_path_name + lefName).c_str());
   }
 }

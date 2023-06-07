@@ -48,6 +48,7 @@ class Chip::NesterovPlacer {
                  std::vector<Pin *> pin_pointers,
                  std::vector<Pin *> pad_pointers,
                  Die *die_pointer);
+  ~NesterovPlacer();
   bool initNesterovPlace(bool is_pseudo_die = true);
   /*!
    * \brief
@@ -60,6 +61,8 @@ class Chip::NesterovPlacer {
 
   int getMaxNesterovIter() const { return max_nesterov_iter_; }
   void setMaxNesterovIter(int max_nesterov_iter) { max_nesterov_iter_ = max_nesterov_iter; }
+  void drawCircuit(const string &filename);
+  void setParent(Chip *parent);
  private:
   /*!
    * \name
@@ -333,7 +336,11 @@ class Chip::NesterovPlacer {
   bool stepLengthDivergeCheck();
   void printStateNesterov(int iter) const;
   bool finishCheck() const;
-  void drawDie(const string &filename);
+  void setBinCnt(int bin_cnt_x, int bin_cnt_y){
+    is_set_bin_cnt_ = true;
+    bin_cnt_x_ = bin_cnt_x;
+    bin_cnt_y_ = bin_cnt_y;
+  }
 
   odb::dbDatabase *db_database_;
   std::vector<Instance *> instance_pointers_;
@@ -344,6 +351,8 @@ class Chip::NesterovPlacer {
   std::vector<Pin *> pad_pointers_;
   std::vector<Bin *> bins_;
   Die *die_pointer_ = nullptr;
+
+  Chip *parent_;
 
   // real data storage
   std::vector<Instance> fillers_;
@@ -398,7 +407,7 @@ class Chip::NesterovPlacer {
 
   float min_wire_length_force_bar_ = -300;
 
-  gpl::FFT *fft_{};
+  gpl::FFT *fft_ = nullptr;
 
   // SLP is Step Length Prediction.
   //
@@ -464,6 +473,9 @@ class Chip::NesterovPlacer {
 
   bool is_base_initialized_ = false;
   bool debug_mode_ = false;
+
+  bool is_set_bin_cnt_ = false;
+  string &getDrawFileName(int iter, string &file_name) const;
 };
 
 class Chip::NesterovPlacer::Bin {
@@ -556,20 +568,26 @@ class Chip::NesterovPlacer::biNormalParameters {
 class Chip::NesterovPlacer::Drawer {
   using Image = cimg_library::CImg<unsigned char>;
  public:
-  explicit Drawer(uint width = 0, uint height = 0);
+  explicit Drawer(uint width = 0, uint height = 0, uint margin_x = 0, uint margin_y = 0);
   virtual ~Drawer();
   void drawCell(int ll_x, int ll_y, int ur_x, int ur_y);
   void drawFiller(int ll_x, int ll_y, int ur_x, int ur_y);
   void setCellColor(const unsigned char *cell_color);
   void setFillerColor(const unsigned char *filler_color);
+  void setFillerWidth(uint filler_width);
+  void setFillerHeight(uint filler_height);
   void saveImg(const string &file_name);
 
  private:
   uint width_;
   uint height_;
-  Image *image_;
-  const unsigned char *cell_color_ = Color::BLACK;
-  const unsigned char *filler_color_ = Color::RED;
+  uint margin_x_;
+  uint margin_y_;
+  uint filler_width_;
+  uint filler_height_;
+  Image image_;
+  const unsigned char *cell_color_ = COLOR::BLACK;
+  const unsigned char *filler_color_ = COLOR::RED;
   string file_path_ = "../output/images/";
 };
 }

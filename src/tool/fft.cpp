@@ -37,6 +37,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <iostream>
+#include <cassert>
 
 #define REPLACE_FFT_PI 3.141592653589793238462L
 
@@ -65,6 +66,7 @@ FFT::FFT(int binCntX, int binCntY, int binSizeX, int binSizeY)
 
 FFT::~FFT()
 {
+  std::cout << "called destruction of FFT" << std::endl;
   using std::vector;
   for (int i = 0; i < binCntX_; i++) {
     delete[] binDensity_[i];
@@ -130,6 +132,8 @@ void FFT::init()
 
 void FFT::updateDensity(int x, int y, float density)
 {
+  assert(x < binCntX_);
+  assert(y < binCntY_);
   binDensity_[x][y] = density;
 }
 
