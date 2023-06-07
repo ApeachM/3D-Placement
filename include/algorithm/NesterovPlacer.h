@@ -586,8 +586,8 @@ class Chip::NesterovPlacer::Drawer {
   uint filler_width_;
   uint filler_height_;
   Image image_;
-  const unsigned char *cell_color_ = Color::BLACK;
-  const unsigned char *filler_color_ = Color::RED;
+  const unsigned char *cell_color_ = COLOR::BLACK;
+  const unsigned char *filler_color_ = COLOR::RED;
   string file_path_ = "../output/images/";
 };
 }

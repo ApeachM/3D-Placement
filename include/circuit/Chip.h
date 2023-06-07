@@ -246,10 +246,9 @@ class Chip {
   dbDatabase *getDbDatabase() const;
   void setDbDatabase(dbDatabase *db_database);
   void setDesignName(const string &input_file_name);
-
-  void drawDies(const string &die_name = "die", bool as_dot = true, bool draw_same_canvas = true);
+  void drawTotalCircuit(const string &die_name = "die", bool as_dot = false);
   void dbCapture(const string &file_name) {
-    FILE *stream = std::fopen((design_name_ + file_name).c_str(), "w");
+    FILE *stream = std::fopen(file_name.c_str(), "w");
     if (stream) {
       db_database_->write(stream);
       std::fclose(stream);
@@ -276,6 +275,9 @@ class Chip {
     else
       return true;
   }
+  void getAverageInstanceSize();
+  void setTargetDensityManually();
+  void partitionTriton();
 
  protected:
   enum PHASE {
@@ -333,6 +335,8 @@ class Chip {
 
   int instance_number_ = 0;
   int net_number_ = 0;
+  int average_instance_width_ = 0;
+  int average_instance_height_ = 0;
 
   // first one is for top, the second one is for bottom.
   pair<int, int> max_utils_;
@@ -342,8 +346,6 @@ class Chip {
   HierRTLMPartition *hier_rtl_;
   Partitioner *partitioner_;
 
- public:
-  void setTargetDensityManually();
 };
 
 } // VLSI_backend
