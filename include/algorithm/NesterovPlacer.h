@@ -459,6 +459,8 @@ class Chip::NesterovPlacer {
   // phi is described in ePlace paper.
   float sum_overflow_{};
   float sum_overflow_unscaled_{};
+
+  // dynamic adjustment of max_phi_coef
   float phi_coefficient_{};  // phi_cof
   bool is_max_phi_coef_changed_ = false;
 
@@ -468,6 +470,26 @@ class Chip::NesterovPlacer {
   string diverge_msg_;
   float is_diverged_{false};
   float is_routability_need_{};
+
+  // backTracking variable.
+  // divergence detection
+  float min_sum_overflow_ = 1e30;
+  float hpwl_with_min_sum_overflow_ = 1e30;
+
+  // snapshot saving detection
+  bool is_snapshot_saved_ = false;
+
+  // snapshot info
+  vector<pair<float, float>> snapshot_coordinates_;
+  vector<pair<float, float>> snapshot_slp_coordinates_;
+  vector<pair<float, float>> snapshot_slp_sum_grads_;
+
+  float snapshot_a_ = 0;
+  float snapshot_density_penalty_ = 0;
+  float snapshot_step_length_ = 0;
+  float snapshot_wl_coef_x_ = 0, snapshot_wl_coef_y_ = 0;
+
+  bool is_diverge_tried_revert_ = false;
 
   int diverge_code_{};
 

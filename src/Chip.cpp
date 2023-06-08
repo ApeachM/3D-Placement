@@ -49,7 +49,7 @@ Chip::Chip() {
 // main flow //
 void Chip::do3DPlace(const string &def_name, const string &lef_name) {
 
-  // setDesignName(def_name); // todo: handle for NORMAL case
+  setDesignName(def_name); // todo: handle for NORMAL case
 
   if (!checkDbFile()) {
     phase_ = PHASE::START;
@@ -1667,28 +1667,6 @@ int Chip::NesterovPlacer::doNesterovPlace(int start_iter, bool only_one_iter) {
   // refer: https://github.com/The-OpenROAD-Project/OpenROAD/blob/a5e786eb65f40abfb7004b18312d519dac95cc33/src/gpl/src/nesterovPlace.cpp#L482
   // int NesterovPlace::doNesterovPlace(int start_iter)
 
-  // backTracking variable.
-  // divergence detection
-  float minSumOverflow = 1e30;
-  float hpwlWithMinSumOverflow = 1e30;
-
-  // dynamic adjustment of max_phi_coef
-
-  // snapshot saving detection
-  bool isSnapshotSaved = false;
-
-  // snapshot info
-  vector<pair<float, float>> snapshot_coordinates;
-  vector<pair<float, float>> snapshot_slp_coordinates;
-  vector<pair<float, float>> snapshot_slp_sum_grads;
-
-  float snapshot_a = 0;
-  float snapshot_density_penalty = 0;
-  float snapshot_step_length = 0;
-  float snapshot_wl_coef_x = 0, snapshot_wl_coef_y = 0;
-
-  bool is_diverge_tried_revert = false;
-
   // Core Nesterov Loop
   int iter = start_iter;
   for (; iter < max_nesterov_iter_; ++iter) {
@@ -1747,9 +1725,9 @@ int Chip::NesterovPlacer::doNesterovPlace(int start_iter, bool only_one_iter) {
     updateNextIter();
     printStateNesterov(iter);
 
-    if (minSumOverflow > sum_overflow_unscaled_) {
-      minSumOverflow = sum_overflow_unscaled_;
-      hpwlWithMinSumOverflow = prev_hpwl_;
+    if (min_sum_overflow_ > sum_overflow_unscaled_) {
+      min_sum_overflow_ = sum_overflow_unscaled_;
+      hpwl_with_min_sum_overflow_ = prev_hpwl_;
     }
     /*
      diverge detection on
@@ -1758,11 +1736,11 @@ int Chip::NesterovPlacer::doNesterovPlace(int start_iter, bool only_one_iter) {
      1) happen overflow < 20%
      2) Hpwl is growing
     */
-    if (sum_overflow_unscaled_ < 0.3f && sum_overflow_unscaled_ - minSumOverflow >= 0.02f
-        && hpwlWithMinSumOverflow * 1.2f < prev_hpwl_) {
-      handleDiverge(snapshot_coordinates, snapshot_slp_coordinates, snapshot_slp_sum_grads, snapshot_a,
-                    snapshot_density_penalty, snapshot_step_length, snapshot_wl_coef_x, snapshot_wl_coef_y,
-                    is_diverge_tried_revert);
+    if (sum_overflow_unscaled_ < 0.3f && sum_overflow_unscaled_ - min_sum_overflow_ >= 0.02f
+        && hpwl_with_min_sum_overflow_ * 1.2f < prev_hpwl_) {
+      handleDiverge(snapshot_coordinates_, snapshot_slp_coordinates_, snapshot_slp_sum_grads_, snapshot_a_,
+                    snapshot_density_penalty_, snapshot_step_length_, snapshot_wl_coef_x_, snapshot_wl_coef_y_,
+                    is_diverge_tried_revert_);
     }
     // if it reached target overflow
     if (finishCheck()) {
@@ -2321,19 +2299,19 @@ void Chip::NesterovPlacer::updateWireLengthForceWA(double wlCoeffX, double wlCoe
     gNet->updateBox(die_pointer_->getDieId(), true);
     vector<Pin *> pin_set;
 
-    if (!gNet->isIntersected())
+//    if (!gNet->isIntersected())
       pin_set = gNet->getConnectedPins();
-    else {
-      for (Pin *pin : gNet->getConnectedPins()) {
-        if (pin->isInstancePin()) {
-          if (pin->getInstance()->getDieId() == die_pointer_->getDieId())
-            pin_set.push_back(pin);
-        } else if (pin->isBlockPin()) {
-          // TODO: more accurate method is needed.
-          pin_set.push_back(pin);
-        }
-      }
-    }
+//    else {
+//      for (Pin *pin : gNet->getConnectedPins()) {
+//        if (pin->isInstancePin()) {
+////          if (pin->getInstance()->getDieId() == die_pointer_->getDieId())
+//            pin_set.push_back(pin);
+////        } else if (pin->isBlockPin()) {
+//          // TODO: more accurate method is needed.
+////          pin_set.push_back(pin);
+//        }
+//      }
+//    }
 
     for (Pin *pin : pin_set) {
       // The WA terms are shift invariant:
@@ -2412,7 +2390,7 @@ float Chip::NesterovPlacer::getPhiCoef(float scaledDiffHpwl) {
                   : max_phi_coef_
                       * pow(max_phi_coef_, scaledDiffHpwl * -1.0);
   retCoef = std::max(minPhiCoef, retCoef);
-  if (retCoef == minPhiCoef){
+  if (retCoef == minPhiCoef) {
     cout << "break point" << endl;
   }
   return retCoef;
