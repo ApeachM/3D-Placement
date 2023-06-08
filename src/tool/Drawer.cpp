@@ -35,6 +35,8 @@ void Drawer::drawCell(int ll_x, int ll_y, int ur_x, int ur_y, int DIE_ID) {
 void Drawer::drawHybridBond(int ll_x, int ll_y, int ur_x, int ur_y) {
   int x = static_cast<int>((ll_x + ur_x) / 2);
   int y = static_cast<int>((ll_y + ur_y) / 2);
+  x += static_cast<int>(margin_x_ - average_cell_width_ / 2);
+  y += static_cast<int>(margin_y_ - average_cell_height_ / 2);
   image_.draw_circle(x, y, 2, COLOR::BLACK);
   image_.draw_circle(x, y, 1, COLOR::RED);
 }
