@@ -334,9 +334,10 @@ class Chip::NesterovPlacer {
                      float snapshotWlCoefY,
                      bool &isDivergeTriedRevert);
   bool stepLengthDivergeCheck();
-  void printStateNesterov(int iter) const;
+  void printStateNesterov(int iter);
+  void writeLogNesterov(int iter);
   bool finishCheck() const;
-  void setBinCnt(int bin_cnt_x, int bin_cnt_y){
+  void setBinCnt(int bin_cnt_x, int bin_cnt_y) {
     is_set_bin_cnt_ = true;
     bin_cnt_x_ = bin_cnt_x;
     bin_cnt_y_ = bin_cnt_y;
@@ -475,6 +476,10 @@ class Chip::NesterovPlacer {
   bool debug_mode_ = false;
 
   bool is_set_bin_cnt_ = false;
+
+  bool is_log_file_opened = false;
+  string log_file_name_;
+  ofstream log_file_;
   string &getDrawFileName(int iter, string &file_name) const;
 };
 

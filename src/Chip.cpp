@@ -297,13 +297,14 @@ void Chip::placement2DieSynchronously() {
     int nesterov_iter1, nesterov_iter2;
     nesterov_iter1 = nesterov_placer1.doNesterovPlace(i, true);
     nesterov_iter2 = nesterov_placer2.doNesterovPlace(i, true);
+
     if (nesterov_iter1 >= nesterov_placer1.getMaxNesterovIter()
         || nesterov_iter2 >= nesterov_placer2.getMaxNesterovIter())
       break;
     nesterov_placer1.updateDB();
     nesterov_placer2.updateDB();
     updateHybridBondPositions();
-    cout << "[HPWL]: " << this->getHPWL() << endl;
+    // cout << "[HPWL]: " << this->getHPWL() << endl;
 
     string file_name;
     std::stringstream ss;
@@ -1808,13 +1809,49 @@ bool Chip::NesterovPlacer::finishCheck() const {
   }
   return false;
 }
-void Chip::NesterovPlacer::printStateNesterov(int iter) const {
+void Chip::NesterovPlacer::printStateNesterov(int iter) {
   if (iter == 0 || (iter + 1) % 10 == 0) {
     cout << "[NesterovSolve] Iter: " << iter + 1
          << "\toverflow: " << sum_overflow_unscaled_
          << "\tHPWL: " << prev_hpwl_
          << endl;
+    writeLogNesterov(iter + 1);
   }
+}
+void Chip::NesterovPlacer::writeLogNesterov(int iter) {
+  if (!is_log_file_opened) {
+    char *current_time_char;
+    time_t current_time;
+    time(&current_time);
+    current_time_char = ctime(&current_time);
+    string current_time_str(current_time_char);
+    string file_name = current_time_str + "_ID" + to_string(die_pointer_->getDieId()) + ".csv";
+    string dir_path = "../output/log/";
+    string file_path = dir_path + file_name;
+    log_file_name_ = file_path;
+    log_file_.open(file_path);
+    assert(log_file_.is_open());
+    is_log_file_opened = true;
+
+    string header =
+        "Iteration, TO, SO, SOU, BWLC, WLCx, WLCy, IDP, DP, WLGS, DGS,  HPWL\n";
+    log_file_.write(header.c_str(), header.size());
+  }
+  assert(log_file_.is_open());
+  string data;
+  data += to_string(iter) + ", "; // iteration
+  data += to_string(targetOverflow) + ", ";
+  data += to_string(sum_overflow_) + ", ";
+  data += to_string(sum_overflow_unscaled_) + ", ";
+  data += to_string(base_wire_length_coefficient_) + ", ";
+  data += to_string(wire_length_coefficient_x_) + ", ";
+  data += to_string(wire_length_coefficient_y_) + ",";
+  data += to_string(initDensityPenalty) + ", ";
+  data += to_string(density_penalty_) + ", ";
+  data += to_string(wire_length_grad_sum_) + ", ";
+  data += to_string(density_grad_sum_) + ", ";
+  data += to_string(prev_hpwl_) + "\n";
+  log_file_.write(data.c_str(), data.size());
 }
 bool Chip::NesterovPlacer::stepLengthDivergeCheck() {
   float newStepLength = getStepLength();
@@ -2836,6 +2873,8 @@ void Chip::NesterovPlacer::drawCircuit(const string &filename) {
   drawer.saveImg(filename);
 }
 Chip::NesterovPlacer::~NesterovPlacer() {
+  if (is_log_file_opened)
+    log_file_.close();
   // delete fft_;
 }
 

@@ -267,6 +267,7 @@ class Chip {
     db_database_->read(file);
 
     init();
+    setTargetDensityManually();
   }
   bool checkDbFile() {
     std::ifstream db_file("db_" + design_name_, std::ios::binary);
