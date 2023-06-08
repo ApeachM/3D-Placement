@@ -1673,7 +1673,6 @@ int Chip::NesterovPlacer::doNesterovPlace(int start_iter, bool only_one_iter) {
   float hpwlWithMinSumOverflow = 1e30;
 
   // dynamic adjustment of max_phi_coef
-  bool is_max_phi_coef_changed = false;
 
   // snapshot saving detection
   bool isSnapshotSaved = false;
@@ -1736,8 +1735,8 @@ int Chip::NesterovPlacer::doNesterovPlace(int start_iter, bool only_one_iter) {
     // dynamic adjustment for
     // better convergence with
     // large designs
-    if (!is_max_phi_coef_changed && sum_overflow_unscaled_ < 0.35f) {
-      is_max_phi_coef_changed = true;
+    if (!is_max_phi_coef_changed_ && sum_overflow_unscaled_ < 0.35f) {
+      is_max_phi_coef_changed_ = true;
       max_phi_coef_ *= 0.99;
     }
     if (max_back_track_ == num_back_trak) {
@@ -1834,7 +1833,7 @@ void Chip::NesterovPlacer::writeLogNesterov(int iter) {
     is_log_file_opened = true;
 
     string header =
-        "Iteration, TO, SO, SOU, BWLC, WLCx, WLCy, IDP, DP, WLGS, DGS,  HPWL\n";
+        "Iteration, TO, SO, SOU, BWLC, WLCx, WLCy, IDP, DP, PhiC, WLGS, DGS,  HPWL\n";
     log_file_.write(header.c_str(), header.size());
   }
   assert(log_file_.is_open());
@@ -1848,6 +1847,7 @@ void Chip::NesterovPlacer::writeLogNesterov(int iter) {
   data += to_string(wire_length_coefficient_y_) + ",";
   data += to_string(initDensityPenalty) + ", ";
   data += to_string(density_penalty_) + ", ";
+  data += to_string(phi_coefficient_) + ", ";
   data += to_string(wire_length_grad_sum_) + ", ";
   data += to_string(density_grad_sum_) + ", ";
   data += to_string(prev_hpwl_) + "\n";
@@ -2318,7 +2318,7 @@ void Chip::NesterovPlacer::updateWireLengthForceWA(double wlCoeffX, double wlCoe
   }
 
   for (Net *&gNet : net_pointers_) {
-    gNet->updateBox(die_pointer_->getDieId());
+    gNet->updateBox(die_pointer_->getDieId(), true);
     vector<Pin *> pin_set;
 
     if (!gNet->isIntersected())
@@ -2412,12 +2412,15 @@ float Chip::NesterovPlacer::getPhiCoef(float scaledDiffHpwl) {
                   : max_phi_coef_
                       * pow(max_phi_coef_, scaledDiffHpwl * -1.0);
   retCoef = std::max(minPhiCoef, retCoef);
+  if (retCoef == minPhiCoef){
+    cout << "break point" << endl;
+  }
   return retCoef;
 }
 int64_t Chip::NesterovPlacer::getHpwl() {
   int64_t hpwl = 0;
   for (auto &gNet : net_pointers_) {
-    gNet->updateBox(this->die_pointer_->getDieId());
+    gNet->updateBox(this->die_pointer_->getDieId(), false);
     hpwl += gNet->hpwl();
   }
   return hpwl;
@@ -2456,10 +2459,10 @@ void Chip::NesterovPlacer::updateNextIter() {
   updateWireLengthCoef(sum_overflow_);
   int64_t hpwl = getHpwl();
 
-  float phiCoef = getPhiCoef(static_cast<float>(hpwl - prev_hpwl_) / referenceHpwl);
+  phi_coefficient_ = getPhiCoef(static_cast<float>(hpwl - prev_hpwl_) / referenceHpwl);
 
   prev_hpwl_ = hpwl;
-  density_penalty_ *= phiCoef;
+  density_penalty_ *= phi_coefficient_;
 
 /*
       // for routability densityPenalty recovery

@@ -466,11 +466,11 @@ int64_t Net::hpwl() {
   return static_cast<int64_t>((ux_ - lx_) + (uy_ - ly_));
 }
 // TODO: check is that right or not
-void Net::updateBox(int die_ID) {
+void Net::updateBox(int die_ID, bool consider_other_die) {
   lx_ = ly_ = INT_MAX;
   ux_ = uy_ = INT_MIN;
   // TODO: check the default value is 0 or not
-  if (!isIntersected()) {
+  if (consider_other_die) {
     for (Pin *gPin : getConnectedPins()) {
       lx_ = std::min(gPin->cx(), lx_);
       ly_ = std::min(gPin->cy(), ly_);
@@ -478,16 +478,16 @@ void Net::updateBox(int die_ID) {
       uy_ = std::max(gPin->cy(), uy_);
     }
   } else {
+    // consider only for the one die
+    // ignore the pin for this net for updating box
     for (Pin *gPin : getConnectedPins()) {
-      if (!gPin->isBlockPin()) {
-        // if (die_ID == gPin->getInstance()->getDieId()) {
+      if (gPin->isBlockPin()) {
         lx_ = std::min(gPin->cx(), lx_);
         ly_ = std::min(gPin->cy(), ly_);
         ux_ = std::max(gPin->cx(), ux_);
         uy_ = std::max(gPin->cy(), uy_);
-        // }
-      } else {
-        // TODO: need to more accuracy method for block pins
+      } else if (die_ID == gPin->getInstance()->getDieId()) {
+        // can not access the instance id when the pin is block pin.
         lx_ = std::min(gPin->cx(), lx_);
         ly_ = std::min(gPin->cy(), ly_);
         ux_ = std::max(gPin->cx(), ux_);
@@ -495,6 +495,8 @@ void Net::updateBox(int die_ID) {
       }
     }
   }
+  assert(lx_ <= ux_);
+  assert(ly_ <= uy_);
 }
 bool Net::isIntersected() const {
   return intersected_;

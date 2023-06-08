@@ -459,6 +459,8 @@ class Chip::NesterovPlacer {
   // phi is described in ePlace paper.
   float sum_overflow_{};
   float sum_overflow_unscaled_{};
+  float phi_coefficient_{};  // phi_cof
+  bool is_max_phi_coef_changed_ = false;
 
   // half-parameter-wire-length
   int64_t prev_hpwl_{};

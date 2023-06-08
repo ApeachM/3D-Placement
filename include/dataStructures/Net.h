@@ -155,7 +155,7 @@ class Net {
   inline int ly() const { return ly_; }
   inline int ux() const { return ux_; }
   inline int uy() const { return uy_; }
-  void updateBox(int die_ID = 0);
+  void updateBox(int die_ID = 0, bool consider_other_die = false);
   float totalWeight() const { return timingWeight_ * customWeight_; }
   float timingWeight() const { return timingWeight_; }
   float customWeight() const { return customWeight_; }
