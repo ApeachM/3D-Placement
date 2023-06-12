@@ -122,18 +122,8 @@ class Chip {
    * Minjae Kim \n
    * GitHub: ApeachM (https://github.com/ApeachM)
    * */
-  void parse(const string &def_name, const string &lef_name = "") {
-    if (bench_type_ == BENCH_TYPE::ICCAD)
-      parseICCAD(def_name);
-    else if (bench_type_ == BENCH_TYPE::NORMAL)
-      parseNORMAL(lef_name, def_name);
-  }
-  void write(const string &file_name) {
-    if (bench_type_ == BENCH_TYPE::ICCAD)
-      writeICCAD(file_name);
-    else if (bench_type_ == BENCH_TYPE::NORMAL)
-      writeNORMAL(file_name);
-  }
+  void parse(const string &def_name, const string &lef_name = "");
+  void write(const string &file_name);
   void parseNORMAL(const string &lef_name, const string &def_name);
   void writeNORMAL(const string &out_file_name);
   /**
@@ -247,35 +237,9 @@ class Chip {
   void setDbDatabase(dbDatabase *db_database);
   void setDesignName(const string &input_file_name);
   void drawTotalCircuit(const string &die_name = "die", bool as_dot = false);
-  void dbCapture(const string &file_name) {
-    FILE *stream = std::fopen(file_name.c_str(), "w");
-    if (stream) {
-      db_database_->write(stream);
-      std::fclose(stream);
-    }
-  }
-  void dbCaptureRead(const string &file_name) {
-    if (db_database_ == NULL) {
-      db_database_ = odb::dbDatabase::create();
-    } else {
-      odb::dbDatabase::destroy(db_database_);
-      db_database_ = odb::dbDatabase::create();
-    }
-    std::ifstream file;
-    file.exceptions(std::ifstream::failbit | std::ifstream::badbit | std::ios::eofbit);
-    file.open(file_name, std::ios::binary);
-    db_database_->read(file);
-
-    init();
-    setTargetDensityManually();
-  }
-  bool checkDbFile() {
-    std::ifstream db_file("db_" + design_name_, std::ios::binary);
-    if (db_file.fail())
-      return false;
-    else
-      return true;
-  }
+  void dbCapture(const string &file_name);
+  void dbCaptureRead(const string &file_name);
+  bool checkDbFile();
   void getAverageInstanceSize();
   void setTargetDensityManually();
   void partitionTriton();
