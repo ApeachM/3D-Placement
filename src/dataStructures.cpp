@@ -449,6 +449,7 @@ ulong Net::getHPWL() {
 
   for (dbBTerm *bterm : db_net_->getBTerms()) {
     for (dbBPin *bpin : bterm->getBPins()) {
+      // TODO: Debug here
       dbPlacementStatus status = bpin->getPlacementStatus();
       if (status.isPlaced()) {
         Rect pin_bbox = bpin->getBBox();
@@ -459,6 +460,55 @@ ulong Net::getHPWL() {
       }
     }
   }
+
+  return net_box.dx() + net_box.dy();
+}
+ulong Net::getHPWL(DIE_ID die_id) {
+  Rect net_box;
+  net_box.mergeInit();
+
+  for (Pin *pin : this->getConnectedPins()) {
+    int x, y;
+    if (pin->isInstancePin()) {
+      if (pin->getInstance()->getDieId() != die_id)
+        continue;
+      dbITerm *i_term = pin->getDbITerm();
+      assert(i_term);
+      if (i_term->getAvgXY(&x, &y)) {
+        Rect i_term_rect(x, y, x, y);
+        net_box.merge(i_term_rect);
+      } else {
+        // This clause is sort of worthless because getAvgXY prints
+        // a warning when it fails.
+        dbInst *inst = i_term->getInst();
+        dbBox *inst_box = inst->getBBox();
+        int center_x = (inst_box->xMin() + inst_box->xMax()) / 2;
+        int center_y = (inst_box->yMin() + inst_box->yMax()) / 2;
+        Rect inst_center(center_x, center_y, center_x, center_y);
+        net_box.merge(inst_center);
+      }
+    }
+//    else if (pin->isBlockPin()) {
+//      dbBTerm *b_term = pin->getDbBTerm();
+//      assert(b_term);
+//      for (dbBPin *b_pin : b_term->getBPins()) {
+//        dbPlacementStatus status = b_pin->getPlacementStatus();
+//        if (status.isPlaced()) {
+//          Rect pin_bbox = b_pin->getBBox();
+//          int center_x = (pin_bbox.xMin() + pin_bbox.xMax()) / 2;
+//          int center_y = (pin_bbox.yMin() + pin_bbox.yMax()) / 2;
+//          Rect pin_center(center_x, center_y, center_x, center_y);
+//          net_box.merge(pin_center);
+//        }
+//      }
+//    } else {
+//      assert(0);
+//    }
+  }
+
+  pair<int, int> hb_coordinate = hybrid_bond_->getCoordinate();
+  Rect hybrid_bond_rect(hb_coordinate.first, hb_coordinate.second, hb_coordinate.first, hb_coordinate.second);
+  net_box.merge(hybrid_bond_rect);
 
   return net_box.dx() + net_box.dy();
 }

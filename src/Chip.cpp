@@ -311,6 +311,8 @@ void Chip::placement2DieSynchronously() {
     ss << std::setw(4) << std::setfill('0') << i;
     ss >> file_name;;
     this->drawTotalCircuit(file_name);
+    cout << "Iter[" << file_name << "]: " << getHPWL() << scientific << endl;
+
   }
   nesterov_placer1.updateDB();
   nesterov_placer2.updateDB();
@@ -490,7 +492,14 @@ ulong Chip::getHPWL() {
   // TODO: update including intersected die
   for (Net *net : net_pointers_) {
     net->updateBox();
-    HPWL += net->getHPWL();
+    if (!net->isIntersected()) {
+      HPWL += net->getHPWL();
+    } else {
+      if (!net->getHybridBond())
+        assert(0);
+      HPWL += net->getHPWL(DIE_ID::TOP_DIE);
+      HPWL += net->getHPWL(DIE_ID::BOTTOM_DIE);
+    }
   }
   return HPWL;
 }
@@ -2300,7 +2309,7 @@ void Chip::NesterovPlacer::updateWireLengthForceWA(double wlCoeffX, double wlCoe
     vector<Pin *> pin_set;
 
 //    if (!gNet->isIntersected())
-      pin_set = gNet->getConnectedPins();
+    pin_set = gNet->getConnectedPins();
 //    else {
 //      for (Pin *pin : gNet->getConnectedPins()) {
 //        if (pin->isInstancePin()) {

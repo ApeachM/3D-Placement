@@ -72,6 +72,7 @@ class Net {
 
   /// get HPWLe of the net
   ulong getHPWL();
+  ulong getHPWL(DIE_ID die_id);
 
   void addWaExpMinSumX(double waExpMinSumX) {
     waExpMinSumX_ += waExpMinSumX;
