@@ -50,7 +50,7 @@ Chip::Chip() {
 // main flow //
 void Chip::do3DPlace(const string &def_name, const string &lef_name) {
 
-  setDesignName(def_name); // todo: handle for NORMAL case
+//  setDesignName(def_name); // todo: handle for NORMAL case
 
   if (!checkDbFile()) {
     phase_ = PHASE::START;
@@ -63,7 +63,7 @@ void Chip::do3DPlace(const string &def_name, const string &lef_name) {
     phase_ = PHASE::INITIAL_PLACE;
     cout << "Load DB." << endl;
     this->dbCaptureRead("db_" + design_name_);
-    this->drawTotalCircuit("loaded_die_pseudo");
+    // this->drawTotalCircuit("loaded_die_pseudo");
   }
 
   phase_ = PHASE::PARTITION;
@@ -193,7 +193,7 @@ void Chip::generateHybridBonds() {
 
   assert(hybrid_num == data_storage_.hybrid_bonds.size());
   cout << "Hybrid bond #: " << data_storage_.hybrid_bonds.size() << endl;
-  this->drawTotalCircuit("after_hybrid_bond_generation");
+  // this->drawTotalCircuit("after_hybrid_bond_generation");
 }
 void Chip::placement2DieSynchronously() {
   // Now, the initial placement is done by `normalPlacement()`,
@@ -311,10 +311,13 @@ void Chip::placement2DieSynchronously() {
     std::stringstream ss;
     ss << std::setw(4) << std::setfill('0') << i;
     ss >> file_name;;
-    this->drawTotalCircuit(file_name);
+
     cout << "Iter[" << file_name << "]: " << getHPWL() << scientific << endl;
-    if (i % 10 == 0)
+    if (i % 10 == 0){
+      this->drawTotalCircuit(file_name);
       checkHPWLForEachNet(i);
+    }
+
   }
   nesterov_placer1.updateDB();
   nesterov_placer2.updateDB();
@@ -1804,7 +1807,7 @@ int Chip::NesterovPlacer::doNesterovPlace(int start_iter, bool only_one_iter) {
       iter = max_nesterov_iter_;
       break;
     }
-    if (debug_mode_) {
+    if (debug_mode_ && (iter % 10 == 0)) {
       string file_name;
       file_name = getDrawFileName(iter, file_name);
       drawCircuit(file_name);

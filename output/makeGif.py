@@ -3,7 +3,7 @@ import os
 
 dir = 'images/'
 file_type = r'bmp'
-speed_spec = {'duration': 0.05}
+speed_spec = {'duration': 60}
 
 filenames = os.listdir(dir)
 filenames = sorted(filenames)
