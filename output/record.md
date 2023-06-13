@@ -41,8 +41,18 @@ This follows the commit which has the parent commit of `14380f90`
 | case4 hidden | 301193374 | 323151813  |
 
 
+Change Env:
+Target density to 1.4, net weight 1.5 for intersected net
+This follows the commit which has the parent commit of `dcfeab6d`
 
-
+| case number  | Final 1st | Mine Final |
+| ------------ | --------- | ---------- |
+| case2        | 1960913   | 1905261    |
+| case2 hidden | 2555461   | 2244868    |
+| case3        | 30247740  | 29916712   |
+| case3 hidden | 27650329  | 26589826   |
+| case4        | 274026678 | 307972491  |
+| case4 hidden | 301193374 | 332532462  |
 
 
 

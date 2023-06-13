@@ -82,8 +82,8 @@ void Chip::setTargetDensityManually() {
   // manually setting in code level
   vector<double> densities;
   densities.push_back(3.0); // pseudo die util = top die util + bottom die util
-  densities.push_back(1.5);
-  densities.push_back(1.5);
+  densities.push_back(1.4);
+  densities.push_back(1.4);
   setTargetDensity(densities);
 }
 void Chip::setBenchType(const string &bench_type) {
