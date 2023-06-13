@@ -50,7 +50,7 @@ Chip::Chip() {
 // main flow //
 void Chip::do3DPlace(const string &def_name, const string &lef_name) {
 
-  // setDesignName(def_name); // todo: handle for NORMAL case
+  setDesignName(def_name); // todo: handle for NORMAL case
 
   if (!checkDbFile()) {
     phase_ = PHASE::START;
@@ -503,12 +503,13 @@ ulong Chip::getHPWL() {
       HPWL += net->getHPWL(DIE_ID::BOTTOM_DIE);
     }
   }
+  current_hpwl_ = HPWL;
   return HPWL;
 }
 void Chip::checkHPWLForEachNet(int iteration) {
   ofstream log_file;
   string dir_path = "../output/log/";
-  log_file.open(dir_path + "HPWL_" + start_time_ + "_iter[" + to_string(iteration) + "].csv");
+  log_file.open(dir_path + "HPWL_" + design_name_ + "_" + start_time_ + "_iter[" + to_string(iteration) + "].csv");
   assert(log_file.is_open());
   string data;
 
@@ -542,7 +543,9 @@ void Chip::checkHPWLForEachNet(int iteration) {
       data += "intersected,";
     else
       data += "not intersected,";
-    data += to_string(hpwl) + "\n";
+    data += to_string(hpwl) + ",";
+    data += to_string(static_cast<float>(hpwl) / static_cast<float>(current_hpwl_) * 100);
+    data += "\n";
   }
   log_file << data;
 

@@ -323,6 +323,7 @@ class Chip {
   Partitioner *partitioner_;
 
   string start_time_;
+  ulong current_hpwl_;
 
 };
 
