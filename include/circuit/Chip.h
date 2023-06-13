@@ -246,7 +246,7 @@ class Chip {
   dbDatabase *getDbDatabase() const;
   void setDbDatabase(dbDatabase *db_database);
   void setDesignName(const string &input_file_name);
-  void drawTotalCircuit(const string &die_name = "die", bool as_dot = false);
+  void drawTotalCircuit(const string &die_name = "die", bool high_resolution = false);
   void dbCapture(const string &file_name);
   void dbCaptureRead(const string &file_name);
   bool checkDbFile();

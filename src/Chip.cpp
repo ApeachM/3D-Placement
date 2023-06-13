@@ -50,7 +50,7 @@ Chip::Chip() {
 // main flow //
 void Chip::do3DPlace(const string &def_name, const string &lef_name) {
 
-//  setDesignName(def_name); // todo: handle for NORMAL case
+  setDesignName(def_name); // todo: handle for NORMAL case
 
   if (!checkDbFile()) {
     phase_ = PHASE::START;
@@ -81,9 +81,9 @@ void Chip::do3DPlace(const string &def_name, const string &lef_name) {
 void Chip::setTargetDensityManually() {
   // manually setting in code level
   vector<double> densities;
-  densities.push_back(2.0); // pseudo die util = top die util + bottom die util
-  densities.push_back(1.0);
-  densities.push_back(1.0);
+  densities.push_back(3.0); // pseudo die util = top die util + bottom die util
+  densities.push_back(1.5);
+  densities.push_back(1.5);
   setTargetDensity(densities);
 }
 void Chip::setBenchType(const string &bench_type) {
@@ -211,9 +211,9 @@ void Chip::placement2DieSynchronously() {
 
   for (Instance *instance : instance_pointers_) {
     int die_id = instance->getDieId();
-    if (die_id == 1) {
+    if (die_id == DIE_ID::TOP_DIE) {
       dieVar1.instance_pointers.push_back(instance);
-    } else if (die_id == 2) {
+    } else if (die_id == DIE_ID::BOTTOM_DIE) {
       dieVar2.instance_pointers.push_back(instance);
     }
   }
@@ -313,14 +313,15 @@ void Chip::placement2DieSynchronously() {
     ss >> file_name;;
 
     cout << "Iter[" << file_name << "]: " << getHPWL() << scientific << endl;
-    if (i % 10 == 0){
+    if (i % 20 == 0) {
       this->drawTotalCircuit(file_name);
-      checkHPWLForEachNet(i);
+      // checkHPWLForEachNet(i);
     }
 
   }
   nesterov_placer1.updateDB();
   nesterov_placer2.updateDB();
+  this->drawTotalCircuit("FinalState", true);
 }
 
 void Chip::init() {
@@ -557,10 +558,15 @@ void Chip::checkHPWLForEachNet(int iteration) {
 int Chip::getUnitOfMicro() const {
   return db_database_->getTech()->getDbUnitsPerMicron();
 }
-void Chip::drawTotalCircuit(const string &die_name, bool as_dot) {
+void Chip::drawTotalCircuit(const string &die_name, bool high_resolution) {
   // let the pixel of the die height be 500
   int scale_factor;
-  int die_height_fix = 1000;
+  int die_height_fix;
+  if (high_resolution)
+    die_height_fix = 3000;
+  else
+    die_height_fix = 1000;
+
   scale_factor = static_cast<int>(die_pointers_.at(DIE_ID::PSEUDO_DIE)->getHeight() / die_height_fix);
   if (scale_factor == 0) scale_factor = 10;
 
@@ -596,7 +602,7 @@ void Chip::drawTotalCircuit(const string &die_name, bool as_dot) {
     canvas.drawHybridBond(ll_x, ll_y, ur_x, ur_y);
   }
 
-  canvas.saveImg(design_name_ + "_T_and_B_" + die_name);
+  canvas.saveImg(design_name_ + "/T_and_B_" + die_name);
 }
 void Chip::printDataInfo() const {
   cout << "======================" << endl;
@@ -1836,7 +1842,7 @@ string &Chip::NesterovPlacer::getDrawFileName(int iter, string &file_name) const
     file_name = "bottom_" + file_name;
   else if (die_pointer_->getDieId() == PSEUDO_DIE)
     file_name = "pseudo_" + file_name;
-  file_name = design_name + "_" + file_name;
+  file_name = design_name + "/" + file_name;
   return file_name;
 }
 bool Chip::NesterovPlacer::finishCheck() const {
@@ -2655,8 +2661,14 @@ pair<float, float> Chip::NesterovPlacer::getWireLengthGradientWA(Instance *gCell
     if (gPin->getNet() == nullptr)
       // pass the floating pins
       continue;
-
-    auto tmpPair = getWireLengthGradientPinWA(gPin, wlCoeffX, wlCoeffY);
+    pair<float, float> tmpPair;
+    if (!gPin->getNet()->isIntersected())
+      tmpPair = getWireLengthGradientPinWA(gPin, wlCoeffX, wlCoeffY);
+    else {
+      tmpPair = getWireLengthGradientPinWA(gPin, wlCoeffX, wlCoeffY);
+      tmpPair.first *= 1.5;
+      tmpPair.second *= 1.5;
+    }
 
     // apply timing/custom net weight
     tmpPair.first *= gPin->getNet()->totalWeight();

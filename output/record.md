@@ -15,6 +15,9 @@ Set pins for Input Output info by fanout number
 
 ### Score
 
+Env: default
+density: 1.0, no net weight
+
 | case number  | Beta 1st  | Final 1st | Mine - initial | Mine Final |
 | ------------ | --------- | --------- | -------------- | ---------- |
 | case2        | 2189151   | 1960913   | 1901792        | 2214728    |
@@ -24,7 +27,18 @@ Set pins for Input Output info by fanout number
 | case4        | 328483651 | 274026678 | 317682092      | 363167567  |
 | case4 hidden | 361787452 | 301193374 | 331920892      | 382798200  |
 
+Change Env:
+Target density from 1.0 to 1.5, net weight 1.5 for intersected net
+This follows the commit which has the parent commit of `14380f90`
 
+| case number  | Final 1st | Mine Final |
+| ------------ | --------- | ---------- |
+| case2        | 1960913   | 1846984    |
+| case2 hidden | 2555461   | 2172458    |
+| case3        | 30247740  | 28780432   |
+| case3 hidden | 27650329  | 25646473   |
+| case4        | 274026678 | 301201197  |
+| case4 hidden | 301193374 | 323151813  |
 
 
 
