@@ -228,6 +228,16 @@ class Chip {
    * GitHub: ApeachM (https://github.com/ApeachM)
    * */
   ulong getHPWL();
+  /**
+   * \brief
+   * make log file for each net
+   * \pre
+   * `ulong getHPWL()`
+   * \author
+   * Minjae Kim \n
+   * GitHub: ApeachM (https://github.com/ApeachM)
+   * */
+  void checkHPWLForEachNet(int iteration);
 
   int getInstanceNumber() const;
   void setInstanceNumber(int instance_number);
@@ -243,6 +253,7 @@ class Chip {
   void getAverageInstanceSize();
   void setTargetDensityManually();
   void partitionTriton();
+  void setStartTime();
 
  protected:
   enum PHASE {
@@ -310,6 +321,8 @@ class Chip {
 
   HierRTLMPartition *hier_rtl_;
   Partitioner *partitioner_;
+
+  string start_time_;
 
 };
 

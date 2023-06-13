@@ -45,11 +45,12 @@ using namespace std;
 namespace VLSI_backend {
 Chip::Chip() {
   parser_.setLoggerPtr(&logger_);
+  setStartTime();
 }
 // main flow //
 void Chip::do3DPlace(const string &def_name, const string &lef_name) {
 
-  setDesignName(def_name); // todo: handle for NORMAL case
+  // setDesignName(def_name); // todo: handle for NORMAL case
 
   if (!checkDbFile()) {
     phase_ = PHASE::START;
@@ -312,7 +313,8 @@ void Chip::placement2DieSynchronously() {
     ss >> file_name;;
     this->drawTotalCircuit(file_name);
     cout << "Iter[" << file_name << "]: " << getHPWL() << scientific << endl;
-
+    if (i % 10 == 0)
+      checkHPWLForEachNet(i);
   }
   nesterov_placer1.updateDB();
   nesterov_placer2.updateDB();
@@ -502,6 +504,49 @@ ulong Chip::getHPWL() {
     }
   }
   return HPWL;
+}
+void Chip::checkHPWLForEachNet(int iteration) {
+  ofstream log_file;
+  string dir_path = "../output/log/";
+  log_file.open(dir_path + "HPWL_" + start_time_ + "_iter[" + to_string(iteration) + "].csv");
+  assert(log_file.is_open());
+  string data;
+
+  vector<pair<Net *, ulong>> net_HPWL_pairs;
+
+  ulong hpwl;
+  for (Net *net : net_pointers_) {
+    if (!net->isIntersected()) {
+      hpwl = net->getHPWL();
+      pair<Net *, ulong> net_HPWL_pair{net, hpwl};
+      net_HPWL_pairs.push_back(net_HPWL_pair);
+    } else {
+      hpwl = net->getHPWL(DIE_ID::TOP_DIE);
+      hpwl += net->getHPWL(DIE_ID::BOTTOM_DIE);
+      pair<Net *, ulong> net_HPWL_pair{net, hpwl};
+      net_HPWL_pairs.push_back(net_HPWL_pair);
+    }
+  }
+
+  // sort the net_HPWL_pairs as the value
+  sort(net_HPWL_pairs.begin(), net_HPWL_pairs.end(), [](const pair<Net *, ulong> &a, const pair<Net *, ulong> &b) {
+    return a.second > b.second;
+  });
+
+  // print the net_HPWL_pairs
+  for (pair<Net *, ulong> net_HPWL_pair : net_HPWL_pairs) {
+    Net *net = net_HPWL_pair.first;
+    ulong hpwl = net_HPWL_pair.second;
+    data += net->getName() + ",";
+    if (net->isIntersected())
+      data += "intersected,";
+    else
+      data += "not intersected,";
+    data += to_string(hpwl) + "\n";
+  }
+  log_file << data;
+
+  log_file.close();
 }
 int Chip::getUnitOfMicro() const {
   return db_database_->getTech()->getDbUnitsPerMicron();
@@ -1801,7 +1846,7 @@ void Chip::NesterovPlacer::printStateNesterov(int iter) {
          << "\toverflow: " << sum_overflow_unscaled_
          << "\tHPWL: " << prev_hpwl_
          << endl;
-    writeLogNesterov(iter + 1);
+    // writeLogNesterov(iter + 1);
   }
 }
 void Chip::NesterovPlacer::writeLogNesterov(int iter) {
@@ -1811,6 +1856,7 @@ void Chip::NesterovPlacer::writeLogNesterov(int iter) {
     time(&current_time);
     current_time_char = ctime(&current_time);
     string current_time_str(current_time_char);
+    current_time_str = current_time_str.substr(0, current_time_str.size() - 1);
     string file_name = current_time_str + "_ID" + to_string(die_pointer_->getDieId()) + ".csv";
     string dir_path = "../output/log/";
     string file_path = dir_path + file_name;
@@ -3150,5 +3196,13 @@ void Chip::write(const string &file_name) {
     writeICCAD(file_name);
   else if (bench_type_ == BENCH_TYPE::NORMAL)
     writeNORMAL(file_name);
+}
+void Chip::setStartTime() {
+  char *current_time_char;
+  time_t current_time;
+  time(&current_time);
+  current_time_char = ctime(&current_time);
+  string current_time_str(current_time_char);
+  start_time_ = current_time_str.substr(0, current_time_str.length() - 1);
 }
 } // VLSI_backend
