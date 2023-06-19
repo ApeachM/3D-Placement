@@ -113,7 +113,7 @@ void Chip::partition() {
     sta::dbNetwork *network = sta->getDbNetwork();
 
     par::PartitionMgr *tritonpart;
-    hier_rtl_ = new HierRTLMPartition(network, db_database_, sta, &logger_, tritonpart);
+    hier_rtl_ = new HierRTLMPartition(network, pseudo_db_database_, sta, &logger_, tritonpart);
     hier_rtl_->init();
     hier_rtl_->partition();
 
@@ -123,7 +123,7 @@ void Chip::partition() {
 }
 void Chip::partitionTriton() {
   if (!checkPartitionFile()) {
-    partitioner_ = new Partitioner(nullptr, db_database_, nullptr, &logger_);
+    partitioner_ = new Partitioner(nullptr, pseudo_db_database_, nullptr, &logger_);
     partitioner_->init(design_name_);
     partitioner_->doPartitioning();
     partitioner_->writeSolution();
@@ -266,7 +266,7 @@ void Chip::placement2DieSynchronously() {
 
   /////////////////////////////////////////////////////////////////////////
   NesterovPlacer nesterov_placer1(
-      this->db_database_,
+      this->pseudo_db_database_,
       dieVar1.instance_pointers,
       dieVar1.net_pointers_,
       dieVar1.pin_pointers_,
@@ -274,7 +274,7 @@ void Chip::placement2DieSynchronously() {
       this->die_pointers_.at(DIE_ID::TOP_DIE)
   );
   NesterovPlacer nesterov_placer2(
-      this->db_database_,
+      this->pseudo_db_database_,
       dieVar2.instance_pointers,
       dieVar2.net_pointers_,
       dieVar2.pin_pointers_,
@@ -325,7 +325,7 @@ void Chip::placement2DieSynchronously() {
 }
 
 void Chip::init() {
-  dbBlock *block = db_database_->getChip()->getBlock();
+  dbBlock *block = pseudo_db_database_->getChip()->getBlock();
   dbSet<dbInst> db_instances = block->getInsts();
   dbSet<dbNet> db_nets = block->getNets();
 
@@ -556,7 +556,7 @@ void Chip::checkHPWLForEachNet(int iteration) {
   log_file.close();
 }
 int Chip::getUnitOfMicro() const {
-  return db_database_->getTech()->getDbUnitsPerMicron();
+  return pseudo_db_database_->getTech()->getDbUnitsPerMicron();
 }
 void Chip::drawTotalCircuit(const string &die_name, bool high_resolution) {
   // let the pixel of the die height be 500
@@ -619,11 +619,11 @@ void Chip::partitionSimple() {
   int cell_num = static_cast<int>(instance_pointers_.size());
   for (int i = 0; i < floor(cell_num / 2); ++i) {
     Instance *instance = instance_pointers_.at(i);
-    instance->assignDie(1);
+    instance->assignDie(DIE_ID::TOP_DIE);
   }
   for (int i = floor(cell_num / 2); i < cell_num; ++i) {
     Instance *instance = instance_pointers_.at(i);
-    instance->assignDie(2);
+    instance->assignDie(DIE_ID::BOTTOM_DIE);
   }
 }
 bool Chip::checkPartitionFile() {
@@ -642,7 +642,7 @@ void Chip::readPartitionFile() {
   int partition_info;
   for (int i = 0; i < instance_number_; ++i) {
     partition_info_file >> instance_name >> partition_info;
-    dbInst *db_inst = db_database_->getChip()->getBlock()->findInst(instance_name.c_str());
+    dbInst *db_inst = pseudo_db_database_->getChip()->getBlock()->findInst(instance_name.c_str());
     Instance *instance = mapping_.inst_map[db_inst];
     instance->assignDie(partition_info + 1);
   }
@@ -661,8 +661,8 @@ Chip::InitialPlacer::InitialPlacer(std::vector<Instance *> instance_pointers, st
   die_pointers_ = die_pointers;
 }
 void Chip::InitialPlacer::placeInstancesCenter() {
-  const int center_x = floor(die_pointers_.at(0)->getWidth() / 2);
-  const int center_y = floor(die_pointers_.at(0)->getHeight() / 2);
+  const int center_x = floor(die_pointers_.at(DIE_ID::PSEUDO_DIE)->getWidth() / 2);
+  const int center_y = floor(die_pointers_.at(DIE_ID::PSEUDO_DIE)->getHeight() / 2);
 
   for (Instance *instance : instance_pointers_) {
     if (!instance->isLocked())
@@ -912,8 +912,8 @@ pair<float, float> Chip::InitialPlacer::cpuSparseSolve() {
 
 // parser //
 void Chip::parseNORMAL(const string &lef_name, const string &def_name) {
-  db_database_ = dbDatabase::create();
-  parser_.db_database_ = db_database_;
+  pseudo_db_database_ = dbDatabase::create();
+  parser_.db_database_ = pseudo_db_database_;
   parser_.readLef(lef_name);
   parser_.readDef(def_name);
   this->init();
@@ -922,7 +922,6 @@ void Chip::writeNORMAL(const string &out_file_name) {
   parser_.writeDef(out_file_name);
 }
 void Chip::parseICCAD(const string &input_file_name) {
-  bench_type_ = BENCH_TYPE::ICCAD;
   setDesignName(input_file_name);
 
   struct LibPinInfo {
@@ -1047,40 +1046,40 @@ void Chip::parseICCAD(const string &input_file_name) {
   // Syntax: TopDieMaxUtil <util>
   input_file >> info >> n1;
   assert(info == "TopDieMaxUtil");
-  die_infos.at(0).max_util = n1;
+  die_infos.at(DIE_ID::TOP_DIE-1).max_util = n1;
 
   // Syntax: BottomDieMaxUtil <util>
   input_file >> info >> n1;
   assert(info == "BottomDieMaxUtil");
-  die_infos.at(1).max_util = n1;
+  die_infos.at(DIE_ID::BOTTOM_DIE-1).max_util = n1;
 
   // Syntax: TopDieRows <startX> <startY> <rowLength> <rowHeight> <repeatCount>
   input_file >> info >> n1 >> n2 >> n3 >> n4 >> n5;
   assert(info == "TopDieRows");
-  die_infos.at(0).row_info.start_x = n1;
-  die_infos.at(0).row_info.start_y = n2;
-  die_infos.at(0).row_info.row_width = n3;
-  die_infos.at(0).row_info.row_height = n4;
-  die_infos.at(0).row_info.repeat_count = n5;
+  die_infos.at(DIE_ID::TOP_DIE-1).row_info.start_x = n1;
+  die_infos.at(DIE_ID::TOP_DIE-1).row_info.start_y = n2;
+  die_infos.at(DIE_ID::TOP_DIE-1).row_info.row_width = n3;
+  die_infos.at(DIE_ID::TOP_DIE-1).row_info.row_height = n4;
+  die_infos.at(DIE_ID::TOP_DIE-1).row_info.repeat_count = n5;
 
   // Syntax: BottomDieRows <startX> <startY> <rowLength> <rowHeight> <repeatCount>
   input_file >> info >> n1 >> n2 >> n3 >> n4 >> n5;
   assert(info == "BottomDieRows");
-  die_infos.at(1).row_info.start_x = n1;
-  die_infos.at(1).row_info.start_y = n2;
-  die_infos.at(1).row_info.row_width = n3;
-  die_infos.at(1).row_info.row_height = n4;
-  die_infos.at(1).row_info.repeat_count = n5;
+  die_infos.at(DIE_ID::BOTTOM_DIE-1).row_info.start_x = n1;
+  die_infos.at(DIE_ID::BOTTOM_DIE-1).row_info.start_y = n2;
+  die_infos.at(DIE_ID::BOTTOM_DIE-1).row_info.row_width = n3;
+  die_infos.at(DIE_ID::BOTTOM_DIE-1).row_info.row_height = n4;
+  die_infos.at(DIE_ID::BOTTOM_DIE-1).row_info.repeat_count = n5;
 
   // Syntax: TopDieTech <TechName>
   input_file >> info >> name1;
   assert(info == "TopDieTech");
-  die_infos.at(0).tech_name = name1;
+  die_infos.at(DIE_ID::TOP_DIE-1).tech_name = name1;
 
   // Syntax: BottomDieTech <TechName>
   input_file >> info >> name1;
   assert(info == "BottomDieTech");
-  die_infos.at(1).tech_name = name1;
+  die_infos.at(DIE_ID::BOTTOM_DIE-1).tech_name = name1;
 
   // Syntax: TerminalSize <sizeX> <sizeY>
   input_file >> info >> n1 >> n2;
@@ -1144,10 +1143,10 @@ void Chip::parseICCAD(const string &input_file_name) {
       if (die_info.tech_name == tech_info.name)
         die_info.tech_info = &tech_info;
 
-  row_infos_.first = die_infos.at(0).row_info;
-  max_utils_.first = die_infos.at(0).max_util;
-  row_infos_.second = die_infos.at(1).row_info;
-  max_utils_.second = die_infos.at(1).max_util;
+  row_infos_.first = die_infos.at(DIE_ID::TOP_DIE-1).row_info;
+  max_utils_.first = die_infos.at(DIE_ID::TOP_DIE-1).max_util;
+  row_infos_.second = die_infos.at(DIE_ID::BOTTOM_DIE-1).row_info;
+  max_utils_.second = die_infos.at(DIE_ID::BOTTOM_DIE-1).max_util;
 
   // check
   for (DieInfo die_info : die_infos) {
@@ -1155,8 +1154,8 @@ void Chip::parseICCAD(const string &input_file_name) {
   }
 
 
-  // Data parsing is completed.
-  // Now, we construct odb database.
+  //////// Data parsing is completed. ////////
+  //////// Now, we construct odb database. ////////
 
   // DB Base Construction //
   // for top and bottom die
@@ -1169,7 +1168,7 @@ void Chip::parseICCAD(const string &input_file_name) {
       die_name = "Bottom Die";
     dbDatabase *db_database = odb::dbDatabase::create();
     dbTech *db_tech = dbTech::create(db_database);
-    dbTechLayer::create(db_tech, die_name.c_str(), dbTechLayerType::MASTERSLICE);
+    dbTechLayer::create(db_tech, die_name.c_str(), dbTechLayerType::);
     dbLib::create(db_database, "lib", ',');
     dbChip *db_chip = dbChip::create(db_database);
     dbBlock::create(db_chip, (die_name + " Block").c_str());
@@ -1178,13 +1177,13 @@ void Chip::parseICCAD(const string &input_file_name) {
 
   // for pseudo die
   {
-    assert(db_database_ == nullptr);
-    db_database_ = odb::dbDatabase::create();
-    db_database_->setLogger(&logger_);
-    dbTech *db_tech = dbTech::create(db_database_);
+    assert(pseudo_db_database_ == nullptr);
+    pseudo_db_database_ = odb::dbDatabase::create();
+    pseudo_db_database_->setLogger(&logger_);
+    dbTech *db_tech = dbTech::create(pseudo_db_database_);
     dbTechLayer::create(db_tech, "pseudoLayer", dbTechLayerType::MASTERSLICE);
-    dbLib::create(db_database_, "pseudoDieLib", ',');
-    dbChip *db_chip = dbChip::create(db_database_);
+    dbLib::create(pseudo_db_database_, "pseudoDieLib", ',');
+    dbChip *db_chip = dbChip::create(pseudo_db_database_);
     dbBlock::create(db_chip, "Pseudo Die Block");
   }
 
@@ -1236,15 +1235,15 @@ void Chip::parseICCAD(const string &input_file_name) {
     }
   }
   // for pseudo die
-  dbTech *db_tech = db_database_->getTech();
+  dbTech *db_tech = pseudo_db_database_->getTech();
   dbTechLayer *db_tech_layer = db_tech->findLayer(0);
-  dbLib *db_lib = db_database_->findLib("pseudoDieLib");
-  dbChip *db_chip = db_database_->getChip();
+  dbLib *db_lib = pseudo_db_database_->findLib("pseudoDieLib");
+  dbChip *db_chip = pseudo_db_database_->getChip();
   dbBlock *db_block = db_chip->getBlock();
   assert(db_tech_layer != nullptr);
 
-  DieInfo *top_die_info = &die_infos.at(0);
-  DieInfo *bottom_die_info = &die_infos.at(1);
+  DieInfo *top_die_info = &die_infos.at(DIE_ID::TOP_DIE-1);
+  DieInfo *bottom_die_info = &die_infos.at(DIE_ID::BOTTOM_DIE-1);
   assert(top_die_info->tech_info->lib_cell_num == bottom_die_info->tech_info->lib_cell_num);
   for (int i = 0; i < top_die_info->tech_info->lib_cell_num; ++i) {
     string lib_cell_name;
@@ -1272,7 +1271,7 @@ void Chip::parseICCAD(const string &input_file_name) {
       assert(width > pin_location_x);
       assert(height > pin_location_y);
 
-      // (refer to `void lefin::pin` function in submodule/OpenDB/src/lefin/lefin.cpp)
+      // (refer to `void lefin::pin` function in odb/src/lefin/lefin.cpp)
       // dbIoType io_type = dbIoType::INOUT;  // There's no information in this contest benchmarks.
       // for partitioning, we should make any flow of IO.
       // let the last pin has the output pin, and the others has input flow
@@ -1320,7 +1319,7 @@ void Chip::parseICCAD(const string &input_file_name) {
   odb::Point lower_left_point_pseudo = odb::Point(lower_left_pseudo.first, lower_left_pseudo.second);
   odb::Point upper_right_point_pseudo = odb::Point(upper_right_pseudo.first, upper_right_pseudo.second);
   odb::Rect pseudo_die_rect = odb::Rect(lower_left_point_pseudo, upper_right_point_pseudo);
-  db_database_->getChip()->getBlock()->setDieArea(pseudo_die_rect);
+  pseudo_db_database_->getChip()->getBlock()->setDieArea(pseudo_die_rect);
 
 
   // Instance Setting //
@@ -1328,7 +1327,7 @@ void Chip::parseICCAD(const string &input_file_name) {
   // for pseudo die
   for (int i = 0; i < instance_number_; ++i) {
     InstanceInfo *instance_info = &instance_infos.at(i);
-    dbMaster *master = db_database_->findMaster(instance_info->lib_cell_name.c_str());
+    dbMaster *master = pseudo_db_database_->findMaster(instance_info->lib_cell_name.c_str());
     dbInst::create(db_block, master, instance_info->inst_name.c_str());
   }
 
@@ -1370,7 +1369,7 @@ void Chip::parseICCAD(const string &input_file_name) {
   int row_height = floor((row_infos_.first.row_height + row_infos_.second.row_height) / 2);
   int repeat_count = floor(die_height / row_height);
   for (int i = 0; i < repeat_count; ++i) {
-    dbSite *site = dbSite::create(db_database_->findLib("pseudoDieLib"), ("site" + to_string(i)).c_str());
+    dbSite *site = dbSite::create(pseudo_db_database_->findLib("pseudoDieLib"), ("site" + to_string(i)).c_str());
     site->setHeight(row_height);
     dbRow::create(db_block, ("row" + to_string(i)).c_str(), site,
                   0, 0, dbOrientType::MX, dbRowDir::HORIZONTAL, 1, row_height);
@@ -1381,7 +1380,7 @@ void Chip::parseICCAD(const string &input_file_name) {
   hybrid_size_y_ = terminal_info.size_y;
   hybrid_spacing_ = terminal_info.spacing_size;
 
-  // parseNORMAL end
+  // parseICCAD end
 
   init();
 }
@@ -1528,7 +1527,7 @@ void Chip::doInitialPlace() {
 }
 void Chip::doNesterovPlace() {
   NesterovPlacer nesterov_placer(
-      this->db_database_,
+      this->pseudo_db_database_,
       this->instance_pointers_,
       this->net_pointers_,
       this->pin_pointers_,
@@ -1557,11 +1556,11 @@ void Chip::setNetNumber(int net_number) {
   net_number_ = net_number;
 }
 dbDatabase *Chip::getDbDatabase() const {
-  return db_database_;
+  return pseudo_db_database_;
 }
 void Chip::setDbDatabase(dbDatabase *db_database) {
   parser_.db_database_ = db_database;
-  db_database_ = db_database;
+  pseudo_db_database_ = db_database;
 }
 void Chip::setDesignName(const string &input_file_name) {
   if (bench_type_ == BENCH_TYPE::ICCAD) {
@@ -3001,9 +3000,9 @@ void Chip::NesterovPlacer::Drawer::setFillerHeight(uint filler_height) {
 
 // etc //
 __attribute__((unused)) void Chip::dbTutorial() const {
-  cout << this->db_database_->getChip()->getBlock()->getBBox()->getDX() << endl;
+  cout << this->pseudo_db_database_->getChip()->getBlock()->getBBox()->getDX() << endl;
 
-  dbBlock *block = db_database_->getChip()->getBlock();
+  dbBlock *block = pseudo_db_database_->getChip()->getBlock();
   for (int i = 0; i < 4; ++i) {
     cout << endl;
   }
@@ -3076,7 +3075,7 @@ __attribute__((unused)) void Chip::dbTutorial() const {
   cout << endl << endl << endl << endl;
   cout << "OpenDB Tutorial starts." << endl;
 
-  dbBlock *block = parser_.db_database_->getChip()->getBlock();
+  dbBlock *block = parser_.pseudo_db_database_->getChip()->getBlock();
   dbSet<dbInst> db_instances = block->getInsts();
 
   // How to access all instances in database, and print the instance name
@@ -3175,16 +3174,16 @@ __attribute__((unused)) void Chip::dbTutorial() const {
 
 }
 void Chip::dbCaptureRead(const string &file_name) {
-  if (db_database_ == NULL) {
-    db_database_ = odb::dbDatabase::create();
+  if (pseudo_db_database_ == NULL) {
+    pseudo_db_database_ = odb::dbDatabase::create();
   } else {
-    odb::dbDatabase::destroy(db_database_);
-    db_database_ = odb::dbDatabase::create();
+    odb::dbDatabase::destroy(pseudo_db_database_);
+    pseudo_db_database_ = odb::dbDatabase::create();
   }
   std::ifstream file;
   file.exceptions(std::ifstream::failbit | std::ifstream::badbit | std::ios::eofbit);
   file.open(file_name, std::ios::binary);
-  db_database_->read(file);
+  pseudo_db_database_->read(file);
 
   init();
   setTargetDensityManually();
@@ -3192,7 +3191,7 @@ void Chip::dbCaptureRead(const string &file_name) {
 void Chip::dbCapture(const string &file_name) {
   FILE *stream = std::fopen(file_name.c_str(), "w");
   if (stream) {
-    db_database_->write(stream);
+    pseudo_db_database_->write(stream);
     std::fclose(stream);
   }
 }

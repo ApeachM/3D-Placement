@@ -284,7 +284,7 @@ class Chip {
   string design_name_;
   utl::Logger logger_;
   // For pseudo die
-  odb::dbDatabase *db_database_{};
+  odb::dbDatabase *pseudo_db_database_{};
 
   // For top and bottom die.
   // This should be only used when parse ICCAD contest benchmark,
