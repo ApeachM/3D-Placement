@@ -45,6 +45,7 @@ using namespace std;
 namespace VLSI_backend {
 Chip::Chip() {
   parser_.setLoggerPtr(&logger_);
+  setStartTime();
 }
 // main flow //
 void Chip::do3DPlace(const string &def_name, const string &lef_name) {
@@ -62,7 +63,7 @@ void Chip::do3DPlace(const string &def_name, const string &lef_name) {
     phase_ = PHASE::INITIAL_PLACE;
     cout << "Load DB." << endl;
     this->dbCaptureRead("db_" + design_name_);
-    this->drawTotalCircuit("loaded_die_pseudo");
+    // this->drawTotalCircuit("loaded_die_pseudo");
   }
 
   phase_ = PHASE::PARTITION;
@@ -80,9 +81,9 @@ void Chip::do3DPlace(const string &def_name, const string &lef_name) {
 void Chip::setTargetDensityManually() {
   // manually setting in code level
   vector<double> densities;
-  densities.push_back(2.0); // pseudo die util = top die util + bottom die util
-  densities.push_back(1.0);
-  densities.push_back(1.0);
+  densities.push_back(3.0); // pseudo die util = top die util + bottom die util
+  densities.push_back(1.4);
+  densities.push_back(1.4);
   setTargetDensity(densities);
 }
 void Chip::setBenchType(const string &bench_type) {
@@ -192,7 +193,7 @@ void Chip::generateHybridBonds() {
 
   assert(hybrid_num == data_storage_.hybrid_bonds.size());
   cout << "Hybrid bond #: " << data_storage_.hybrid_bonds.size() << endl;
-  this->drawTotalCircuit("after_hybrid_bond_generation");
+  // this->drawTotalCircuit("after_hybrid_bond_generation");
 }
 void Chip::placement2DieSynchronously() {
   // Now, the initial placement is done by `normalPlacement()`,
@@ -210,9 +211,9 @@ void Chip::placement2DieSynchronously() {
 
   for (Instance *instance : instance_pointers_) {
     int die_id = instance->getDieId();
-    if (die_id == 1) {
+    if (die_id == DIE_ID::TOP_DIE) {
       dieVar1.instance_pointers.push_back(instance);
-    } else if (die_id == 2) {
+    } else if (die_id == DIE_ID::BOTTOM_DIE) {
       dieVar2.instance_pointers.push_back(instance);
     }
   }
@@ -310,12 +311,17 @@ void Chip::placement2DieSynchronously() {
     std::stringstream ss;
     ss << std::setw(4) << std::setfill('0') << i;
     ss >> file_name;;
-    this->drawTotalCircuit(file_name);
+
     cout << "Iter[" << file_name << "]: " << getHPWL() << scientific << endl;
+    if (i % 20 == 0) {
+      this->drawTotalCircuit(file_name);
+      // checkHPWLForEachNet(i);
+    }
 
   }
   nesterov_placer1.updateDB();
   nesterov_placer2.updateDB();
+  this->drawTotalCircuit("FinalState", true);
 }
 
 void Chip::init() {
@@ -501,15 +507,66 @@ ulong Chip::getHPWL() {
       HPWL += net->getHPWL(DIE_ID::BOTTOM_DIE);
     }
   }
+  current_hpwl_ = HPWL;
   return HPWL;
+}
+void Chip::checkHPWLForEachNet(int iteration) {
+  ofstream log_file;
+  string dir_path = "../output/log/";
+  log_file.open(dir_path + "HPWL_" + design_name_ + "_" + start_time_ + "_iter[" + to_string(iteration) + "].csv");
+  assert(log_file.is_open());
+  string data;
+
+  vector<pair<Net *, ulong>> net_HPWL_pairs;
+
+  ulong hpwl;
+  for (Net *net : net_pointers_) {
+    if (!net->isIntersected()) {
+      hpwl = net->getHPWL();
+      pair<Net *, ulong> net_HPWL_pair{net, hpwl};
+      net_HPWL_pairs.push_back(net_HPWL_pair);
+    } else {
+      hpwl = net->getHPWL(DIE_ID::TOP_DIE);
+      hpwl += net->getHPWL(DIE_ID::BOTTOM_DIE);
+      pair<Net *, ulong> net_HPWL_pair{net, hpwl};
+      net_HPWL_pairs.push_back(net_HPWL_pair);
+    }
+  }
+
+  // sort the net_HPWL_pairs as the value
+  sort(net_HPWL_pairs.begin(), net_HPWL_pairs.end(), [](const pair<Net *, ulong> &a, const pair<Net *, ulong> &b) {
+    return a.second > b.second;
+  });
+
+  // print the net_HPWL_pairs
+  for (pair<Net *, ulong> net_HPWL_pair : net_HPWL_pairs) {
+    Net *net = net_HPWL_pair.first;
+    ulong hpwl = net_HPWL_pair.second;
+    data += net->getName() + ",";
+    if (net->isIntersected())
+      data += "intersected,";
+    else
+      data += "not intersected,";
+    data += to_string(hpwl) + ",";
+    data += to_string(static_cast<float>(hpwl) / static_cast<float>(current_hpwl_) * 100);
+    data += "\n";
+  }
+  log_file << data;
+
+  log_file.close();
 }
 int Chip::getUnitOfMicro() const {
   return db_database_->getTech()->getDbUnitsPerMicron();
 }
-void Chip::drawTotalCircuit(const string &die_name, bool as_dot) {
+void Chip::drawTotalCircuit(const string &die_name, bool high_resolution) {
   // let the pixel of the die height be 500
   int scale_factor;
-  int die_height_fix = 1000;
+  int die_height_fix;
+  if (high_resolution)
+    die_height_fix = 3000;
+  else
+    die_height_fix = 1000;
+
   scale_factor = static_cast<int>(die_pointers_.at(DIE_ID::PSEUDO_DIE)->getHeight() / die_height_fix);
   if (scale_factor == 0) scale_factor = 10;
 
@@ -545,7 +602,7 @@ void Chip::drawTotalCircuit(const string &die_name, bool as_dot) {
     canvas.drawHybridBond(ll_x, ll_y, ur_x, ur_y);
   }
 
-  canvas.saveImg(design_name_ + "_T_and_B_" + die_name);
+  canvas.saveImg(design_name_ + "/T_and_B_" + die_name);
 }
 void Chip::printDataInfo() const {
   cout << "======================" << endl;
@@ -1756,7 +1813,7 @@ int Chip::NesterovPlacer::doNesterovPlace(int start_iter, bool only_one_iter) {
       iter = max_nesterov_iter_;
       break;
     }
-    if (debug_mode_) {
+    if (debug_mode_ && (iter % 10 == 0)) {
       string file_name;
       file_name = getDrawFileName(iter, file_name);
       drawCircuit(file_name);
@@ -1785,7 +1842,7 @@ string &Chip::NesterovPlacer::getDrawFileName(int iter, string &file_name) const
     file_name = "bottom_" + file_name;
   else if (die_pointer_->getDieId() == PSEUDO_DIE)
     file_name = "pseudo_" + file_name;
-  file_name = design_name + "_" + file_name;
+  file_name = design_name + "/" + file_name;
   return file_name;
 }
 bool Chip::NesterovPlacer::finishCheck() const {
@@ -1801,7 +1858,7 @@ void Chip::NesterovPlacer::printStateNesterov(int iter) {
          << "\toverflow: " << sum_overflow_unscaled_
          << "\tHPWL: " << prev_hpwl_
          << endl;
-    writeLogNesterov(iter + 1);
+    // writeLogNesterov(iter + 1);
   }
 }
 void Chip::NesterovPlacer::writeLogNesterov(int iter) {
@@ -1811,6 +1868,7 @@ void Chip::NesterovPlacer::writeLogNesterov(int iter) {
     time(&current_time);
     current_time_char = ctime(&current_time);
     string current_time_str(current_time_char);
+    current_time_str = current_time_str.substr(0, current_time_str.size() - 1);
     string file_name = current_time_str + "_ID" + to_string(die_pointer_->getDieId()) + ".csv";
     string dir_path = "../output/log/";
     string file_path = dir_path + file_name;
@@ -2308,19 +2366,7 @@ void Chip::NesterovPlacer::updateWireLengthForceWA(double wlCoeffX, double wlCoe
     gNet->updateBox(die_pointer_->getDieId(), true);
     vector<Pin *> pin_set;
 
-//    if (!gNet->isIntersected())
     pin_set = gNet->getConnectedPins();
-//    else {
-//      for (Pin *pin : gNet->getConnectedPins()) {
-//        if (pin->isInstancePin()) {
-////          if (pin->getInstance()->getDieId() == die_pointer_->getDieId())
-//            pin_set.push_back(pin);
-////        } else if (pin->isBlockPin()) {
-//          // TODO: more accurate method is needed.
-////          pin_set.push_back(pin);
-//        }
-//      }
-//    }
 
     for (Pin *pin : pin_set) {
       // The WA terms are shift invariant:
@@ -2399,9 +2445,6 @@ float Chip::NesterovPlacer::getPhiCoef(float scaledDiffHpwl) {
                   : max_phi_coef_
                       * pow(max_phi_coef_, scaledDiffHpwl * -1.0);
   retCoef = std::max(minPhiCoef, retCoef);
-  if (retCoef == minPhiCoef) {
-    cout << "break point" << endl;
-  }
   return retCoef;
 }
 int64_t Chip::NesterovPlacer::getHpwl() {
@@ -2618,8 +2661,14 @@ pair<float, float> Chip::NesterovPlacer::getWireLengthGradientWA(Instance *gCell
     if (gPin->getNet() == nullptr)
       // pass the floating pins
       continue;
-
-    auto tmpPair = getWireLengthGradientPinWA(gPin, wlCoeffX, wlCoeffY);
+    pair<float, float> tmpPair;
+    if (!gPin->getNet()->isIntersected())
+      tmpPair = getWireLengthGradientPinWA(gPin, wlCoeffX, wlCoeffY);
+    else {
+      tmpPair = getWireLengthGradientPinWA(gPin, wlCoeffX, wlCoeffY);
+      tmpPair.first *= 1.5;
+      tmpPair.second *= 1.5;
+    }
 
     // apply timing/custom net weight
     tmpPair.first *= gPin->getNet()->totalWeight();
@@ -3124,5 +3173,54 @@ __attribute__((unused)) void Chip::dbTutorial() const {
   cout << Core.dx() << " " << Core.dy() << endl;
 */
 
+}
+void Chip::dbCaptureRead(const string &file_name) {
+  if (db_database_ == NULL) {
+    db_database_ = odb::dbDatabase::create();
+  } else {
+    odb::dbDatabase::destroy(db_database_);
+    db_database_ = odb::dbDatabase::create();
+  }
+  std::ifstream file;
+  file.exceptions(std::ifstream::failbit | std::ifstream::badbit | std::ios::eofbit);
+  file.open(file_name, std::ios::binary);
+  db_database_->read(file);
+
+  init();
+  setTargetDensityManually();
+}
+void Chip::dbCapture(const string &file_name) {
+  FILE *stream = std::fopen(file_name.c_str(), "w");
+  if (stream) {
+    db_database_->write(stream);
+    std::fclose(stream);
+  }
+}
+bool Chip::checkDbFile() {
+  std::ifstream db_file("db_" + design_name_, std::ios::binary);
+  if (db_file.fail())
+    return false;
+  else
+    return true;
+}
+void Chip::parse(const string &def_name, const string &lef_name) {
+  if (bench_type_ == BENCH_TYPE::ICCAD)
+    parseICCAD(def_name);
+  else if (bench_type_ == BENCH_TYPE::NORMAL)
+    parseNORMAL(lef_name, def_name);
+}
+void Chip::write(const string &file_name) {
+  if (bench_type_ == BENCH_TYPE::ICCAD)
+    writeICCAD(file_name);
+  else if (bench_type_ == BENCH_TYPE::NORMAL)
+    writeNORMAL(file_name);
+}
+void Chip::setStartTime() {
+  char *current_time_char;
+  time_t current_time;
+  time(&current_time);
+  current_time_char = ctime(&current_time);
+  string current_time_str(current_time_char);
+  start_time_ = current_time_str.substr(0, current_time_str.length() - 1);
 }
 } // VLSI_backend

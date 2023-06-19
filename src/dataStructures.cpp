@@ -520,7 +520,7 @@ void Net::updateBox(int die_ID, bool consider_other_die) {
   lx_ = ly_ = INT_MAX;
   ux_ = uy_ = INT_MIN;
   // TODO: check the default value is 0 or not
-  if (consider_other_die) {
+  if (consider_other_die || die_ID == 0) {
     for (Pin *gPin : getConnectedPins()) {
       lx_ = std::min(gPin->cx(), lx_);
       ly_ = std::min(gPin->cy(), ly_);

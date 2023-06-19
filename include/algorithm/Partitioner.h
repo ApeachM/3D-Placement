@@ -30,7 +30,7 @@ class Chip::Partitioner : par::TritonPart {
 
   void ReadNetlist();
   string solution_file;
-  int dbu;
+  int dbu{};
 };
 }
 
