@@ -53,7 +53,7 @@ class Net {
   /// Constructors
   Net() = default;
   explicit Net(odb::dbNet *db_net);
-  /// methods for Chip.init()
+  /// methods for Chip.dataBaseInit()
   odb::dbNet *getDbNet() const;
 
   /// get net name

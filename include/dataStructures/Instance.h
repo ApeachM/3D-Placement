@@ -73,7 +73,7 @@ class Instance {
    * \brief
    * set the cell id
    * \details
-   * this function should be called in only Chip::init() function
+   * this function should be called in only Chip::dataBaseInit() function
    * */
   void setId(int id);
 

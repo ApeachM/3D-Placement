@@ -84,11 +84,11 @@ int main(int argc, char **argv) {
     return 1;
   if (is_for_contest) {
     VLSI_backend::Chip chip;
-    chip.setBenchType("ICCAD");
+    chip.setBenchType(VLSI_backend::BENCH_TYPE::ICCAD);
     chip.do3DPlace(test_case_path);
   } else {
     VLSI_backend::Chip chip;
-    chip.setBenchType("NORMAL");
+    chip.setBenchType(VLSI_backend::BENCH_TYPE::NORMAL);
     chip.do3DPlace(test_case_path, test_dir + "Nangate45.lef");
     // chip.getDbDatabase()->getChip()->getBlock()->saveLef((output_path_name + lefName).c_str());
   }

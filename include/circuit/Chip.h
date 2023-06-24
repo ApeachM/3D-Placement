@@ -103,7 +103,7 @@ class Chip {
    * */
   void do3DPlace(const string &def_name, const string &lef_name = "");
 
-  void setBenchType(const string &bench_type);
+  void setBenchType(BENCH_TYPE bench_type);
   const string &getDesignName() const;
 
   void test();
@@ -113,7 +113,7 @@ class Chip {
 
  protected:
   // Data initialization
-  void init();
+  void dataBaseInit();
 
   /**
    * \brief
@@ -142,6 +142,8 @@ class Chip {
    * */
   void parseICCAD(const string &input_file_name);
   void writeICCAD(const string &output_file_name);
+  void parseICCADBenchData(const string &input_file_name);
+  void odbConstructionForICCAD();
 
   void printDataInfo() const;
 
@@ -163,6 +165,9 @@ class Chip {
    * GitHub: ApeachM (https://github.com/ApeachM)
    * */
   void partition();
+  /**
+   *
+   * */
   void partitionSimple();
   bool checkPartitionFile();
   void readPartitionFile();
@@ -264,10 +269,6 @@ class Chip {
     TWO_DIE_PLACE,
     END
   };
-  enum BENCH_TYPE {
-    ICCAD,
-    NORMAL
-  };
   /// this is for connection between the objects
   struct DataMapping {
     std::unordered_map<dbInst *, Instance *> inst_map;
@@ -281,8 +282,10 @@ class Chip {
 
   PHASE phase_ = START;
   BENCH_TYPE bench_type_ = NORMAL;
+  ICCAD2022BenchInformation bench_information_;
   string design_name_;
   utl::Logger logger_;
+
   // For pseudo die
   odb::dbDatabase *pseudo_db_database_{};
 
@@ -324,7 +327,6 @@ class Chip {
 
   string start_time_;
   ulong current_hpwl_;
-
 };
 
 } // VLSI_backend
