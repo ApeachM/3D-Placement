@@ -476,9 +476,9 @@ void Chip::Partitioner::ReadNetlist() {
                                                            logger_);
   // show the status of hypergraph
   logger_->info(utl::PAR, 174, "Netlist Information**");
-  logger_->info(utl::PAR, 175, "Vertices = {}", original_hypergraph_->num_vertices_);
+  logger_->info(utl::PAR, 175, "Vertices = {}", original_hypergraph_->GetNumVertices());
   logger_->info(
-      utl::PAR, 176, "Hyperedges = {}", original_hypergraph_->num_hyperedges_);
+      utl::PAR, 176, "Hyperedges = {}", original_hypergraph_->GetNumHyperedges());
   logger_->info(utl::PAR, 177, "Number of timing paths = {}", timing_paths_.size());
 }
 

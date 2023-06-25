@@ -39,11 +39,13 @@
 #include "InitialPlacer.h"
 #include "Partitioner.h"
 #include "HierRTLMP.h"
+#include "Legalizer.h"
 
 using namespace std;
 
 namespace VLSI_backend {
-Chip::Chip() {
+Chip::Chip() : legalizer_(this) {
+
   parser_.setLoggerPtr(&logger_);
   setStartTime();
 }
@@ -51,32 +53,38 @@ Chip::Chip() {
 void Chip::do3DPlace(const string &def_name, const string &lef_name) {
 
   setDesignName(def_name); // todo: handle for NORMAL case
+  phase_ = static_cast<PHASE>(stepManager());
 
-  if (!checkDbFile()) {
+  if (phase_<=PHASE::START){
     phase_ = PHASE::START;
     parse(def_name, lef_name);
-
+  }
+  if (phase_<=PHASE::PARTITION){
+    phase_ = PHASE::PARTITION;
+    this->partition();
+  }
+  if (phase_ <= PHASE::INITIAL_PLACE){
     phase_ = PHASE::INITIAL_PLACE;
-    this->normalPlacement();  // 1. do3DPlace the cells in the pseudo die
-    this->dbCapture("db_" + design_name_);
-  } else {
-    phase_ = PHASE::INITIAL_PLACE;
-    cout << "Load DB." << endl;
-    this->dbCaptureRead("db_" + design_name_);
-    // this->drawTotalCircuit("loaded_die_pseudo");
+    this->doInitialPlace();
+  }
+  if (phase_ <= PHASE::GENERATE_HYBRID_BOND){
+    phase_ = PHASE::GENERATE_HYBRID_BOND;
+    this->generateHybridBonds();
   }
 
-  phase_ = PHASE::PARTITION;
-  this->partition();  // 2. partition
 
-  phase_ = PHASE::GENERATE_HYBRID_BOND;
-  this->generateHybridBonds();  // 3. hybrid bond generate and placement
 
   phase_ = PHASE::TWO_DIE_PLACE;
-  this->placement2DieSynchronously();  // 4. placement synchronously
+  this->placement2DieSynchronously();
+
+  phase_ = PHASE::LEGALIZE;
+  this->legalize();
 
   phase_ = PHASE::END;
   // write("Final_result_" + design_name_);
+}
+int Chip::stepManager() {
+  return PHASE::TWO_DIE_PLACE;
 }
 void Chip::setTargetDensityManually() {
   // manually setting in code level
@@ -106,6 +114,7 @@ void Chip::partition() {
 */
   if (bench_type_ == BENCH_TYPE::ICCAD) {
     // there's no RTL code in BENCH_TYPE::ICCAD, therefore we use triton partitioning
+    // For using Triton Partitioning, let's construct a temporal db_database and data structures
     partitionTriton();
   } else {
 /*
@@ -321,7 +330,11 @@ void Chip::placement2DieSynchronously() {
   }
   nesterov_placer1.updateDB();
   nesterov_placer2.updateDB();
+  saveDb(phase_);
   this->drawTotalCircuit("FinalState", true);
+}
+void Chip::legalize() {
+  legalizer_.doLegalize();
 }
 
 void Chip::dataBaseInit() {
@@ -923,7 +936,7 @@ void Chip::writeNORMAL(const string &out_file_name) {
 }
 void Chip::parseICCAD(const string &input_file_name) {
   parseICCADBenchData(input_file_name);
-  odbConstructionForICCAD();
+  pseudoDieOdbConstructionForICCAD();
   dataBaseInit();
 }
 void Chip::parseICCADBenchData(const string &input_file_name) {
@@ -1102,7 +1115,7 @@ void Chip::parseICCADBenchData(const string &input_file_name) {
     assert(die_info.tech_name == die_info.tech_info->name);
   }
 }
-void Chip::odbConstructionForICCAD() {
+void Chip::odbConstructionForICCAD_deprecated() {
   // DB Base Construction //
 
   // for top and bottom die
@@ -1327,6 +1340,132 @@ void Chip::odbConstructionForICCAD() {
   hybrid_size_y_ = bench_information_.terminal_info.size_y;
   hybrid_spacing_ = bench_information_.terminal_info.spacing_size;
 }
+void Chip::pseudoDieOdbConstructionForICCAD() {
+  /**
+   * \brief
+   * Construction odb database for pseudo die.
+   * This is just for the partitioning with Triton.
+   * */
+  assert(pseudo_db_database_ == nullptr);
+  pseudo_db_database_ = dbDatabase::create();
+  dbTech *db_tech = dbTech::create(pseudo_db_database_);
+  dbTechLayer::create(db_tech, "masterSlice", dbTechLayerType::MASTERSLICE);
+  dbLib *db_lib = dbLib::create(pseudo_db_database_, "pseudoDieLib", ',');
+  dbChip *db_chip = dbChip::create(pseudo_db_database_);
+  dbBlock *db_block = dbBlock::create(db_chip, "pseudoDieBlock");
+  dbTechLayer *db_tech_layer = db_tech->findLayer(0);
+  assert(db_tech_layer != nullptr);
+
+  // For pseudo die
+  pair<int, int> lower_left_pseudo = {0, 0};
+  pair<int, int> upper_right_pseudo = {0, 0};
+
+  for (int i = 0; i < 2; ++i) {
+    DieInfo &die_info = bench_information_.die_infos.at(i);
+    Point lower_left = Point(die_info.lower_left_x, die_info.lower_left_y);
+    Point upper_right = Point(die_info.upper_right_x, die_info.upper_right_y);
+    Rect die_rect = Rect(lower_left, upper_right);
+
+    lower_left_pseudo.first += die_info.lower_left_x;
+    lower_left_pseudo.second += die_info.lower_left_y;
+    upper_right_pseudo.first += die_info.upper_right_x;
+    upper_right_pseudo.second += die_info.upper_right_y;
+  }
+  lower_left_pseudo.first /= 2;
+  lower_left_pseudo.second /= 2;
+  upper_right_pseudo.first /= 2;
+  upper_right_pseudo.second /= 2;
+
+  Point lower_left_point_pseudo = Point(lower_left_pseudo.first, lower_left_pseudo.second);
+  Point upper_right_point_pseudo = Point(upper_right_pseudo.first, upper_right_pseudo.second);
+  Rect pseudo_die_rect = Rect(lower_left_point_pseudo, upper_right_point_pseudo);
+  pseudo_db_database_->getChip()->getBlock()->setDieArea(pseudo_die_rect);
+
+  // Row setting
+  int die_height = row_infos_.first.row_height * row_infos_.second.repeat_count;
+  int row_height = floor((row_infos_.first.row_height + row_infos_.second.row_height) / 2);
+  int repeat_count = floor(die_height / row_height);
+  for (int i = 0; i < repeat_count; ++i) {
+    dbSite *site = dbSite::create(pseudo_db_database_->findLib("pseudoDieLib"), ("site" + to_string(i)).c_str());
+    site->setHeight(row_height);
+    dbRow::create(db_block, ("row" + to_string(i)).c_str(), site,
+                  0, 0, dbOrientType::MX, dbRowDir::HORIZONTAL, 1, row_height);
+  }
+
+  // Library Construction
+  DieInfo *top_die_info = &bench_information_.die_infos.at(TOP_DIE - 1);
+  DieInfo *bottom_die_info = &bench_information_.die_infos.at(BOTTOM_DIE - 1);
+
+  int cell_num = top_die_info->tech_info->lib_cell_num;
+  assert(cell_num == bottom_die_info->tech_info->lib_cell_num);
+  for (int i = 0; i < cell_num; ++i) {
+    int width, height;
+    LibCellInfo *lib_cell_info_top = &top_die_info->tech_info->lib_cell_infos.at(i);
+    LibCellInfo *lib_cell_info_bottom = &bottom_die_info->tech_info->lib_cell_infos.at(i);
+    string lib_cell_name = lib_cell_info_top->name;
+    assert(lib_cell_name == lib_cell_info_bottom->name);
+    width = floor((lib_cell_info_top->width + lib_cell_info_bottom->width) / 2);
+    height = floor((lib_cell_info_top->height + lib_cell_info_bottom->height) / 2);
+
+    dbMaster *master = dbMaster::create(db_lib, lib_cell_name.c_str());
+    master->setWidth(width);
+    master->setHeight(height);
+    master->setType(dbMasterType::CORE);
+
+    // read pins in one LIbCell
+    int pin_number = lib_cell_info_top->pin_number;
+    assert(pin_number == lib_cell_info_bottom->pin_number);
+    for (int j = 0; j < pin_number; ++j) {
+      LibPinInfo *pin_info_top = &lib_cell_info_top->lib_pin_infos.at(j);
+      LibPinInfo *pin_info_bottom = &lib_cell_info_bottom->lib_pin_infos.at(j);
+      string pin_name = pin_info_top->pin_name;
+      assert(pin_name == pin_info_bottom->pin_name);
+      int pin_location_x = floor((pin_info_top->pin_location_x + pin_info_bottom->pin_location_x) / 2);
+      int pin_location_y = floor((pin_info_top->pin_location_y + pin_info_bottom->pin_location_y) / 2);
+      assert(width >= pin_location_x);
+      assert(height >= pin_location_y);
+
+      // (refer to `void lefin::pin` function in odb/src/lefin/lefin.cpp)
+      // dbIoType io_type = dbIoType::INOUT;  // There's no information in this contest benchmarks.
+      // for partitioning, we should make any flow of IO.
+      // let the last pin has the output pin, and the others has input flow
+      dbIoType io_type;
+      if (j != lib_cell_info_top->pin_number - 1)
+        io_type = dbIoType::INPUT;
+      else
+        io_type = dbIoType::OUTPUT;
+      dbSigType sig_type = dbSigType::SIGNAL;  // There's no information in this contest benchmarks.
+      dbMTerm *master_terminal = dbMTerm::create(master, pin_name.c_str(), io_type, sig_type);
+      dbMPin *db_m_pin = dbMPin::create(master_terminal);
+      // (refer to `bool lefin::addGeoms` function in submodule/OpenDB/src/lefin/lefin.cpp in case of `lefiGeomRectE`)
+      dbBox::create(db_m_pin, db_tech_layer,
+                    pin_location_x, pin_location_y, pin_location_x + 1, pin_location_y + 1);
+    }
+    master->setFrozen();
+  }
+
+  // Instance Construction //
+  for (int i = 0; i < instance_number_; ++i) {
+    InstanceInfo *instance_info = &bench_information_.instance_infos.at(i);
+    dbMaster *master = pseudo_db_database_->findMaster(instance_info->lib_cell_name.c_str());
+    dbInst::create(db_block, master, instance_info->inst_name.c_str());
+  }
+
+  // Net and connections setting //
+  for (int i = 0; i < net_number_; ++i) {
+    // (refer to `dbDatabase* create2LevetDbNoBTerms()` function in submodule/OpenDB/test/cpp/helper.cpp)
+    NetInfo *net_info = &bench_information_.net_infos.at(i);
+    dbNet *net = dbNet::create(db_block, net_info->net_name.c_str());
+
+    // read pins in one Net
+    for (int j = 0; j < net_info->pin_num; ++j) {
+      ConnectedPinInfo *pin_info = &net_info->connected_pins_infos.at(j);
+      dbInst *inst = db_block->findInst(pin_info->instance_name.c_str());
+      inst->findITerm(pin_info->lib_pin_name.c_str())->connect(net);
+      assert(inst->findITerm(pin_info->lib_pin_name.c_str()));
+    }
+  }
+}
 void Chip::writeICCAD(const string &output_file_name) {
   // open output file
   ofstream ofs(output_file_name);
@@ -1467,6 +1606,8 @@ void Chip::doInitialPlace() {
     if (error_max < 1e-5 && iter >= 5)
       break;
   }
+
+  saveDb(phase_);
 }
 void Chip::doNesterovPlace() {
   NesterovPlacer nesterov_placer(
@@ -3138,12 +3279,73 @@ void Chip::dbCapture(const string &file_name) {
     std::fclose(stream);
   }
 }
-bool Chip::checkDbFile() {
-  std::ifstream db_file("db_" + design_name_, std::ios::binary);
-  if (db_file.fail())
-    return false;
-  else
-    return true;
+void Chip::saveDb(int phase) {
+  string file_name;
+  if (phase == PHASE::INITIAL_PLACE) {
+    file_name = "db_INITIAL_PLACE_" + design_name_+".db";
+  } else if (phase == PHASE::TWO_DIE_PLACE) {
+    file_name = "db_TWO_DIE_PLACE_" + design_name_+".db";
+  } else
+    assert(0);
+
+  FILE *stream = std::fopen(file_name.c_str(), "w");
+  if (stream) {
+    pseudo_db_database_->write(stream);
+    std::fclose(stream);
+  }
+}
+dbDatabase *Chip::loadDb(int phase) {
+  string file_name;
+  dbDatabase *db_database = odb::dbDatabase::create();
+  if (phase == PHASE::INITIAL_PLACE) {
+    file_name = "db_INITIAL_PLACE_" + design_name_ + ".db";
+  } else if (phase == PHASE::TWO_DIE_PLACE) {
+    file_name = "db_TWO_DIE_PLACE_" + design_name_ + ".db";
+  } else
+    assert(0);
+
+  std::ifstream  file;
+  file.exceptions(std::ifstream::failbit | std::ifstream::badbit | std::ios::eofbit);
+  file.open(file_name, std::ios::binary);
+  db_database->read(file);
+
+  return db_database;
+}
+bool Chip::checkDbFile(int phase) {
+  bool is_there = false;
+  if (phase == PHASE::INITIAL_PLACE) {
+    std::ifstream db_file("db_INITIAL_PLACE_" + design_name_ + ".db", std::ios::binary);
+    is_there = !db_file.fail();
+  } else if (phase == PHASE::TWO_DIE_PLACE) {
+    std::ifstream db_file("db_TWO_DIE_PLACE_" + design_name_ + ".db", std::ios::binary);
+    is_there = !db_file.fail();
+  }
+  return is_there;
+}
+void Chip::destroyAllCircuitInformation() {
+  /*
+   * Destroy the db database,
+   * the data in data_storage, pointer containers, and mapping containers.
+   * This will destroy the data the db database
+   * and the ones only made in the dataBaseInit function.
+   * */
+  if (pseudo_db_database_ != nullptr)
+    odb::dbDatabase::destroy(pseudo_db_database_);
+
+  data_storage_.instances.clear();
+  data_storage_.nets.clear();
+  data_storage_.pins.clear();
+  data_storage_.dies.clear();
+
+  instance_pointers_.clear();
+  net_pointers_.clear();
+  pin_pointers_.clear();
+  die_pointers_.clear();
+
+  mapping_.inst_map.clear();
+  mapping_.net_map.clear();
+  mapping_.pin_map_i.clear();
+  mapping_.pin_map_b.clear();
 }
 void Chip::parse(const string &def_name, const string &lef_name) {
   if (bench_type_ == BENCH_TYPE::ICCAD)
@@ -3164,5 +3366,111 @@ void Chip::setStartTime() {
   current_time_char = ctime(&current_time);
   string current_time_str(current_time_char);
   start_time_ = current_time_str.substr(0, current_time_str.length() - 1);
+}
+void Chip::Legalizer::doLegalize() {
+  cellLegalize();
+  hybridLegalize();
+}
+void Chip::Legalizer::cellLegalize() {
+  oneDieCellLegalize(DIE_ID::TOP_DIE);
+  oneDieCellLegalize(DIE_ID::BOTTOM_DIE);
+}
+void Chip::Legalizer::oneDieCellLegalize(DIE_ID die_id) {
+  // construction db_database for each die
+  constructionOdbDatabase(die_id);
+  // do detail placement with OpenDP
+  doDetailPlacement(die_id);
+}
+void Chip::Legalizer::doDetailPlacement(DIE_ID die_id) {
+  dbDatabase *db_database;
+  if (die_id == DIE_ID::TOP_DIE)
+    db_database = db_database_container.at(0);
+  else if (die_id == DIE_ID::BOTTOM_DIE)
+    db_database = db_database_container.at(1);
+
+  auto *odp = new dpl::Opendp();
+  odp->init(db_database, &parent_->logger_);
+  odp->detailedPlacement(0, 0);
+
+}
+void Chip::Legalizer::constructionOdbDatabase(DIE_ID die_id) {
+  string which_die;
+  DieInfo die_info;
+  if (die_id == DIE_ID::TOP_DIE) {
+    which_die = "TOP";
+    die_info = parent_->bench_information_.die_infos.at(0);
+  } else if (die_id == DIE_ID::BOTTOM_DIE) {
+    which_die = "BOTTOM";
+    die_info = parent_->bench_information_.die_infos.at(1);
+  }
+  dbDatabase *db_database = dbDatabase::create();
+  dbTech *db_tech = dbTech::create(db_database);
+  dbTechLayer *db_tech_layer = dbTechLayer::create(db_tech, (which_die + "MasterSlice").c_str(),
+                                                   dbTechLayerType::MASTERSLICE);
+  dbLib *db_lib = dbLib::create(db_database, (which_die + "DieLib").c_str(), ',');
+  dbChip *db_chip = dbChip::create(db_database);
+  dbBlock *db_block = dbBlock::create(db_chip, (which_die + "DieBlock").c_str());
+
+  Point lower_left_point_of_die = Point(die_info.lower_left_x, die_info.lower_left_y);
+  Point upper_right_point_of_die = Point(die_info.upper_right_x, die_info.upper_right_y);
+  Rect die_rect = Rect(lower_left_point_of_die, upper_right_point_of_die);
+  db_database->getChip()->getBlock()->setDieArea(die_rect);
+
+  // Row setting
+  for (int i = 0; i < die_info.row_info.repeat_count; ++i) {
+    dbSite *site = dbSite::create(db_lib, ("site" + to_string(i)).c_str());
+    site->setHeight(die_info.row_info.row_height);
+    dbRow::create(db_block, ("row" + to_string(i)).c_str(), site,
+                  0, 0, dbOrientType::MX, dbRowDir::HORIZONTAL, 1, die_info.row_info.row_height);
+  }
+
+  // Library Construction
+  int cell_num = die_info.tech_info->lib_cell_num;
+  for (int i = 0; i < cell_num; ++i) {
+    LibCellInfo *lib_cell_info = &die_info.tech_info->lib_cell_infos.at(i);
+    int width = lib_cell_info->width;
+    int height = lib_cell_info->height;
+    string lib_cell_name = lib_cell_info->name;
+    dbMaster *master = dbMaster::create(db_lib, lib_cell_name.c_str());
+    master->setWidth(width);
+    master->setHeight(height);
+    master->setType(dbMasterType::CORE);
+
+    // read pins in one Lib Cell
+    int pin_number = lib_cell_info->pin_number;
+    for (int j = 0; j < pin_number; ++j) {
+      LibPinInfo *pin_info = &lib_cell_info->lib_pin_infos.at(j);
+      string pin_name = pin_info->pin_name;
+      int pin_location_x = pin_info->pin_location_x;
+      int pin_location_y = pin_info->pin_location_y;
+      assert(width >= pin_location_x);
+      assert(height >= pin_location_y);
+      // What is different between master terminal and master pin?
+      dbMTerm *mater_terminal = dbMTerm::create(master, pin_name.c_str(), dbIoType::INOUT, dbSigType::SIGNAL);
+      dbMPin *master_pin = dbMPin::create(mater_terminal);
+      // (refer to `bool lefin::addGeoms` function in submodule/OpenDB/src/lefin/lefin.cpp in case of `lefiGeomRectE`)
+      dbBox::create(master_pin, db_tech_layer,
+                    pin_location_x, pin_location_y, pin_location_x + 1, pin_location_y + 1);
+    }
+    master->setFrozen();
+  }
+
+  // Instance Construction only for respective die
+  for (auto instance : parent_->instance_pointers_) {
+    assert(instance->getDieId() == DIE_ID::TOP_DIE || instance->getDieId() == DIE_ID::BOTTOM_DIE);
+    if (instance->getDieId() == die_id) {
+      string lib_cell_name = instance->getLibName();
+      dbMaster *master = db_database->findMaster(lib_cell_name.c_str());
+      dbInst::create(db_block, master, instance->getName().c_str());
+    }
+  }
+
+  // DP doesn't use the connectivity, so I will not construct the net
+
+  // collect the db_database in class variable
+  db_database_container.push_back(db_database);
+}
+void Chip::Legalizer::hybridLegalize() {
+
 }
 } // VLSI_backend

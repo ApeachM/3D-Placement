@@ -48,6 +48,7 @@
 #include "Die.h"
 #include "fft.h"
 #include "HierRTLMP.h"
+#include "dpl/Opendp.h"
 #include "Drawer.h"
 
 #define REPLACE_SQRT2 1.414213562373095048801L
@@ -85,7 +86,27 @@ class Chip {
   /* Placers */
   class InitialPlacer;
   class NesterovPlacer;
+
+  /* Partitioner */
   class Partitioner;
+
+  /* Legalizer */
+  class Legalizer {
+   public:
+    explicit Legalizer(Chip *parent) : parent_(parent) {
+    }
+    void doLegalize();
+
+   private:
+    void cellLegalize();
+    void oneDieCellLegalize(DIE_ID die_id);
+    void constructionOdbDatabase(DIE_ID die_id);
+    void doDetailPlacement(DIE_ID die_id);
+    void hybridLegalize();
+
+    Chip *parent_;
+    vector<dbDatabase *> db_database_container;
+  };
 
  public:
   Chip();
@@ -115,6 +136,8 @@ class Chip {
   // Data initialization
   void dataBaseInit();
 
+  int stepManager();
+
   /**
    * \brief
    * Read and Write functions
@@ -143,7 +166,20 @@ class Chip {
   void parseICCAD(const string &input_file_name);
   void writeICCAD(const string &output_file_name);
   void parseICCADBenchData(const string &input_file_name);
-  void odbConstructionForICCAD();
+  /**
+   * \brief
+   * Construction odb database for pseudo die.
+   * This is just for the partitioning with Triton.
+   * */
+  void pseudoDieOdbConstructionForICCAD();
+
+  /**
+   * \author
+   * Minjae Kim \n
+   * GitHub: ApeachM (https://github.com/ApeachM)
+   * \deprecated
+   * */
+  void odbConstructionForICCAD_deprecated();
 
   void printDataInfo() const;
 
@@ -210,6 +246,8 @@ class Chip {
    * */
   void doNesterovPlace();
 
+  void legalize();
+
   /**\brief
    * get unit of micro
    * \details
@@ -252,9 +290,18 @@ class Chip {
   void setDbDatabase(dbDatabase *db_database);
   void setDesignName(const string &input_file_name);
   void drawTotalCircuit(const string &die_name = "die", bool high_resolution = false);
+  void saveDb(int phase);
+  dbDatabase* loadDb(int phase);
+  /**
+   * \deprecated
+   * */
   void dbCapture(const string &file_name);
+  /**
+   * \deprecated
+   * */
   void dbCaptureRead(const string &file_name);
-  bool checkDbFile();
+  bool checkDbFile(int phase);
+  void destroyAllCircuitInformation();
   void getAverageInstanceSize();
   void setTargetDensityManually();
   void partitionTriton();
@@ -263,10 +310,11 @@ class Chip {
  protected:
   enum PHASE {
     START,
-    INITIAL_PLACE,
     PARTITION,
-    GENERATE_HYBRID_BOND,
+    INITIAL_PLACE,
     TWO_DIE_PLACE,
+    GENERATE_HYBRID_BOND,
+    LEGALIZE,
     END
   };
   /// this is for connection between the objects
@@ -278,7 +326,6 @@ class Chip {
     /// mapping_ for terminals on blocks (includes fixed pins on die)
     std::unordered_map<dbBTerm *, Pin *> pin_map_b;
   };
-  DataMapping mapping_;
 
   PHASE phase_ = START;
   BENCH_TYPE bench_type_ = NORMAL;
@@ -296,7 +343,7 @@ class Chip {
 
   Parser parser_;
   data_storage data_storage_;
-  // DataMapping data_mapping_;
+  DataMapping mapping_;
 
   std::vector<Instance *> instance_pointers_;
   std::vector<Net *> net_pointers_;
@@ -324,6 +371,7 @@ class Chip {
 
   HierRTLMPartition *hier_rtl_;
   Partitioner *partitioner_;
+  Legalizer legalizer_;
 
   string start_time_;
   ulong current_hpwl_;
