@@ -39,7 +39,6 @@
 #include "InitialPlacer.h"
 #include "Partitioner.h"
 #include "HierRTLMP.h"
-#include "Legalizer.h"
 
 using namespace std;
 
@@ -55,36 +54,36 @@ void Chip::do3DPlace(const string &def_name, const string &lef_name) {
   setDesignName(def_name); // todo: handle for NORMAL case
   phase_ = static_cast<PHASE>(stepManager());
 
-  if (phase_<=PHASE::START){
+  if (phase_ <= PHASE::START) {
     phase_ = PHASE::START;
     parse(def_name, lef_name);
   }
-  if (phase_<=PHASE::PARTITION){
+  if (phase_ <= PHASE::PARTITION) {
     phase_ = PHASE::PARTITION;
     this->partition();
   }
-  if (phase_ <= PHASE::INITIAL_PLACE){
+  if (phase_ <= PHASE::INITIAL_PLACE) {
     phase_ = PHASE::INITIAL_PLACE;
     this->doInitialPlace();
   }
-  if (phase_ <= PHASE::GENERATE_HYBRID_BOND){
+  if (phase_ <= PHASE::GENERATE_HYBRID_BOND) {
     phase_ = PHASE::GENERATE_HYBRID_BOND;
     this->generateHybridBonds();
   }
-
-
-
-  phase_ = PHASE::TWO_DIE_PLACE;
-  this->placement2DieSynchronously();
-
-  phase_ = PHASE::LEGALIZE;
-  this->legalize();
+  if (phase_ <= PHASE::TWO_DIE_PLACE) {
+    phase_ = PHASE::TWO_DIE_PLACE;
+    this->placement2DieSynchronously();
+  }
+  if (phase_ <= PHASE::LEGALIZE) {
+    phase_ = PHASE::LEGALIZE;
+    this->legalize();
+  }
 
   phase_ = PHASE::END;
-  // write("Final_result_" + design_name_);
 }
 int Chip::stepManager() {
-  return PHASE::TWO_DIE_PLACE;
+  // TODO
+  return PHASE::START;
 }
 void Chip::setTargetDensityManually() {
   // manually setting in code level
@@ -3282,9 +3281,9 @@ void Chip::dbCapture(const string &file_name) {
 void Chip::saveDb(int phase) {
   string file_name;
   if (phase == PHASE::INITIAL_PLACE) {
-    file_name = "db_INITIAL_PLACE_" + design_name_+".db";
+    file_name = "db_INITIAL_PLACE_" + design_name_ + ".db";
   } else if (phase == PHASE::TWO_DIE_PLACE) {
-    file_name = "db_TWO_DIE_PLACE_" + design_name_+".db";
+    file_name = "db_TWO_DIE_PLACE_" + design_name_ + ".db";
   } else
     assert(0);
 
@@ -3304,7 +3303,7 @@ dbDatabase *Chip::loadDb(int phase) {
   } else
     assert(0);
 
-  std::ifstream  file;
+  std::ifstream file;
   file.exceptions(std::ifstream::failbit | std::ifstream::badbit | std::ios::eofbit);
   file.open(file_name, std::ios::binary);
   db_database->read(file);
