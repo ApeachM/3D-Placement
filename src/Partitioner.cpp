@@ -209,7 +209,9 @@ void Chip::Partitioner::init(const string &design_name) {
   std::string fixed_file;
   std::string community_file;
   std::string group_file;
-  solution_file = "partition_info_" + design_name;
+  string solution_file_path = "../output/partitionFiles/";
+  string solution_file_name = "partition_info_" + design_name + ".par";
+  solution_file = solution_file_path + solution_file_name;
   logger_->info(utl::PAR, 102, "Number of partitions = {}", num_parts_);
   logger_->info(utl::PAR, 16, "UBfactor = {}", ub_factor_);
   logger_->info(utl::PAR, 17, "Seed = {}", seed_);

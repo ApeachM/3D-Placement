@@ -53,7 +53,7 @@ void Chip::do3DPlace(const string &def_name, const string &lef_name) {
 
   setInputArguments(def_name, lef_name);
   setDesignName(def_name); // todo: handle for NORMAL case
-  phase_ = static_cast<PHASE>(stepManager());
+  // phase_ = static_cast<PHASE>(stepManager());
 
   if (phase_ <= PHASE::START) {
     phase_ = PHASE::START;
@@ -145,7 +145,8 @@ void Chip::partition() {
   }
 }
 void Chip::partitionTriton() {
-  if (!checkPartitionFile()) {
+//  if (!checkPartitionFile()) {
+  if (true) {
     partitioner_ = new Partitioner(nullptr, pseudo_db_database_, nullptr, &logger_);
     partitioner_->init(design_name_);
     partitioner_->doPartitioning();
@@ -654,25 +655,47 @@ void Chip::partitionSimple() {
   }
 }
 bool Chip::checkPartitionFile() {
-  ifstream partition_info_file("partition_info_" + design_name_);
+  string file_path = "../output/partitionFiles/";
+  string file_name = "partition_info_" + design_name_ + ".par";
+  ifstream partition_info_file(file_path + file_name);
   if (partition_info_file.fail())
     return false;
   else
     return true;
 }
 void Chip::readPartitionFile() {
-  ifstream partition_info_file("partition_info_" + design_name_);
+  string file_path = "../output/partitionFiles/";
+  string file_name = "partition_info_" + design_name_ + ".par";
+  ifstream partition_info_file(file_path + file_name);
   if (partition_info_file.fail())
     assert(0);
 
   string instance_name;
   int partition_info;
+  uint64 top_die_instance_area = 0;
+  uint64 bottom_die_instance_area = 0;
   for (int i = 0; i < instance_number_; ++i) {
     partition_info_file >> instance_name >> partition_info;
     dbInst *db_inst = pseudo_db_database_->getChip()->getBlock()->findInst(instance_name.c_str());
     Instance *instance = mapping_.inst_map[db_inst];
     instance->assignDie(partition_info + 1);
+    if (partition_info == 0) {
+      top_die_instance_area += instance->getArea();
+    } else if (partition_info == 1) {
+      bottom_die_instance_area += instance->getArea();
+    }
   }
+
+  cout << endl << endl;
+  cout << "Top Die Util: "
+       << static_cast<float>(top_die_instance_area) / static_cast<float>(die_pointers_.at(0)->getArea()) * 100 << "%\n";
+  cout << "where instance area in top die: " << top_die_instance_area << endl
+       << "and the die area: " << die_pointers_.at(DIE_ID::PSEUDO_DIE)->getArea() << endl;
+  cout << "Bottom Die Util: "
+       << static_cast<float>(bottom_die_instance_area) / static_cast<float>(die_pointers_.at(0)->getArea()) * 100
+       << "%\n";
+  cout << "where instance area in top die: " << bottom_die_instance_area << endl
+       << "and the die area: " << die_pointers_.at(DIE_ID::PSEUDO_DIE)->getArea() << endl << endl;
 
   // TODO: do for BlockTerminals. This will be for BENCH_TYPE::NORMAL case.
 }
