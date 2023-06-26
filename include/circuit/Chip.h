@@ -102,10 +102,11 @@ class Chip {
     void oneDieCellLegalize(DIE_ID die_id);
     void constructionOdbDatabase(DIE_ID die_id);
     void doDetailPlacement(DIE_ID die_id);
+    void saveDb(DIE_ID die_id);
     void hybridLegalize();
 
     Chip *parent_;
-    vector<dbDatabase *> db_database_container;
+    vector<dbDatabase *> db_database_container_;
   };
 
  public:
@@ -326,10 +327,15 @@ class Chip {
     /// mapping_ for terminals on blocks (includes fixed pins on die)
     std::unordered_map<dbBTerm *, Pin *> pin_map_b;
   };
+  struct InputArguments{
+    string def_name;
+    string lef_name;
+  };
 
   PHASE phase_ = START;
   BENCH_TYPE bench_type_ = NORMAL;
   ICCAD2022BenchInformation bench_information_;
+  InputArguments input_arguments_;
   string design_name_;
   utl::Logger logger_;
 
@@ -375,6 +381,7 @@ class Chip {
 
   string start_time_;
   ulong current_hpwl_;
+  void setInputArguments(const string &def_name, const string &lef_name);
 };
 
 } // VLSI_backend

@@ -51,6 +51,7 @@ Chip::Chip() : legalizer_(this) {
 // main flow //
 void Chip::do3DPlace(const string &def_name, const string &lef_name) {
 
+  setInputArguments(def_name, lef_name);
   setDesignName(def_name); // todo: handle for NORMAL case
   phase_ = static_cast<PHASE>(stepManager());
 
@@ -81,9 +82,23 @@ void Chip::do3DPlace(const string &def_name, const string &lef_name) {
 
   phase_ = PHASE::END;
 }
+void Chip::setInputArguments(const string &def_name, const string &lef_name) {
+  input_arguments_.def_name = def_name;
+  input_arguments_.lef_name = lef_name;
+}
 int Chip::stepManager() {
   // TODO
-  return PHASE::START;
+
+  // Temporary, only from two die placement
+  assert(checkDbFile(PHASE::TWO_DIE_PLACE));
+  parseICCADBenchData(input_arguments_.def_name);
+  pseudo_db_database_ = loadDb(PHASE::TWO_DIE_PLACE);
+  dataBaseInit();
+  readPartitionFile();
+  generateHybridBonds();
+  phase_ = PHASE::LEGALIZE;
+
+  return PHASE::LEGALIZE;
 }
 void Chip::setTargetDensityManually() {
   // manually setting in code level
@@ -3378,19 +3393,19 @@ void Chip::Legalizer::oneDieCellLegalize(DIE_ID die_id) {
   // construction db_database for each die
   constructionOdbDatabase(die_id);
   // do detail placement with OpenDP
-  doDetailPlacement(die_id);
+  // doDetailPlacement(die_id);
 }
 void Chip::Legalizer::doDetailPlacement(DIE_ID die_id) {
   dbDatabase *db_database;
   if (die_id == DIE_ID::TOP_DIE)
-    db_database = db_database_container.at(0);
+    db_database = db_database_container_.at(0);
   else if (die_id == DIE_ID::BOTTOM_DIE)
-    db_database = db_database_container.at(1);
+    db_database = db_database_container_.at(1);
 
   auto *odp = new dpl::Opendp();
   odp->init(db_database, &parent_->logger_);
   odp->detailedPlacement(0, 0);
-
+  saveDb(die_id);
 }
 void Chip::Legalizer::constructionOdbDatabase(DIE_ID die_id) {
   string which_die;
@@ -3416,11 +3431,13 @@ void Chip::Legalizer::constructionOdbDatabase(DIE_ID die_id) {
   db_database->getChip()->getBlock()->setDieArea(die_rect);
 
   // Row setting
+  dbSite *site = dbSite::create(db_lib, "site");
+  site->setHeight(die_info.row_info.row_height);
+  site->setWidth(1);
   for (int i = 0; i < die_info.row_info.repeat_count; ++i) {
-    dbSite *site = dbSite::create(db_lib, ("site" + to_string(i)).c_str());
-    site->setHeight(die_info.row_info.row_height);
     dbRow::create(db_block, ("row" + to_string(i)).c_str(), site,
-                  0, 0, dbOrientType::MX, dbRowDir::HORIZONTAL, 1, die_info.row_info.row_height);
+                  0, i * die_info.row_info.row_height, dbOrientType::MX, dbRowDir::HORIZONTAL,
+                  die_info.row_info.row_width, 1);
   }
 
   // Library Construction
@@ -3455,19 +3472,51 @@ void Chip::Legalizer::constructionOdbDatabase(DIE_ID die_id) {
   }
 
   // Instance Construction only for respective die
+  int64 instance_area = 0;
   for (auto instance : parent_->instance_pointers_) {
     assert(instance->getDieId() == DIE_ID::TOP_DIE || instance->getDieId() == DIE_ID::BOTTOM_DIE);
     if (instance->getDieId() == die_id) {
       string lib_cell_name = instance->getLibName();
       dbMaster *master = db_database->findMaster(lib_cell_name.c_str());
-      dbInst::create(db_block, master, instance->getName().c_str());
+      dbInst *db_inst = dbInst::create(db_block, master, instance->getName().c_str());
+      db_inst->setLocation(instance->getCoordinate().first, instance->getCoordinate().second);
+      db_inst->setPlacementStatus(odb::dbPlacementStatus::PLACED);
+      instance_area += db_inst->getMaster()->getWidth() * db_inst->getMaster()->getHeight();
     }
   }
+
+  if (die_id == DIE_ID::TOP_DIE)
+    cout << "Top Die Utili is " <<
+         static_cast<float>(instance_area) / static_cast<float>(die_rect.area()) * 100 << "%" << endl;
+  else if (die_id == DIE_ID::BOTTOM_DIE)
+    cout << "Bottom Die Utili is " <<
+         static_cast<float>(instance_area) / static_cast<float>(die_rect.area()) * 100 << "%" << endl;
+  cout << "where instance area: " << instance_area << endl;
+  cout << "and die area: " << die_rect.area() << endl << endl;
 
   // DP doesn't use the connectivity, so I will not construct the net
 
   // collect the db_database in class variable
-  db_database_container.push_back(db_database);
+  db_database_container_.push_back(db_database);
+}
+void Chip::Legalizer::saveDb(DIE_ID die_id) {
+  dbDatabase *db_database;
+  string file_path = "../output/dbFiles/";
+  string file_name;
+  if (die_id == DIE_ID::TOP_DIE) {
+    db_database = db_database_container_.at(0);
+    file_name = parent_->design_name_ + "_TOP_DIE.db";
+  } else if (die_id == DIE_ID::BOTTOM_DIE) {
+    db_database = db_database_container_.at(1);
+    file_name = parent_->design_name_ + "_BOTTOM_DIE.db";
+  } else
+    assert(0);
+
+  FILE *stream = std::fopen((file_path + file_name).c_str(), "w");
+  if (stream) {
+    db_database->write(stream);
+    std::fclose(stream);
+  }
 }
 void Chip::Legalizer::hybridLegalize() {
 
