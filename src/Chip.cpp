@@ -53,11 +53,11 @@ void Chip::do3DPlace(const string &def_name, const string &lef_name) {
 
   setInputArguments(def_name, lef_name);
   setDesignName(def_name); // todo: handle for NORMAL case
-//  phase_ = static_cast<PHASE>(stepManager());
+  stepManager();
 
   if (phase_ <= PHASE::START) {
     phase_ = PHASE::START;
-    parse(def_name, lef_name);
+    parse(input_arguments_.def_name, input_arguments_.lef_name);
   }
   if (phase_ <= PHASE::PARTITION) {
     phase_ = PHASE::PARTITION;
@@ -86,19 +86,61 @@ void Chip::setInputArguments(const string &def_name, const string &lef_name) {
   input_arguments_.def_name = def_name;
   input_arguments_.lef_name = lef_name;
 }
-int Chip::stepManager() {
+void Chip::stepManager() {
   // TODO
+  // Do not use this function yet
 
-  // Temporary, only from two die placement
-  assert(checkDbFile(PHASE::TWO_DIE_PLACE));
-  parseICCADBenchData(input_arguments_.def_name);
-  pseudo_db_database_ = loadDb(PHASE::TWO_DIE_PLACE);
-  dataBaseInit();
-  readPartitionFile();
-  generateHybridBonds();
-  phase_ = PHASE::LEGALIZE;
+  // the phase order follows below.
+  /* *
+    START,
+    PARTITION,
+    INITIAL_PLACE,
+    GENERATE_HYBRID_BOND,
+    TWO_DIE_PLACE,
+    LEGALIZE,
+    END
+   * */
 
-  return PHASE::LEGALIZE;
+  // 1. check the phase
+  if (checkPartitionFile()) {
+    phase_ = PHASE::PARTITION;
+  }
+  if (checkDbFile(PHASE::INITIAL_PLACE)) {
+    phase_ = PHASE::INITIAL_PLACE;
+  }
+  if (checkDbFile(PHASE::TWO_DIE_PLACE)) {
+    phase_ = PHASE::TWO_DIE_PLACE;
+  }
+
+  // 2. handle the phase by loading the data files
+  if (phase_ == PHASE::START) {
+    return;
+  } else if (phase_ == PHASE::PARTITION) {
+    parse(input_arguments_.def_name, input_arguments_.lef_name);
+
+    readPartitionFile();
+
+    phase_ = PHASE::INITIAL_PLACE;
+  } else if (phase_ == PHASE::INITIAL_PLACE) {
+    // Below three lines of code is similar with Chip::parse()
+    parseICCADBenchData(input_arguments_.def_name);
+    pseudo_db_database_ = loadDb(PHASE::TWO_DIE_PLACE);
+    dataBaseInit();
+
+    readPartitionFile();
+
+    phase_ = PHASE::GENERATE_HYBRID_BOND;
+  } else if (phase_ == PHASE::TWO_DIE_PLACE) {
+    parseICCADBenchData(input_arguments_.def_name);
+    pseudo_db_database_ = loadDb(PHASE::TWO_DIE_PLACE);
+    dataBaseInit();
+
+    readPartitionFile();
+
+    generateHybridBonds();
+
+    phase_ = PHASE::LEGALIZE;
+  }
 }
 void Chip::setTargetDensityManually() {
   // manually setting in code level
@@ -146,7 +188,6 @@ void Chip::partition() {
 }
 void Chip::partitionTriton() {
   if (!checkPartitionFile()) {
-//  if (true) {
     partitioner_ = new Partitioner(nullptr, pseudo_db_database_, nullptr, &logger_);
     partitioner_->init(design_name_);
     partitioner_->doPartitioning();
@@ -353,6 +394,12 @@ void Chip::legalize() {
 }
 
 void Chip::dataBaseInit() {
+  /*
+   * This function is for the initialization of the database.
+   * But this is not for the db database.
+   * This is for the database that I made (EDA-API repository in ApeachM account, GitHub)
+   * */
+
   dbBlock *block = pseudo_db_database_->getChip()->getBlock();
   dbSet<dbInst> db_instances = block->getInsts();
   dbSet<dbNet> db_nets = block->getNets();
@@ -3319,12 +3366,13 @@ void Chip::dbCapture(const string &file_name) {
 void Chip::saveDb(int phase) {
   string file_name;
   if (phase == PHASE::INITIAL_PLACE) {
-    file_name = "db_INITIAL_PLACE_" + design_name_ + ".db";
+    file_name = design_name_ + "_INITIAL_PLACE_" + ".db";
   } else if (phase == PHASE::TWO_DIE_PLACE) {
-    file_name = "db_TWO_DIE_PLACE_" + design_name_ + ".db";
+    file_name = design_name_ + "_TWO_DIE_PLACE_" + ".db";
   } else
     assert(0);
 
+  file_name = file_paths_.db_path + file_name;
   FILE *stream = std::fopen(file_name.c_str(), "w");
   if (stream) {
     pseudo_db_database_->write(stream);
@@ -3335,12 +3383,13 @@ dbDatabase *Chip::loadDb(int phase) {
   string file_name;
   dbDatabase *db_database = odb::dbDatabase::create();
   if (phase == PHASE::INITIAL_PLACE) {
-    file_name = "db_INITIAL_PLACE_" + design_name_ + ".db";
+    file_name = design_name_ + "_INITIAL_PLACE_" + ".db";
   } else if (phase == PHASE::TWO_DIE_PLACE) {
-    file_name = "db_TWO_DIE_PLACE_" + design_name_ + ".db";
+    file_name = design_name_ + "_TWO_DIE_PLACE_" + ".db";
   } else
     assert(0);
 
+  file_name = file_paths_.db_path + file_name;
   std::ifstream file;
   file.exceptions(std::ifstream::failbit | std::ifstream::badbit | std::ios::eofbit);
   file.open(file_name, std::ios::binary);
@@ -3354,13 +3403,17 @@ bool Chip::checkDbFile(int phase) {
   if (phase == PHASE::INITIAL_PLACE || phase == PHASE::TWO_DIE_PLACE)
     validation_of_input_phase = true;
   assert(validation_of_input_phase);
+
   string file_name;
   if (phase == PHASE::INITIAL_PLACE) {
     file_name = "db_INITIAL_PLACE_" + design_name_ + ".db";
+    file_name = file_paths_.db_path + file_name;
     std::ifstream db_file(file_name, std::ios::binary);
     exist = !db_file.fail();
   } else if (phase == PHASE::TWO_DIE_PLACE) {
-    std::ifstream db_file("db_TWO_DIE_PLACE_" + design_name_ + ".db", std::ios::binary);
+    file_name = "db_TWO_DIE_PLACE_" + design_name_ + ".db";
+    file_name = file_paths_.db_path + file_name;
+    std::ifstream db_file(file_name, std::ios::binary);
     exist = !db_file.fail();
   }
   return exist;
@@ -3421,9 +3474,10 @@ void Chip::Legalizer::cellLegalize() {
 void Chip::Legalizer::oneDieCellLegalize(DIE_ID die_id) {
   // construction db_database for each die
   constructionOdbDatabaseForCell(die_id);
-  saveDb(die_id);
+
   // do detail placement with OpenDP
-  // doDetailPlacement(die_id);
+  doDetailPlacement(die_id);
+  saveDb(die_id);
 }
 void Chip::Legalizer::doDetailPlacement(DIE_ID die_id) {
   dbDatabase *db_database;
@@ -3435,7 +3489,6 @@ void Chip::Legalizer::doDetailPlacement(DIE_ID die_id) {
   auto *odp = new dpl::Opendp();
   odp->init(db_database, &parent_->logger_);
   odp->detailedPlacement(0, 0);
-  saveDb(die_id);
 }
 void Chip::Legalizer::constructionOdbDatabaseForCell(DIE_ID die_id) {
   string which_die;
@@ -3535,14 +3588,15 @@ void Chip::Legalizer::saveDb(DIE_ID die_id) {
   string file_name;
   if (die_id == DIE_ID::TOP_DIE) {
     db_database = db_database_container_.at(0);
-    file_name = parent_->design_name_ + "_TOP_DIE.db";
+    file_name = parent_->design_name_ + "_LEGALIZED" + "_TOP_DIE.db";
   } else if (die_id == DIE_ID::BOTTOM_DIE) {
     db_database = db_database_container_.at(1);
-    file_name = parent_->design_name_ + "_BOTTOM_DIE.db";
+    file_name = parent_->design_name_ + "_LEGALIZED" + "_BOTTOM_DIE.db";
   } else
     assert(0);
 
-  FILE *stream = std::fopen((file_path + file_name).c_str(), "w");
+  file_name = parent_->file_paths_.db_path + file_name;
+  FILE *stream = std::fopen((file_name).c_str(), "w");
   if (stream) {
     db_database->write(stream);
     std::fclose(stream);

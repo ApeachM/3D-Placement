@@ -141,7 +141,7 @@ class Chip {
   // Data initialization
   void dataBaseInit();
 
-  int stepManager();
+  void stepManager();
 
   /**
    * \brief
@@ -335,12 +335,18 @@ class Chip {
     string def_name;
     string lef_name;
   };
+  struct FilePaths{
+    string db_path = "../output/dbFiles/";
+    string partition_path = "../output/partitionFiles/";
+    string image_path = "../output/images/";
+  };
 
   PHASE phase_ = START;
   BENCH_TYPE bench_type_ = NORMAL;
   ICCAD2022BenchInformation bench_information_;
   InputArguments input_arguments_;
   string design_name_;
+  FilePaths file_paths_;
   utl::Logger logger_;
 
   // For pseudo die
