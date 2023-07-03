@@ -53,7 +53,7 @@ void Chip::do3DPlace(const string &def_name, const string &lef_name) {
 
   setInputArguments(def_name, lef_name);
   setDesignName(def_name); // todo: handle for NORMAL case
-  // phase_ = static_cast<PHASE>(stepManager());
+//  phase_ = static_cast<PHASE>(stepManager());
 
   if (phase_ <= PHASE::START) {
     phase_ = PHASE::START;
@@ -145,8 +145,8 @@ void Chip::partition() {
   }
 }
 void Chip::partitionTriton() {
-//  if (!checkPartitionFile()) {
-  if (true) {
+  if (!checkPartitionFile()) {
+//  if (true) {
     partitioner_ = new Partitioner(nullptr, pseudo_db_database_, nullptr, &logger_);
     partitioner_->init(design_name_);
     partitioner_->doPartitioning();
@@ -3120,7 +3120,7 @@ void Chip::NesterovPlacer::Drawer::setFillerHeight(uint filler_height) {
 }
 
 // etc //
-__attribute__((unused)) void Chip::dbTutorial() const {
+void Chip::dbTutorial() const {
   cout << this->pseudo_db_database_->getChip()->getBlock()->getBBox()->getDX() << endl;
 
   dbBlock *block = pseudo_db_database_->getChip()->getBlock();
@@ -3349,15 +3349,21 @@ dbDatabase *Chip::loadDb(int phase) {
   return db_database;
 }
 bool Chip::checkDbFile(int phase) {
-  bool is_there = false;
+  bool exist = false;
+  bool validation_of_input_phase = false;
+  if (phase == PHASE::INITIAL_PLACE || phase == PHASE::TWO_DIE_PLACE)
+    validation_of_input_phase = true;
+  assert(validation_of_input_phase);
+  string file_name;
   if (phase == PHASE::INITIAL_PLACE) {
-    std::ifstream db_file("db_INITIAL_PLACE_" + design_name_ + ".db", std::ios::binary);
-    is_there = !db_file.fail();
+    file_name = "db_INITIAL_PLACE_" + design_name_ + ".db";
+    std::ifstream db_file(file_name, std::ios::binary);
+    exist = !db_file.fail();
   } else if (phase == PHASE::TWO_DIE_PLACE) {
     std::ifstream db_file("db_TWO_DIE_PLACE_" + design_name_ + ".db", std::ios::binary);
-    is_there = !db_file.fail();
+    exist = !db_file.fail();
   }
-  return is_there;
+  return exist;
 }
 void Chip::destroyAllCircuitInformation() {
   /*
@@ -3414,7 +3420,8 @@ void Chip::Legalizer::cellLegalize() {
 }
 void Chip::Legalizer::oneDieCellLegalize(DIE_ID die_id) {
   // construction db_database for each die
-  constructionOdbDatabase(die_id);
+  constructionOdbDatabaseForCell(die_id);
+  saveDb(die_id);
   // do detail placement with OpenDP
   // doDetailPlacement(die_id);
 }
@@ -3430,7 +3437,7 @@ void Chip::Legalizer::doDetailPlacement(DIE_ID die_id) {
   odp->detailedPlacement(0, 0);
   saveDb(die_id);
 }
-void Chip::Legalizer::constructionOdbDatabase(DIE_ID die_id) {
+void Chip::Legalizer::constructionOdbDatabaseForCell(DIE_ID die_id) {
   string which_die;
   DieInfo die_info;
   if (die_id == DIE_ID::TOP_DIE) {
@@ -3460,7 +3467,7 @@ void Chip::Legalizer::constructionOdbDatabase(DIE_ID die_id) {
   for (int i = 0; i < die_info.row_info.repeat_count; ++i) {
     dbRow::create(db_block, ("row" + to_string(i)).c_str(), site,
                   0, i * die_info.row_info.row_height, dbOrientType::MX, dbRowDir::HORIZONTAL,
-                  die_info.row_info.row_width, 1);
+                  die_info.row_info.row_width, 90);
   }
 
   // Library Construction
@@ -3542,6 +3549,9 @@ void Chip::Legalizer::saveDb(DIE_ID die_id) {
   }
 }
 void Chip::Legalizer::hybridLegalize() {
+
+}
+void Chip::Legalizer::constructionOdbDatabaseForHybridBond() {
 
 }
 } // VLSI_backend

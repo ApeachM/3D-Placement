@@ -100,13 +100,17 @@ class Chip {
    private:
     void cellLegalize();
     void oneDieCellLegalize(DIE_ID die_id);
-    void constructionOdbDatabase(DIE_ID die_id);
+    void constructionOdbDatabaseForCell(DIE_ID die_id);
     void doDetailPlacement(DIE_ID die_id);
     void saveDb(DIE_ID die_id);
+
     void hybridLegalize();
+    void constructionOdbDatabaseForHybridBond();
 
     Chip *parent_;
     vector<dbDatabase *> db_database_container_;
+    dbDatabase* db_database_for_hybrid_bond_;
+
   };
 
  public:
@@ -313,8 +317,8 @@ class Chip {
     START,
     PARTITION,
     INITIAL_PLACE,
-    TWO_DIE_PLACE,
     GENERATE_HYBRID_BOND,
+    TWO_DIE_PLACE,
     LEGALIZE,
     END
   };
