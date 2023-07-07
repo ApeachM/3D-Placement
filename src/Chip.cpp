@@ -171,8 +171,20 @@ void Chip::partition() {
   if (bench_type_ == BENCH_TYPE::ICCAD) {
     // there's no RTL code in BENCH_TYPE::ICCAD, therefore we use triton partitioning
     // For using Triton Partitioning, let's construct a temporal db_database and data structures
+
+    // In this case, we will make the own db_database and data structures for only partitioning
+    // Construct DbDatabase
+    odbConstructionForPartition_ICCAD();
+
+
+    // Do partitioning
     partitionTriton();
+
+    // Read partition file
+    // Here, we will make the new db_database and data structures for the next step
+    readPartitionFile();
   } else {
+    // TODO: handle the normal bench cases
 /*
     auto *sta = new sta::dbSta;
     sta::dbNetwork *network = sta->getDbNetwork();
@@ -188,7 +200,7 @@ void Chip::partition() {
 }
 void Chip::partitionTriton() {
   if (!checkPartitionFile()) {
-    partitioner_ = new Partitioner(nullptr, pseudo_db_database_, nullptr, &logger_);
+    partitioner_ = new Partitioner(nullptr, db_database_for_partition_, nullptr, &logger_);
     partitioner_->init(design_name_);
     partitioner_->doPartitioning();
     partitioner_->writeSolution();
@@ -196,7 +208,7 @@ void Chip::partitionTriton() {
   } else {
     cout << "Load partition info" << endl;
   }
-  readPartitionFile();
+
 }
 void Chip::generateHybridBonds() {
   // reserve hybrid_bonds and hybrid_bond_pins for preventing to change the addresses
@@ -711,40 +723,145 @@ bool Chip::checkPartitionFile() {
     return true;
 }
 void Chip::readPartitionFile() {
+  /**
+   * Here, We will make the new db Database for Two Die placement.
+   * This would use the partitioning information and each library information for each die.
+   * Currently, this considers only ICCAD benchmark case.
+   * */
+  assert(bench_type_ == BENCH_TYPE::ICCAD);
+
   string file_path = "../output/partitionFiles/";
   string file_name = "partition_info_" + design_name_ + ".par";
   ifstream partition_info_file(file_path + file_name);
   if (partition_info_file.fail())
     assert(0);
 
+  assert(pseudo_db_database_ == nullptr);
+  pseudo_db_database_ = dbDatabase::create();
+  dbTech *db_tech = dbTech::create(pseudo_db_database_);
+  dbTechLayer *db_tech_layer = dbTechLayer::create(db_tech, "pseudoLayer", dbTechLayerType::MASTERSLICE);
+  dbLib *db_lib = dbLib::create(pseudo_db_database_, "pseudoDieLib", ',');
+  dbChip *db_chip = dbChip::create(pseudo_db_database_);
+  dbBlock *db_block = dbBlock::create(db_chip, "pseudoBlock");
+
+  auto top_die_info = &bench_information_.die_infos.at(0);
+  auto bottom_die_info = &bench_information_.die_infos.at(1);
+
+  // Die Area Construction //
+  int lower_left_x, lower_left_y, upper_right_x, upper_right_y;
+  lower_left_x = static_cast<int>((top_die_info->lower_left_x + bottom_die_info->lower_left_x) / 2);
+  lower_left_y = static_cast<int>((top_die_info->lower_left_y + bottom_die_info->lower_left_y) / 2);
+  upper_right_x = static_cast<int>((top_die_info->upper_right_x + bottom_die_info->upper_right_x) / 2);
+  upper_right_y = static_cast<int>((top_die_info->upper_right_y + bottom_die_info->upper_right_y) / 2);
+
+  Point lower_left = Point(lower_left_x, lower_left_y);
+  Point upper_right = Point(upper_right_x, upper_right_y);
+  Rect die_area(lower_left, upper_right);
+  pseudo_db_database_->getChip()->getBlock()->setDieArea(die_area);
+
+  // pseudo db database will use only for two die placement, which is global placement,
+  // so we will not make the row information //
+
+  // LibCell Construction //
+  assert(top_die_info->tech_info->lib_cell_num == bottom_die_info->tech_info->lib_cell_num);
+  int lib_cell_num = top_die_info->tech_info->lib_cell_num;
+  for (int i = 0; i < lib_cell_num; ++i) {
+    LibCellInfo *lib_cell_info_top = &top_die_info->tech_info->lib_cell_infos.at(i);
+    LibCellInfo *lib_cell_info_bottom = &bottom_die_info->tech_info->lib_cell_infos.at(i);
+    string lib_cell_name_top = lib_cell_info_top->name;
+    string lib_cell_name_bottom = lib_cell_info_bottom->name;
+    assert(lib_cell_info_top == lib_cell_info_bottom);
+    int width_top = lib_cell_info_top->width;
+    int width_bottom = lib_cell_info_bottom->width;
+    int height_top = lib_cell_info_top->height;
+    int height_bottom = lib_cell_info_bottom->height;
+    int pin_num_top = lib_cell_info_top->pin_number;
+    int pin_num_bottom = lib_cell_info_bottom->pin_number;
+    assert(pin_num_top == pin_num_bottom);
+    int pin_num = pin_num_top;
+
+    dbMaster *db_master_top = dbMaster::create(db_lib, (lib_cell_name_top + "_TOP").c_str());
+    dbMaster *db_master_bottom = dbMaster::create(db_lib, (lib_cell_name_bottom + "_BOTTOM").c_str());
+    db_master_top->setWidth(width_top);
+    db_master_top->setHeight(height_top);
+    db_master_bottom->setWidth(width_bottom);
+    db_master_bottom->setHeight(height_bottom);
+    db_master_top->setType(dbMasterType::CORE);
+    db_master_bottom->setType(dbMasterType::CORE);
+
+    // read pins in each lib cell //
+    for (int j = 0; j < pin_num; ++j) {
+      LibPinInfo *pin_info_top = &lib_cell_info_top->lib_pin_infos.at(j);
+      LibPinInfo *pin_info_bottom = &lib_cell_info_bottom->lib_pin_infos.at(j);
+      string pin_name_top = pin_info_top->pin_name;
+      string pin_name_bottom = pin_info_bottom->pin_name;
+      assert(pin_name_top == pin_name_bottom);
+      int pin_location_x_top = pin_info_top->pin_location_x;
+      int pin_location_y_top = pin_info_top->pin_location_y;
+      int pin_location_x_bottom = pin_info_bottom->pin_location_x;
+      int pin_location_y_bottom = pin_info_bottom->pin_location_y;
+      assert(width_top >= pin_location_x_top && height_top >= pin_location_y_top);
+      assert(width_bottom >= pin_location_x_bottom && height_bottom >= pin_location_y_bottom);
+
+      // (refer to `void lefin::pin` function in odb/src/lefin/lefin.cpp)
+      // dbIoType io_type = dbIoType::INOUT;  // There's no information in this contest benchmarks.
+      dbIoType io_type = dbIoType::INOUT;
+      dbSigType sig_type = dbSigType::SIGNAL; // There's no information in this contest benchmarks.
+      dbMTerm *master_terminal_top = dbMTerm::create(db_master_top, pin_name_top.c_str(), io_type, sig_type);
+      dbMTerm *master_terminal_bottom = dbMTerm::create(db_master_bottom, pin_name_bottom.c_str(), io_type, sig_type);
+      dbMPin *master_pin_top = dbMPin::create(master_terminal_top);
+      dbMPin *master_pin_bottom = dbMPin::create(master_terminal_bottom);
+      dbBox *master_pin_box_top = dbBox::create(master_pin_top, db_tech_layer,
+                                                pin_location_x_top, pin_location_y_top,
+                                                pin_location_x_top + 1, pin_location_y_top + 1);
+      dbBox *master_pin_box_bottom = dbBox::create(master_pin_bottom, db_tech_layer,
+                                                   pin_location_x_bottom, pin_location_y_bottom,
+                                                   pin_location_x_bottom + 1, pin_location_y_bottom + 1);
+    }
+    db_master_top->setFrozen();
+    db_master_bottom->setFrozen();
+  }
+
+  // Instance Construction //
+  enum PARTITION_INFO {
+    TOP,
+    BOTTOM
+  };
   string instance_name;
   int partition_info;
-  uint64 top_die_instance_area = 0;
-  uint64 bottom_die_instance_area = 0;
-  for (int i = 0; i < instance_number_; ++i) {
+  for (int i = 0; i < bench_information_.instance_infos.size(); ++i) {
     partition_info_file >> instance_name >> partition_info;
-    dbInst *db_inst = pseudo_db_database_->getChip()->getBlock()->findInst(instance_name.c_str());
-    Instance *instance = mapping_.inst_map[db_inst];
-    instance->assignDie(partition_info + 1);
-    if (partition_info == 0) {
-      top_die_instance_area += instance->getArea();
-    } else if (partition_info == 1) {
-      bottom_die_instance_area += instance->getArea();
+    dbMaster *master = nullptr;
+    if (partition_info == PARTITION_INFO::TOP) {
+      master = pseudo_db_database_->findMaster((instance_name + "_TOP").c_str());
+    } else if (partition_info == PARTITION_INFO::BOTTOM) {
+      master = pseudo_db_database_->findMaster((instance_name + "_BOTTOM").c_str());
+    } else
+      assert(false);
+    dbInst::create(db_block, master, instance_name.c_str());
+  }
+
+  // Net Construction //
+  for (int i = 0; i < bench_information_.net_infos.size(); ++i) {
+    // (refer to `dbDatabase* create2LevetDbNoBTerms()` function in submodule/OpenDB/test/cpp/helper.cpp)
+    NetInfo *net_info = &bench_information_.net_infos.at(i);
+    dbNet *net = dbNet::create(db_block, net_info->net_name.c_str());
+
+    // read pins in one Net
+    for (int j = 0; j < net_info->pin_num; ++j) {
+      ConnectedPinInfo *pin_info = &net_info->connected_pins_infos.at(j);
+      dbInst *inst = db_block->findInst((pin_info->instance_name + "_TOP").c_str());
+      if (inst == nullptr) {
+        inst = db_block->findInst((pin_info->instance_name + "_BOTTOM").c_str());
+      } else
+        assert(0);
+      assert(inst->findITerm(pin_info->lib_pin_name.c_str()));
+      inst->findITerm(pin_info->lib_pin_name.c_str())->connect(net);
     }
   }
 
-  cout << endl << endl;
-  cout << "Top Die Util: "
-       << static_cast<float>(top_die_instance_area) / static_cast<float>(die_pointers_.at(0)->getArea()) * 100 << "%\n";
-  cout << "where instance area in top die: " << top_die_instance_area << endl
-       << "and the die area: " << die_pointers_.at(DIE_ID::PSEUDO_DIE)->getArea() << endl;
-  cout << "Bottom Die Util: "
-       << static_cast<float>(bottom_die_instance_area) / static_cast<float>(die_pointers_.at(0)->getArea()) * 100
-       << "%\n";
-  cout << "where instance area in top die: " << bottom_die_instance_area << endl
-       << "and the die area: " << die_pointers_.at(DIE_ID::PSEUDO_DIE)->getArea() << endl << endl;
-
-  // TODO: do for BlockTerminals. This will be for BENCH_TYPE::NORMAL case.
+  destroyAllCircuitInformation();
+  dataBaseInit();
 }
 
 // initial placer //
@@ -1422,18 +1539,19 @@ void Chip::odbConstructionForICCAD_deprecated() {
   hybrid_size_y_ = bench_information_.terminal_info.size_y;
   hybrid_spacing_ = bench_information_.terminal_info.spacing_size;
 }
-void Chip::pseudoDieOdbConstructionForICCAD() {
+void Chip::odbConstructionForPartition_ICCAD() {
   /**
    * \brief
    * Construction odb database for pseudo die.
    * This is just for the partitioning with Triton.
+   * This function would be used for only ICCAD contest case.
    * */
-  assert(pseudo_db_database_ == nullptr);
-  pseudo_db_database_ = dbDatabase::create();
-  dbTech *db_tech = dbTech::create(pseudo_db_database_);
+  assert(db_database_for_partition_ == nullptr);
+  db_database_for_partition_ = dbDatabase::create();
+  dbTech *db_tech = dbTech::create(db_database_for_partition_);
   dbTechLayer::create(db_tech, "masterSlice", dbTechLayerType::MASTERSLICE);
-  dbLib *db_lib = dbLib::create(pseudo_db_database_, "pseudoDieLib", ',');
-  dbChip *db_chip = dbChip::create(pseudo_db_database_);
+  dbLib *db_lib = dbLib::create(db_database_for_partition_, "pseudoDieLib", ',');
+  dbChip *db_chip = dbChip::create(db_database_for_partition_);
   dbBlock *db_block = dbBlock::create(db_chip, "pseudoDieBlock");
   dbTechLayer *db_tech_layer = db_tech->findLayer(0);
   assert(db_tech_layer != nullptr);
@@ -1461,14 +1579,14 @@ void Chip::pseudoDieOdbConstructionForICCAD() {
   Point lower_left_point_pseudo = Point(lower_left_pseudo.first, lower_left_pseudo.second);
   Point upper_right_point_pseudo = Point(upper_right_pseudo.first, upper_right_pseudo.second);
   Rect pseudo_die_rect = Rect(lower_left_point_pseudo, upper_right_point_pseudo);
-  pseudo_db_database_->getChip()->getBlock()->setDieArea(pseudo_die_rect);
+  db_database_for_partition_->getChip()->getBlock()->setDieArea(pseudo_die_rect);
 
   // Row setting
   int die_height = row_infos_.first.row_height * row_infos_.second.repeat_count;
   int row_height = floor((row_infos_.first.row_height + row_infos_.second.row_height) / 2);
   int repeat_count = floor(die_height / row_height);
   for (int i = 0; i < repeat_count; ++i) {
-    dbSite *site = dbSite::create(pseudo_db_database_->findLib("pseudoDieLib"), ("site" + to_string(i)).c_str());
+    dbSite *site = dbSite::create(db_database_for_partition_->findLib("pseudoDieLib"), ("site" + to_string(i)).c_str());
     site->setHeight(row_height);
     dbRow::create(db_block, ("row" + to_string(i)).c_str(), site,
                   0, 0, dbOrientType::MX, dbRowDir::HORIZONTAL, 1, row_height);
@@ -1529,7 +1647,7 @@ void Chip::pseudoDieOdbConstructionForICCAD() {
   // Instance Construction //
   for (int i = 0; i < instance_number_; ++i) {
     InstanceInfo *instance_info = &bench_information_.instance_infos.at(i);
-    dbMaster *master = pseudo_db_database_->findMaster(instance_info->lib_cell_name.c_str());
+    dbMaster *master = db_database_for_partition_->findMaster(instance_info->lib_cell_name.c_str());
     dbInst::create(db_block, master, instance_info->inst_name.c_str());
   }
 
@@ -1543,12 +1661,12 @@ void Chip::pseudoDieOdbConstructionForICCAD() {
     for (int j = 0; j < net_info->pin_num; ++j) {
       ConnectedPinInfo *pin_info = &net_info->connected_pins_infos.at(j);
       dbInst *inst = db_block->findInst(pin_info->instance_name.c_str());
-      inst->findITerm(pin_info->lib_pin_name.c_str())->connect(net);
       assert(inst->findITerm(pin_info->lib_pin_name.c_str()));
+      inst->findITerm(pin_info->lib_pin_name.c_str())->connect(net);
     }
   }
 }
-void Chip::topDieOdbLibConstructionForICCAD() {
+void Chip::topDieOdbLibConstruction_ICCAD() {
   /**
    * \brief
    * Construction odb database for pseudo die.
@@ -1607,7 +1725,7 @@ void Chip::topDieOdbLibConstructionForICCAD() {
     master->setFrozen();
   }
 }
-void Chip::bottomDieOdbLibConstructionForICCAD() {
+void Chip::bottomDieOdbLibConstruction_ICCAD() {
   assert(bottom_db_database_ == nullptr);
   bottom_db_database_ = dbDatabase::create();
   dbTech *db_tech = dbTech::create(bottom_db_database_);
@@ -1662,7 +1780,7 @@ void Chip::bottomDieOdbLibConstructionForICCAD() {
   }
 }
 
-void Chip::writeICCAD(const string &output_file_name) {
+void Chip::writeICCADOutput(const string &output_file_name) {
   // open output file
   ofstream ofs(output_file_name);
   assert(ofs.is_open());
@@ -3563,7 +3681,7 @@ void Chip::parse(const string &def_name, const string &lef_name) {
 }
 void Chip::write(const string &file_name) {
   if (bench_type_ == BENCH_TYPE::ICCAD)
-    writeICCAD(file_name);
+    writeICCADOutput(file_name);
   else if (bench_type_ == BENCH_TYPE::NORMAL)
     writeNORMAL(file_name);
 }

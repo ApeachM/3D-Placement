@@ -169,17 +169,17 @@ class Chip {
    * GitHub: ApeachM (https://github.com/ApeachM)
    * */
   void parseICCAD(const string &input_file_name);
-  void writeICCAD(const string &output_file_name);
+  void writeICCADOutput(const string &output_file_name);
   void parseICCADBenchData(const string &input_file_name);
   /**
    * \brief
    * Construction odb database for pseudo die.
    * This is just for the partitioning with Triton.
    * */
-  void pseudoDieOdbConstructionForICCAD();
+  void odbConstructionForPartition_ICCAD();
 
-  void topDieOdbLibConstructionForICCAD();
-  void bottomDieOdbLibConstructionForICCAD();
+  void topDieOdbLibConstruction_ICCAD();
+  void bottomDieOdbLibConstruction_ICCAD();
 
   /**
    * \author
@@ -352,8 +352,9 @@ class Chip {
   FilePaths file_paths_;
   utl::Logger logger_;
 
-  // For pseudo die
-  odb::dbDatabase *pseudo_db_database_{};
+  // db databases
+  odb::dbDatabase *db_database_for_partition_{};  // This db will be used for only partition
+  odb::dbDatabase *pseudo_db_database_{};  // This db will be used for Two Die Placement
   odb::dbDatabase *top_db_database_{};
   odb::dbDatabase *bottom_db_database_{};
 

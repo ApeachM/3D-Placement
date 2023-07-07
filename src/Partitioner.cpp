@@ -483,5 +483,14 @@ void Chip::Partitioner::ReadNetlist() {
       utl::PAR, 176, "Hyperedges = {}", original_hypergraph_->GetNumHyperedges());
   logger_->info(utl::PAR, 177, "Number of timing paths = {}", timing_paths_.size());
 }
+void Chip::Partitioner::readNetList(const string &fixed_file, const string &community_file, const string &group_file) {
+  if (network_)
+    TritonPart::ReadNetlist(fixed_file, community_file, group_file);
+  else
+    this->ReadNetlist();
+}
+Chip::Partitioner::~Partitioner() {
+  odb::dbDatabase::destroy(db_);
+}
 
 }
