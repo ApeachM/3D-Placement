@@ -1020,8 +1020,6 @@ void Chip::writeNORMAL(const string &out_file_name) {
 }
 void Chip::parseICCAD(const string &input_file_name) {
   parseICCADBenchData(input_file_name);
-  pseudoDieOdbConstructionForICCAD();
-  dataBaseInit();
 }
 void Chip::parseICCADBenchData(const string &input_file_name) {
   // open input file
@@ -1480,9 +1478,9 @@ void Chip::pseudoDieOdbConstructionForICCAD() {
   DieInfo *top_die_info = &bench_information_.die_infos.at(TOP_DIE - 1);
   DieInfo *bottom_die_info = &bench_information_.die_infos.at(BOTTOM_DIE - 1);
 
-  int cell_num = top_die_info->tech_info->lib_cell_num;
-  assert(cell_num == bottom_die_info->tech_info->lib_cell_num);
-  for (int i = 0; i < cell_num; ++i) {
+  int lib_cell_num = top_die_info->tech_info->lib_cell_num;
+  assert(lib_cell_num == bottom_die_info->tech_info->lib_cell_num);
+  for (int i = 0; i < lib_cell_num; ++i) {
     int width, height;
     LibCellInfo *lib_cell_info_top = &top_die_info->tech_info->lib_cell_infos.at(i);
     LibCellInfo *lib_cell_info_bottom = &bottom_die_info->tech_info->lib_cell_infos.at(i);
@@ -1550,6 +1548,120 @@ void Chip::pseudoDieOdbConstructionForICCAD() {
     }
   }
 }
+void Chip::topDieOdbLibConstructionForICCAD() {
+  /**
+   * \brief
+   * Construction odb database for pseudo die.
+   * This library is for the cases after partitioning.
+   * */
+  assert(top_db_database_ == nullptr);
+  top_db_database_ = dbDatabase::create();
+  dbTech *db_tech = dbTech::create(top_db_database_);
+  dbTechLayer *db_tech_layer = dbTechLayer::create(db_tech, "masterSlice", dbTechLayerType::MASTERSLICE);
+  dbLib *db_lib = dbLib::create(top_db_database_, "topDieLib", ',');
+  dbChip *db_chip = dbChip::create(top_db_database_);
+  dbBlock *db_block = dbBlock::create(db_chip, "topDieBlock");
+
+  // DieArea Construction //
+  auto top_die_info = &bench_information_.die_infos.at(0);
+  Point lower_left = Point(top_die_info->lower_left_x, top_die_info->lower_left_y);
+  Point upper_right = Point(top_die_info->upper_right_x, top_die_info->upper_right_y);
+  Rect die_area(lower_left, upper_right);
+  bottom_db_database_->getChip()->getBlock()->setDieArea(die_area);
+
+  // TODO: make the rows here //
+
+  // LibCell Construction //
+  int lib_cell_num = top_die_info->tech_info->lib_cell_num;
+  for (int i = 0; i < lib_cell_num; ++i) {
+    int width, height;
+    LibCellInfo *lib_cell_info = &top_die_info->tech_info->lib_cell_infos.at(i);
+    string lib_cell_name = lib_cell_info->name;
+    width = lib_cell_info->width;
+    height = lib_cell_info->height;
+    dbMaster *master = dbMaster::create(db_lib, lib_cell_name.c_str());
+    master->setWidth(width);
+    master->setHeight(height);
+    master->setType(dbMasterType::CORE);
+
+    // read pins in one libCell
+    int pin_number = lib_cell_info->pin_number;
+    for (int j = 0; j < pin_number; ++j) {
+      LibPinInfo *pin_info = &lib_cell_info->lib_pin_infos.at(j);
+      string pin_name = pin_info->pin_name;
+      int pin_location_x = pin_info->pin_location_x;
+      int pin_location_y = pin_info->pin_location_y;
+      assert(width > pin_location_x);
+      assert(height > pin_location_y);
+
+      // (refer to `void lefin::pin` function in odb/src/lefin/lefin.cpp)
+      // dbIoType io_type = dbIoType::INOUT;  // There's no information in this contest benchmarks.
+      dbSigType sig_type = dbSigType::SIGNAL;
+      dbIoType io_type = dbIoType::INOUT;
+      dbMTerm *master_terminal = dbMTerm::create(master, pin_name.c_str(), io_type, sig_type);
+      dbMPin *db_m_pin = dbMPin::create(master_terminal);
+      // (refer to `bool lefin::addGeoms` function in submodule/OpenDB/src/lefin/lefin.cpp in case of `lefiGeomRectE`)
+      dbBox::create(db_m_pin, db_tech_layer,
+                    pin_location_x, pin_location_y, pin_location_x + 1, pin_location_y + 1);
+    }
+    master->setFrozen();
+  }
+}
+void Chip::bottomDieOdbLibConstructionForICCAD() {
+  assert(bottom_db_database_ == nullptr);
+  bottom_db_database_ = dbDatabase::create();
+  dbTech *db_tech = dbTech::create(bottom_db_database_);
+  dbTechLayer *db_tech_layer = dbTechLayer::create(db_tech, "masterSlice", dbTechLayerType::MASTERSLICE);
+  dbLib *db_lib = dbLib::create(bottom_db_database_, "bottomDieLib", ',');
+  dbChip *db_chip = dbChip::create(bottom_db_database_);
+  dbBlock *db_block = dbBlock::create(db_chip, "bottomDieBlock");
+
+  // DieArea Construction //
+  DieInfo *bottom_die_info = &bench_information_.die_infos.at(1);
+  Point lower_left = Point(bottom_die_info->lower_left_x, bottom_die_info->lower_left_y);
+  Point upper_right = Point(bottom_die_info->upper_right_x, bottom_die_info->upper_right_y);
+  Rect die_area(lower_left, upper_right);
+  bottom_db_database_->getChip()->getBlock()->setDieArea(die_area);
+
+  // TODO: make the rows here //
+
+  // LibCell Construction //
+  int lib_cell_num = bottom_die_info->tech_info->lib_cell_num;
+  for (int i = 0; i < lib_cell_num; ++i) {
+    int width, height;
+    LibCellInfo *lib_cell_info = &bottom_die_info->tech_info->lib_cell_infos.at(i);
+    string lib_cell_name = lib_cell_info->name;
+    width = lib_cell_info->width;
+    height = lib_cell_info->height;
+    dbMaster *master = dbMaster::create(db_lib, lib_cell_name.c_str());
+    master->setWidth(width);
+    master->setHeight(height);
+    master->setType(dbMasterType::CORE);
+
+    // read pins in one libCell
+    int pin_number = lib_cell_info->pin_number;
+    for (int j = 0; j < pin_number; ++j) {
+      LibPinInfo *pin_info = &lib_cell_info->lib_pin_infos.at(j);
+      string pin_name = pin_info->pin_name;
+      int pin_location_x = pin_info->pin_location_x;
+      int pin_location_y = pin_info->pin_location_y;
+      assert(width > pin_location_x);
+      assert(height > pin_location_y);
+
+      // (refer to `void lefin::pin` function in odb/src/lefin/lefin.cpp)
+      // dbIoType io_type = dbIoType::INOUT;  // There's no information in this contest benchmarks.
+      dbSigType sig_type = dbSigType::SIGNAL;
+      dbIoType io_type = dbIoType::INOUT;
+      dbMTerm *master_terminal = dbMTerm::create(master, pin_name.c_str(), io_type, sig_type);
+      dbMPin *db_m_pin = dbMPin::create(master_terminal);
+      // (refer to `bool lefin::addGeoms` function in submodule/OpenDB/src/lefin/lefin.cpp in case of `lefiGeomRectE`)
+      dbBox::create(db_m_pin, db_tech_layer,
+                    pin_location_x, pin_location_y, pin_location_x + 1, pin_location_y + 1);
+    }
+    master->setFrozen();
+  }
+}
+
 void Chip::writeICCAD(const string &output_file_name) {
   // open output file
   ofstream ofs(output_file_name);

@@ -109,7 +109,7 @@ class Chip {
 
     Chip *parent_;
     vector<dbDatabase *> db_database_container_;
-    dbDatabase* db_database_for_hybrid_bond_;
+    dbDatabase *db_database_for_hybrid_bond_;
 
   };
 
@@ -177,6 +177,9 @@ class Chip {
    * This is just for the partitioning with Triton.
    * */
   void pseudoDieOdbConstructionForICCAD();
+
+  void topDieOdbLibConstructionForICCAD();
+  void bottomDieOdbLibConstructionForICCAD();
 
   /**
    * \author
@@ -296,7 +299,7 @@ class Chip {
   void setDesignName(const string &input_file_name);
   void drawTotalCircuit(const string &die_name = "die", bool high_resolution = false);
   void saveDb(int phase);
-  dbDatabase* loadDb(int phase);
+  dbDatabase *loadDb(int phase);
   /**
    * \deprecated
    * */
@@ -331,11 +334,11 @@ class Chip {
     /// mapping_ for terminals on blocks (includes fixed pins on die)
     std::unordered_map<dbBTerm *, Pin *> pin_map_b;
   };
-  struct InputArguments{
+  struct InputArguments {
     string def_name;
     string lef_name;
   };
-  struct FilePaths{
+  struct FilePaths {
     string db_path = "../output/dbFiles/";
     string partition_path = "../output/partitionFiles/";
     string image_path = "../output/images/";
@@ -351,11 +354,13 @@ class Chip {
 
   // For pseudo die
   odb::dbDatabase *pseudo_db_database_{};
+  odb::dbDatabase *top_db_database_{};
+  odb::dbDatabase *bottom_db_database_{};
 
   // For top and bottom die.
   // This should be only used when parse ICCAD contest benchmark,
   // and write the two lef and def files for top and bottom die
-  std::vector<odb::dbDatabase *> db_databases_{};
+  std::vector<odb::dbDatabase *> db_databases_{};  // deprecated variable with odbConstructionForICCAD_deprecated()
 
   Parser parser_;
   data_storage data_storage_;
