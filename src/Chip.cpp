@@ -3788,8 +3788,8 @@ void Chip::Legalizer::constructionOdbDatabaseForCell(DIE_ID die_id) {
     LibCellInfo *lib_cell_info = &die_info.tech_info->lib_cell_infos.at(i);
     int width = lib_cell_info->width;
     int height = lib_cell_info->height;
-    string lib_cell_name = lib_cell_info->name;
-    dbMaster *master = dbMaster::create(db_lib, lib_cell_name.c_str());
+    string lib_cell_name = lib_cell_info->name + "_";
+    dbMaster *master = dbMaster::create(db_lib, (lib_cell_name + which_die).c_str());
     master->setWidth(width);
     master->setHeight(height);
     master->setType(dbMasterType::CORE);
@@ -3819,8 +3819,11 @@ void Chip::Legalizer::constructionOdbDatabaseForCell(DIE_ID die_id) {
     assert(instance->getDieId() == DIE_ID::TOP_DIE || instance->getDieId() == DIE_ID::BOTTOM_DIE);
     if (instance->getDieId() == die_id) {
       string lib_cell_name = instance->getLibName();
+
       dbMaster *master = db_database->findMaster(lib_cell_name.c_str());
+      assert(master);
       dbInst *db_inst = dbInst::create(db_block, master, instance->getName().c_str());
+      assert(db_inst);
       db_inst->setLocation(instance->getCoordinate().first, instance->getCoordinate().second);
       db_inst->setPlacementStatus(odb::dbPlacementStatus::PLACED);
       instance_area += db_inst->getMaster()->getWidth() * db_inst->getMaster()->getHeight();
