@@ -3735,8 +3735,9 @@ void Chip::Legalizer::oneDieCellLegalize(DIE_ID die_id) {
   constructionOdbDatabaseForCell(die_id);
 
   // do detail placement with OpenDP
+  saveDb(die_id, false);
   doDetailPlacement(die_id);
-  saveDb(die_id);
+  saveDb(die_id, true);
 }
 void Chip::Legalizer::doDetailPlacement(DIE_ID die_id) {
   dbDatabase *db_database;
@@ -3844,16 +3845,22 @@ void Chip::Legalizer::constructionOdbDatabaseForCell(DIE_ID die_id) {
   // collect the db_database in class variable
   db_database_container_.push_back(db_database);
 }
-void Chip::Legalizer::saveDb(DIE_ID die_id) {
+void Chip::Legalizer::saveDb(DIE_ID die_id, bool after_legalize) {
   dbDatabase *db_database;
   string file_path = "../output/dbFiles/";
   string file_name;
   if (die_id == DIE_ID::TOP_DIE) {
     db_database = db_database_container_.at(0);
-    file_name = parent_->design_name_ + "_LEGALIZED" + "_TOP_DIE.db";
+    if (after_legalize)
+      file_name = parent_->design_name_ + "_AFTER_LEGALIZED" + "_TOP_DIE.db";
+    else
+      file_name = parent_->design_name_ + "_BEFORE_LEGALIZED" + "_TOP_DIE.db";
   } else if (die_id == DIE_ID::BOTTOM_DIE) {
     db_database = db_database_container_.at(1);
-    file_name = parent_->design_name_ + "_LEGALIZED" + "_BOTTOM_DIE.db";
+    if (after_legalize)
+      file_name = parent_->design_name_ + "_AFTER_LEGALIZED" + "_BOTTOM_DIE.db";
+    else
+      file_name = parent_->design_name_ + "_BEFORE_LEGALIZED" + "_BOTTOM_DIE.db";
   } else
     assert(0);
 

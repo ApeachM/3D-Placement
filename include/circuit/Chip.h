@@ -102,7 +102,7 @@ class Chip {
     void oneDieCellLegalize(DIE_ID die_id);
     void constructionOdbDatabaseForCell(DIE_ID die_id);
     void doDetailPlacement(DIE_ID die_id);
-    void saveDb(DIE_ID die_id);
+    void saveDb(DIE_ID die_id, bool after_legalize);
 
     void hybridLegalize();
     void constructionOdbDatabaseForHybridBond();
