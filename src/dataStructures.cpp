@@ -130,6 +130,9 @@ void Die::setRowInfo(int start_x, int start_y, int row_width, int row_height, in
   row_info_.row_height = row_height;
   row_info_.repeat_count = repeat_count;
 }
+const RowInfo &Die::getRowInfo() const {
+  return row_info_;
+}
 
 // Instance //
 Instance::Instance(odb::dbInst *db_inst) {

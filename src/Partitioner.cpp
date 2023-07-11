@@ -303,6 +303,7 @@ void Chip::Partitioner::writeSolution() {
     for (auto inst : block_->getInsts()) {
       if (auto property = odb::dbIntProperty::find(inst, "partition_id")) {
         file_output << inst->getName() << "  ";
+        file_output << inst->getMaster()->getName() << " " ;  // This part is different with original code.
         file_output << property->getValue() << "  ";
         file_output << std::endl;
       }

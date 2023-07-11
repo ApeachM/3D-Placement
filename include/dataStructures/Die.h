@@ -72,22 +72,6 @@ class Die {
     return die_shape_.ur().getY();
   }
 
-  /*!
-   * Caution!! Use this function only when you parsed data without the openDB parse functions.
-   * */
-  void setDBBasic(string lib_name) {
-    assert(db_database_);
-    db_database_ = odb::dbDatabase::create();
-    db_tech_ = dbTech::create(db_database_);
-    db_tech_layer_ = dbTechLayer::create(db_tech_, "Layer", dbTechLayerType::MASTERSLICE);
-    db_lib_ = dbLib::create(db_database_, lib_name.c_str(), ',');
-    db_chip_ = dbChip::create(db_database_);
-    db_block_ = dbBlock::create(db_chip_, (std::to_string(die_id_) + "th Die Block").c_str());
-
-    die_shape_ = db_block_->getDieArea();
-    setDieSize(die_shape_.dx(), die_shape_.dy());
-  }
-
   int getDieId() const;
   void setDieId(int die_id);
   dbDatabase *getDbDatabase() const;
@@ -107,6 +91,7 @@ class Die {
   void setLibNum(int lib_num);
   int getMaxUtil() const;
   void setMaxUtil(int max_util);
+  const RowInfo &getRowInfo() const;
   void setRowInfo(int start_x, int start_y, int row_width, int row_height, int repeat_count);
 
  private:
