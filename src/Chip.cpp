@@ -261,10 +261,7 @@ void Chip::generateHybridBonds() {
       hybrid_bond->setConnectedNet(net); // instance -> net
 
       // set coordinate of hybrid bond
-      // p.s. net box would be updated in the first placement phase (Nesterov in virtual die)
-      int center_x = static_cast<int>((net->ux() + net->lx()) / 2);
-      int center_y = static_cast<int>((net->uy() + net->ly()) / 2);
-      hybrid_bond->setCoordinate({center_x, center_y});
+      hybrid_bond->setCoordinate(net->getCenter());
 
       // for iteration
       hybrid_bond_pointers_.push_back(hybrid_bond);

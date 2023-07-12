@@ -74,6 +74,7 @@ class Net {
   ulong getHPWL();
   ulong getHPWL(DIE_ID die_id);
 
+  /// Below functions are for the nesterov's method ///
   void addWaExpMinSumX(double waExpMinSumX) {
     waExpMinSumX_ += waExpMinSumX;
     assert(!isnan(waExpMinSumX));
@@ -162,6 +163,8 @@ class Net {
   float customWeight() const { return customWeight_; }
   int64_t hpwl();
 
+  /////////////////////////////////////////////////////////////////////////////
+
   bool isIntersected() const;
   void setAsIntersected();
   int getDieId() const;
@@ -175,6 +178,7 @@ class Net {
   void addConnectedInstance(Instance *instance) {
     connected_instances_.push_back(instance);
   }
+  pair<int, int> getCenter();
 
  private:
   odb::dbDatabase *db_database_ = nullptr;
