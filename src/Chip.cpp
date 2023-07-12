@@ -3902,8 +3902,8 @@ void Chip::Legalizer::constructionOdbDatabaseForHybridBond() {
   // the cell width and height are determined by the hybrid bond width and height, and the spacing rule
   assert(parent_->bench_type_ == ICCAD);  // TODO: consider the normal case also in this function
   int spacing_size = parent_->bench_information_.terminal_info.spacing_size;
-  int cell_width = parent_->bench_information_.terminal_info.size_x + spacing_size;
-  int cell_height = parent_->bench_information_.terminal_info.size_y + spacing_size;
+  int cell_width = parent_->bench_information_.terminal_info.size_x ;
+  int cell_height = parent_->bench_information_.terminal_info.size_y ;
 
   db_database_for_hybrid_bond_ = dbDatabase::create();
   dbTech *db_tech = dbTech::create(db_database_for_hybrid_bond_);
@@ -3923,8 +3923,8 @@ void Chip::Legalizer::constructionOdbDatabaseForHybridBond() {
   dbSite *site = dbSite::create(db_lib, "site");
 
   // change the site size as cell width and height if the complexity of dp is so high
-  int site_width = 1;
-  int site_height = 1;
+  int site_width = cell_width + spacing_size;
+  int site_height = cell_height + spacing_size;
   int num_of_sites = floor(die_info.upper_right_x / site_width);
   int num_of_row = floor(die_info.upper_right_y / site_height);
 
@@ -3933,7 +3933,7 @@ void Chip::Legalizer::constructionOdbDatabaseForHybridBond() {
   for (int i = 0; i < num_of_row; ++i) {
     dbRow::create(db_block, ("row" + to_string(i)).c_str(), site,
                   0, i * site_height, dbOrientType::MX, dbRowDir::HORIZONTAL,
-                  num_of_sites, 10); // What is spacing in here?
+                  num_of_sites, site_width);
   }
 
   // Library Construction //
