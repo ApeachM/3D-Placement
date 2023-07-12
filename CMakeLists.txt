@@ -36,6 +36,7 @@ target_link_libraries(placer
         odb
         mpl2_lib
         par_lib
+        dpl_lib
         Eigen3::Eigen
         X11
         )

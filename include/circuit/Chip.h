@@ -48,6 +48,7 @@
 #include "Die.h"
 #include "fft.h"
 #include "HierRTLMP.h"
+#include "dpl/Opendp.h"
 #include "Drawer.h"
 
 #define REPLACE_SQRT2 1.414213562373095048801L
@@ -85,7 +86,33 @@ class Chip {
   /* Placers */
   class InitialPlacer;
   class NesterovPlacer;
+
+  /* Partitioner */
   class Partitioner;
+
+  /* Legalizer */
+  class Legalizer {
+   public:
+    explicit Legalizer(Chip *parent) : parent_(parent) {
+    }
+    void doLegalize();
+
+   private:
+    void cellLegalize();
+    void oneDieCellLegalize(DIE_ID die_id);
+    void constructionOdbDatabaseForCell(DIE_ID die_id);
+    void doDetailPlacement(DIE_ID die_id);
+    void saveDb(DIE_ID die_id, bool after_legalize);
+
+    void hybridLegalize();
+    void constructionOdbDatabaseForHybridBond();
+    void applyHybridBondCoordinates();
+
+    Chip *parent_;
+    vector<dbDatabase *> db_database_container_;
+    dbDatabase *db_database_for_hybrid_bond_;
+
+  };
 
  public:
   Chip();
@@ -103,7 +130,7 @@ class Chip {
    * */
   void do3DPlace(const string &def_name, const string &lef_name = "");
 
-  void setBenchType(const string &bench_type);
+  void setBenchType(BENCH_TYPE bench_type);
   const string &getDesignName() const;
 
   void test();
@@ -113,7 +140,9 @@ class Chip {
 
  protected:
   // Data initialization
-  void init();
+  void dataBaseInit();
+
+  void stepManager();
 
   /**
    * \brief
@@ -141,7 +170,25 @@ class Chip {
    * GitHub: ApeachM (https://github.com/ApeachM)
    * */
   void parseICCAD(const string &input_file_name);
-  void writeICCAD(const string &output_file_name);
+  void writeICCADOutput(const string &output_file_name);
+  void parseICCADBenchData(const string &input_file_name);
+  /**
+   * \brief
+   * Construction odb database for pseudo die.
+   * This is just for the partitioning with Triton.
+   * */
+  void odbConstructionForPartition_ICCAD();
+
+  void topDieOdbLibConstruction_ICCAD();
+  void bottomDieOdbLibConstruction_ICCAD();
+
+  /**
+   * \author
+   * Minjae Kim \n
+   * GitHub: ApeachM (https://github.com/ApeachM)
+   * \deprecated
+   * */
+  void odbConstructionForICCAD_deprecated();
 
   void printDataInfo() const;
 
@@ -163,9 +210,12 @@ class Chip {
    * GitHub: ApeachM (https://github.com/ApeachM)
    * */
   void partition();
+  /**
+   *
+   * */
   void partitionSimple();
   bool checkPartitionFile();
-  void readPartitionFile();
+  void ConstructionPseudoDbWithReadingPartitionFile();
 
   /**\brief
    * After partitioning, the
@@ -204,6 +254,8 @@ class Chip {
    * GitHub: ApeachM (https://github.com/ApeachM)
    * */
   void doNesterovPlace();
+
+  void legalize();
 
   /**\brief
    * get unit of micro
@@ -247,9 +299,18 @@ class Chip {
   void setDbDatabase(dbDatabase *db_database);
   void setDesignName(const string &input_file_name);
   void drawTotalCircuit(const string &die_name = "die", bool high_resolution = false);
+  void saveDb(int phase);
+  dbDatabase *loadDb(int phase);
+  /**
+   * \deprecated
+   * */
   void dbCapture(const string &file_name);
+  /**
+   * \deprecated
+   * */
   void dbCaptureRead(const string &file_name);
-  bool checkDbFile();
+  bool checkDbFile(int phase);
+  void destroyAllCircuitInformation();
   void getAverageInstanceSize();
   void setTargetDensityManually();
   void partitionTriton();
@@ -258,15 +319,12 @@ class Chip {
  protected:
   enum PHASE {
     START,
-    INITIAL_PLACE,
     PARTITION,
+    INITIAL_PLACE,
     GENERATE_HYBRID_BOND,
     TWO_DIE_PLACE,
+    LEGALIZE,
     END
-  };
-  enum BENCH_TYPE {
-    ICCAD,
-    NORMAL
   };
   /// this is for connection between the objects
   struct DataMapping {
@@ -277,23 +335,38 @@ class Chip {
     /// mapping_ for terminals on blocks (includes fixed pins on die)
     std::unordered_map<dbBTerm *, Pin *> pin_map_b;
   };
-  DataMapping mapping_;
+  struct InputArguments {
+    string def_name;
+    string lef_name;
+  };
+  struct FilePaths {
+    string db_path = "../output/dbFiles/";
+    string partition_path = "../output/partitionFiles/";
+    string image_path = "../output/images/";
+  };
 
   PHASE phase_ = START;
   BENCH_TYPE bench_type_ = NORMAL;
+  ICCAD2022BenchInformation bench_information_;
+  InputArguments input_arguments_;
   string design_name_;
+  FilePaths file_paths_;
   utl::Logger logger_;
-  // For pseudo die
-  odb::dbDatabase *db_database_{};
+
+  // db databases
+  odb::dbDatabase *db_database_for_partition_{};  // This db will be used for only partition
+  odb::dbDatabase *pseudo_db_database_{};  // This db will be used for Two Die Placement
+  odb::dbDatabase *top_db_database_{};
+  odb::dbDatabase *bottom_db_database_{};
 
   // For top and bottom die.
   // This should be only used when parse ICCAD contest benchmark,
   // and write the two lef and def files for top and bottom die
-  std::vector<odb::dbDatabase *> db_databases_{};
+  std::vector<odb::dbDatabase *> db_databases_{};  // deprecated variable with odbConstructionForICCAD_deprecated()
 
   Parser parser_;
   data_storage data_storage_;
-  // DataMapping data_mapping_;
+  DataMapping mapping_;
 
   std::vector<Instance *> instance_pointers_;
   std::vector<Net *> net_pointers_;
@@ -321,10 +394,12 @@ class Chip {
 
   HierRTLMPartition *hier_rtl_;
   Partitioner *partitioner_;
+  Legalizer legalizer_;
 
   string start_time_;
   ulong current_hpwl_;
-
+  void setInputArguments(const string &def_name, const string &lef_name);
+  void applyPartitionInfoIntoDatabase();
 };
 
 } // VLSI_backend

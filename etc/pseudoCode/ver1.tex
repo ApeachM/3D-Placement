@@ -1,0 +1,56 @@
+\documentclass[11pt]{article}
+\usepackage[margin=3cm]{geometry}
+\usepackage{algorithm2e}
+\usepackage[hidelinks]{hyperref}
+\begin{document}
+
+\RestyleAlgo{ruled}
+
+\SetKwComment{Comment}{/* }{ */}
+
+\begin{algorithm}[hbt!]
+\caption{3D IC Placer}
+\KwIn{Netlist, Library information for each die, Die sizes}
+\KwOut{Information about which instances are on which die, Position of all instances}
+
+Convert parsed input file to odb database
+
+Construction pseudo die library and set all instances to be on the pseudo die
+
+1. Do RePlAce in pseudo die
+
+2. Partition Netlist, and Assign instances to Die\Comment*[r]{with Triton Partitioner}
+
+3. Generate the Hybrid Bonds\Comment*[r]{Algorithm 2}
+
+4. Two Die Nesterov Place\Comment*[r]{Algorithm 3}
+
+5. Legalize Hybrid bonds and Instances positions;
+
+Write Output File;
+\end{algorithm}
+
+\begin{algorithm}
+\caption{Generate the Hybrid Bonds} \label{Generate-the-Hybrid-Bonds}
+ \For{\texttt{Net} in \texttt{Netlist}}{
+    \If{If \texttt{Net} binds the instances on both die}{
+        Generate the Hybrid Bond at the center of Bounding Box of the \textit{\texttt{Net}}
+    }
+ }
+\end{algorithm}
+
+\begin{algorithm}
+\caption{Two Die Nesterov Place}
+ Construction FFT grids for each die
+
+ \While{The overflow of both dies don't satisfy the condition}{
+    doNesterovPlace(TopDie)\Comment*[r]{Do RePlAce, just for one iteration}
+    doNesterovPlace(BottomDie)\Comment*[r]{Do RePlAce, just for one iteration}
+    Move Hybrid Bond positions in the same way as Algorithm \ref{Generate-the-Hybrid-Bonds}
+ }
+\end{algorithm}
+
+\listofalgorithms
+
+
+\end{document}

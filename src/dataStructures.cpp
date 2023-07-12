@@ -32,6 +32,7 @@
 // POSSIBILITY OF SUCH DAMAGE.
 ///////////////////////////////////////////////////////////////////////////////
 #include "NesterovPlacer.h"
+#include "Net.h"
 
 namespace VLSI_backend {
 // Die //
@@ -129,6 +130,9 @@ void Die::setRowInfo(int start_x, int start_y, int row_width, int row_height, in
   row_info_.row_width = row_width;
   row_info_.row_height = row_height;
   row_info_.repeat_count = repeat_count;
+}
+const RowInfo &Die::getRowInfo() const {
+  return row_info_;
 }
 
 // Instance //
@@ -519,29 +523,28 @@ int64_t Net::hpwl() {
 void Net::updateBox(int die_ID, bool consider_other_die) {
   lx_ = ly_ = INT_MAX;
   ux_ = uy_ = INT_MIN;
-  // TODO: check the default value is 0 or not
   if (consider_other_die || die_ID == 0) {
-    for (Pin *gPin : getConnectedPins()) {
-      lx_ = std::min(gPin->cx(), lx_);
-      ly_ = std::min(gPin->cy(), ly_);
-      ux_ = std::max(gPin->cx(), ux_);
-      uy_ = std::max(gPin->cy(), uy_);
+    for (Pin *pin : getConnectedPins()) {
+      lx_ = std::min(pin->cx(), lx_);
+      ly_ = std::min(pin->cy(), ly_);
+      ux_ = std::max(pin->cx(), ux_);
+      uy_ = std::max(pin->cy(), uy_);
     }
   } else {
     // consider only for the one die
     // ignore the pin for this net for updating box
-    for (Pin *gPin : getConnectedPins()) {
-      if (gPin->isBlockPin()) {
-        lx_ = std::min(gPin->cx(), lx_);
-        ly_ = std::min(gPin->cy(), ly_);
-        ux_ = std::max(gPin->cx(), ux_);
-        uy_ = std::max(gPin->cy(), uy_);
-      } else if (die_ID == gPin->getInstance()->getDieId()) {
+    for (Pin *pin : getConnectedPins()) {
+      if (pin->isBlockPin()) {
+        lx_ = std::min(pin->cx(), lx_);
+        ly_ = std::min(pin->cy(), ly_);
+        ux_ = std::max(pin->cx(), ux_);
+        uy_ = std::max(pin->cy(), uy_);
+      } else if (die_ID == pin->getInstance()->getDieId()) {
         // can not access the instance id when the pin is block pin.
-        lx_ = std::min(gPin->cx(), lx_);
-        ly_ = std::min(gPin->cy(), ly_);
-        ux_ = std::max(gPin->cx(), ux_);
-        uy_ = std::max(gPin->cy(), uy_);
+        lx_ = std::min(pin->cx(), lx_);
+        ly_ = std::min(pin->cy(), ly_);
+        ux_ = std::max(pin->cx(), ux_);
+        uy_ = std::max(pin->cy(), uy_);
       }
     }
   }
@@ -578,6 +581,32 @@ const vector<Instance *> &Net::getConnectedInstances() const {
 }
 void Net::setConnectedInstances(const vector<Instance *> &connected_instances) {
   connected_instances_ = connected_instances;
+}
+pair<int, int> Net::getCenter() {
+  // This function is similar to the updateBox, but that function requires calling many functions of the Nesterov placer
+  // For being independent of that, I made this function temporary.
+  // The net variables for Nesterov should be separated considering the algorithms.
+  // We should do that, but pending it in the TODO.
+
+  int lower_left_x, lower_left_y;
+  int upper_right_x, upper_right_y;
+  lower_left_x = lower_left_y = INT_MAX;
+  upper_right_x = upper_right_y = INT_MIN;
+
+  for (Pin *pin : getConnectedPins()) {
+    pair<int, int> coordinate = pin->getCoordinate();
+    lower_left_x = std::min(coordinate.first, lower_left_x);
+    lower_left_y = std::min(coordinate.second, lower_left_y);
+    upper_right_x = std::max(coordinate.first, upper_right_x);
+    upper_right_y = std::max(coordinate.second, upper_right_y);
+  }
+  assert(lower_left_x <= upper_right_x);
+  assert(lower_left_y <= upper_right_y);
+
+  int center_x = floor((lower_left_x + upper_right_x) / 2);
+  int center_y = floor((lower_left_y + upper_right_y) / 2);
+
+  return {center_x, center_y};
 }
 
 // Pin //

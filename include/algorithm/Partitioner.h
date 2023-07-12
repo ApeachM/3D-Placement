@@ -9,7 +9,7 @@ class Chip::Partitioner : par::TritonPart {
   Partitioner(ord::dbNetwork *network, dbDatabase *db, sta::dbSta *sta, utl::Logger *logger) :
       TritonPart(network, db, sta, logger) {
   }
-  virtual ~Partitioner() = default;
+  virtual ~Partitioner();
 
   /**
    * Refer to PartitionMgr::tritonPartDesign()
@@ -21,12 +21,7 @@ class Chip::Partitioner : par::TritonPart {
   void writeSolution();
 
  private:
-  void readNetList(const string& fixed_file, const string& community_file, const string& group_file){
-    if (network_)
-      TritonPart::ReadNetlist(fixed_file, community_file, group_file);
-    else
-      this->ReadNetlist();
-  }
+  void readNetList(const string& fixed_file, const string& community_file, const string& group_file);
 
   void ReadNetlist();
   string solution_file;

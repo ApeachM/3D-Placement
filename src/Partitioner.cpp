@@ -209,7 +209,9 @@ void Chip::Partitioner::init(const string &design_name) {
   std::string fixed_file;
   std::string community_file;
   std::string group_file;
-  solution_file = "partition_info_" + design_name;
+  string solution_file_path = "../output/partitionFiles/";
+  string solution_file_name = "partition_info_" + design_name + ".par";
+  solution_file = solution_file_path + solution_file_name;
   logger_->info(utl::PAR, 102, "Number of partitions = {}", num_parts_);
   logger_->info(utl::PAR, 16, "UBfactor = {}", ub_factor_);
   logger_->info(utl::PAR, 17, "Seed = {}", seed_);
@@ -301,6 +303,7 @@ void Chip::Partitioner::writeSolution() {
     for (auto inst : block_->getInsts()) {
       if (auto property = odb::dbIntProperty::find(inst, "partition_id")) {
         file_output << inst->getName() << "  ";
+        file_output << inst->getMaster()->getName() << " " ;  // This part is different with original code.
         file_output << property->getValue() << "  ";
         file_output << std::endl;
       }
@@ -476,10 +479,19 @@ void Chip::Partitioner::ReadNetlist() {
                                                            logger_);
   // show the status of hypergraph
   logger_->info(utl::PAR, 174, "Netlist Information**");
-  logger_->info(utl::PAR, 175, "Vertices = {}", original_hypergraph_->num_vertices_);
+  logger_->info(utl::PAR, 175, "Vertices = {}", original_hypergraph_->GetNumVertices());
   logger_->info(
-      utl::PAR, 176, "Hyperedges = {}", original_hypergraph_->num_hyperedges_);
+      utl::PAR, 176, "Hyperedges = {}", original_hypergraph_->GetNumHyperedges());
   logger_->info(utl::PAR, 177, "Number of timing paths = {}", timing_paths_.size());
+}
+void Chip::Partitioner::readNetList(const string &fixed_file, const string &community_file, const string &group_file) {
+  if (network_)
+    TritonPart::ReadNetlist(fixed_file, community_file, group_file);
+  else
+    this->ReadNetlist();
+}
+Chip::Partitioner::~Partitioner() {
+  odb::dbDatabase::destroy(db_);
 }
 
 }

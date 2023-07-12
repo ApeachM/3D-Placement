@@ -1,0 +1,35 @@
+1. initial
+2. partitioning
+3. two die nesterov
+4. legalization
+
+3번과 4번 사이에서 db_database of each die에 instance construction on odb를 해야함.
+odp를 사용하기 위해서는 파워 라인을 따라야 하는데, 그래서 legalize할 때 db_database를 공유해서는 안됨.
+(3번 전에 해버리면 알고리즘 문제 일어남. 다른 db_database에서 넷 공유를 현재 DB에서 할 수 x)
+
+그러나 3번에서도 cell Area고려 해야함. --> 
+pseudo die libarary에서 top and bottom lib를 parser단계에서 구현해 놓은 후, 
+instance construction를 partition(step2) 이후에 해야함.
+
+
+
+정리:
+
+2번 이후 pseudo die db_database에 top&bottom lib와 instance를 construction해 놓은 후
+3번 이후 db_database for each die안에 instance construction in odb를 해야함.
+
+[!!! 2번에서 다시 pseudo_db_database를 construction해야함. top과 bottom 따로 하면 안됨!!!]
+
+
+
+전략
+
+initial placement 없애고
+처음부터 바로 partitioning
+그 다음 그거에 맞게 셀 construction 한 다음에
+two die nesterov 실행
+
+그 다음에 그 위치 그대로 저장하고 전부다 destroy.
+그 다음 db_database 두개 새로 만들어서, 따로 construction. 이때 파워라인 설정
+그다음 odp 돌리기 + hybrid bond legalization
+
