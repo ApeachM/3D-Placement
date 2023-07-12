@@ -89,7 +89,7 @@ void Chip::setInputArguments(const string &def_name, const string &lef_name) {
 void Chip::stepManager() {
   // TODO
   // Do not use this function yet
-
+  assert(bench_type_ == BENCH_TYPE::ICCAD);
   // the phase order follows below.
   /* *
     START,
@@ -116,9 +116,11 @@ void Chip::stepManager() {
   if (phase_ == PHASE::START) {
     return;
   } else if (phase_ == PHASE::PARTITION) {
-    parse(input_arguments_.def_name, input_arguments_.lef_name);
+    parseICCADBenchData(input_arguments_.def_name);
 
-    readPartitionFile();
+    ConstructionPseudoDbWithReadingPartitionFile();
+    dataBaseInit();
+    applyPartitionInfoIntoDatabase();
 
     phase_ = PHASE::INITIAL_PLACE;
   } else if (phase_ == PHASE::INITIAL_PLACE) {
@@ -126,17 +128,14 @@ void Chip::stepManager() {
     parseICCADBenchData(input_arguments_.def_name);
     pseudo_db_database_ = loadDb(PHASE::TWO_DIE_PLACE);
     dataBaseInit();
-
-    readPartitionFile();
+    applyPartitionInfoIntoDatabase();
 
     phase_ = PHASE::GENERATE_HYBRID_BOND;
   } else if (phase_ == PHASE::TWO_DIE_PLACE) {
     parseICCADBenchData(input_arguments_.def_name);
     pseudo_db_database_ = loadDb(PHASE::TWO_DIE_PLACE);
     dataBaseInit();
-
-    readPartitionFile();
-
+    applyPartitionInfoIntoDatabase();
     generateHybridBonds();
 
     phase_ = PHASE::LEGALIZE;
@@ -182,7 +181,10 @@ void Chip::partition() {
 
     // Read partition file
     // Here, we will make the new db_database and data structures for the next step
-    readPartitionFile();
+    ConstructionPseudoDbWithReadingPartitionFile();
+    dataBaseInit();
+    applyPartitionInfoIntoDatabase();
+
   } else {
     // TODO: handle the normal bench cases
 /*
@@ -735,12 +737,13 @@ bool Chip::checkPartitionFile() {
   string file_path = "../output/partitionFiles/";
   string file_name = "partition_info_" + design_name_ + ".par";
   ifstream partition_info_file(file_path + file_name);
-  if (partition_info_file.fail())
+  if (partition_info_file.fail()) {
+    partition_info_file.close();
     return false;
-  else
+  } else
     return true;
 }
-void Chip::readPartitionFile() {
+void Chip::ConstructionPseudoDbWithReadingPartitionFile() {
   /**
    * Here, We will make the new db Database for Two Die placement.
    * This would use the partitioning information and each library information for each die.
@@ -878,15 +881,14 @@ void Chip::readPartitionFile() {
     }
   }
 
-  dataBaseInit();
-
-  // mark the die assign
+}
+void Chip::applyPartitionInfoIntoDatabase() {// mark the die assign
   for (Instance *inst : instance_pointers_) {
     auto die_assign = dbIntProperty::find(inst->getDbInst(), "die_assign");
-    if (die_assign->getValue() == PARTITION_INFO::TOP) {
-      inst->assignDie(PARTITION_INFO::TOP + 1);
-    } else if (die_assign->getValue() == PARTITION_INFO::BOTTOM) {
-      inst->assignDie(PARTITION_INFO::BOTTOM + 1);
+    if (die_assign->getValue() == 0) {
+      inst->assignDie(DIE_ID::TOP_DIE);
+    } else if (die_assign->getValue() == 1) {
+      inst->assignDie(DIE_ID::BOTTOM_DIE);
     } else
       assert(0);
   }
@@ -3665,12 +3667,12 @@ bool Chip::checkDbFile(int phase) {
 
   string file_name;
   if (phase == PHASE::INITIAL_PLACE) {
-    file_name = "db_INITIAL_PLACE_" + design_name_ + ".db";
+    file_name = design_name_ + "_INITIAL_PLACE_.db";
     file_name = file_paths_.db_path + file_name;
     std::ifstream db_file(file_name, std::ios::binary);
     exist = !db_file.fail();
   } else if (phase == PHASE::TWO_DIE_PLACE) {
-    file_name = "db_TWO_DIE_PLACE_" + design_name_ + ".db";
+    file_name = design_name_ + "_TWO_DIE_PLACE_.db";
     file_name = file_paths_.db_path + file_name;
     std::ifstream db_file(file_name, std::ios::binary);
     exist = !db_file.fail();

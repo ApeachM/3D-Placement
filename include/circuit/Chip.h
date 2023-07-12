@@ -214,7 +214,7 @@ class Chip {
    * */
   void partitionSimple();
   bool checkPartitionFile();
-  void readPartitionFile();
+  void ConstructionPseudoDbWithReadingPartitionFile();
 
   /**\brief
    * After partitioning, the
@@ -398,6 +398,7 @@ class Chip {
   string start_time_;
   ulong current_hpwl_;
   void setInputArguments(const string &def_name, const string &lef_name);
+  void applyPartitionInfoIntoDatabase();
 };
 
 } // VLSI_backend
