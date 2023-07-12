@@ -106,6 +106,7 @@ class Chip {
 
     void hybridLegalize();
     void constructionOdbDatabaseForHybridBond();
+    void applyHybridBondCoordinates();
 
     Chip *parent_;
     vector<dbDatabase *> db_database_container_;

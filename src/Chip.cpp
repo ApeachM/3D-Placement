@@ -253,7 +253,8 @@ void Chip::generateHybridBonds() {
       HybridBond *hybrid_bond = &data_storage_.hybrid_bonds.at(data_storage_.hybrid_bonds.size() - 1);
 
       // set name
-      hybrid_bond->setName("hybrid_bond_" + to_string(hybrid_num));
+      string hybrid_bond_name = "hybrid_bond_" + to_string(hybrid_num);
+      hybrid_bond->setName(hybrid_bond_name);
 
       // link hybrid bond and net
       net->setHybridBond(hybrid_bond); // pin -> net
@@ -406,6 +407,7 @@ void Chip::placement2DieSynchronously() {
 }
 void Chip::legalize() {
   legalizer_.doLegalize();
+  drawTotalCircuit("Legalized");
 }
 
 void Chip::dataBaseInit() {
@@ -3725,7 +3727,7 @@ void Chip::setStartTime() {
   start_time_ = current_time_str.substr(0, current_time_str.length() - 1);
 }
 void Chip::Legalizer::doLegalize() {
-  cellLegalize();
+  // cellLegalize();
   hybridLegalize();
 }
 void Chip::Legalizer::cellLegalize() {
@@ -3740,6 +3742,9 @@ void Chip::Legalizer::oneDieCellLegalize(DIE_ID die_id) {
   saveDb(die_id, false);
   doDetailPlacement(die_id);
   saveDb(die_id, true);
+
+  // TODO: apply the coordinates with odb database to the database that I made
+
 }
 void Chip::Legalizer::doDetailPlacement(DIE_ID die_id) {
   dbDatabase *db_database;
@@ -3747,6 +3752,8 @@ void Chip::Legalizer::doDetailPlacement(DIE_ID die_id) {
     db_database = db_database_container_.at(0);
   else if (die_id == DIE_ID::BOTTOM_DIE)
     db_database = db_database_container_.at(1);
+  else if (die_id == DIE_ID::INTERSECTED)
+    db_database = db_database_for_hybrid_bond_;
 
   auto *odp = new dpl::Opendp();
   odp->init(db_database, &parent_->logger_);
@@ -3773,7 +3780,7 @@ void Chip::Legalizer::constructionOdbDatabaseForCell(DIE_ID die_id) {
   Point lower_left_point_of_die = Point(die_info.lower_left_x, die_info.lower_left_y);
   Point upper_right_point_of_die = Point(die_info.upper_right_x, die_info.upper_right_y);
   Rect die_rect = Rect(lower_left_point_of_die, upper_right_point_of_die);
-  db_database->getChip()->getBlock()->setDieArea(die_rect);
+  db_block->setDieArea(die_rect);
 
   // Row setting
   dbSite *site = dbSite::create(db_lib, "site");
@@ -3854,15 +3861,21 @@ void Chip::Legalizer::saveDb(DIE_ID die_id, bool after_legalize) {
   if (die_id == DIE_ID::TOP_DIE) {
     db_database = db_database_container_.at(0);
     if (after_legalize)
-      file_name = parent_->design_name_ + "_AFTER_LEGALIZED" + "_TOP_DIE.db";
+      file_name = parent_->design_name_ + "_TOP_DIE" + "_AFTER_LEGALIZED" + ".db";
     else
-      file_name = parent_->design_name_ + "_BEFORE_LEGALIZED" + "_TOP_DIE.db";
+      file_name = parent_->design_name_ + "_TOP_DIE" + "_BEFORE_LEGALIZED" + ".db";
   } else if (die_id == DIE_ID::BOTTOM_DIE) {
     db_database = db_database_container_.at(1);
     if (after_legalize)
-      file_name = parent_->design_name_ + "_AFTER_LEGALIZED" + "_BOTTOM_DIE.db";
+      file_name = parent_->design_name_ + "_BOTTOM_DIE" + "_AFTER_LEGALIZED" + ".db";
     else
-      file_name = parent_->design_name_ + "_BEFORE_LEGALIZED" + "_BOTTOM_DIE.db";
+      file_name = parent_->design_name_ + "_BOTTOM_DIE" + "_BEFORE_LEGALIZED" + ".db";
+  } else if (die_id == DIE_ID::INTERSECTED) {
+    db_database = db_database_for_hybrid_bond_;
+    if (after_legalize)
+      file_name = parent_->design_name_ + "_hybridBond" + "_AFTER_LEGALIZED" + ".db";
+    else
+      file_name = parent_->design_name_ + "_hybridBond" + "_BEFORE_LEGALIZED" + ".db";
   } else
     assert(0);
 
@@ -3874,9 +3887,82 @@ void Chip::Legalizer::saveDb(DIE_ID die_id, bool after_legalize) {
   }
 }
 void Chip::Legalizer::hybridLegalize() {
+  // 1. Construct the odb database
+  constructionOdbDatabaseForHybridBond();
+  saveDb(DIE_ID::INTERSECTED, false);
 
+  // 2. Do detail placement with odb
+  doDetailPlacement(DIE_ID::INTERSECTED);
+  saveDb(DIE_ID::INTERSECTED, true);
+
+  // 3. apply the coordinate with odb data to the hybrid bond's one
+  applyHybridBondCoordinates();
 }
 void Chip::Legalizer::constructionOdbDatabaseForHybridBond() {
+  // Construct db_database for hybrid bond legalize
+  // This db_database is only for hybrid bond legalize
+  // each hybrid bond is considered as a cells in this db_database
+  // the cell width and height are determined by the hybrid bond width and height, and the spacing rule
+  assert(parent_->bench_type_ == ICCAD);  // TODO: consider the normal case also in this function
+  int spacing_size = parent_->bench_information_.terminal_info.spacing_size;
+  int cell_width = parent_->bench_information_.terminal_info.size_x + spacing_size;
+  int cell_height = parent_->bench_information_.terminal_info.size_y + spacing_size;
 
+  db_database_for_hybrid_bond_ = dbDatabase::create();
+  dbTech *db_tech = dbTech::create(db_database_for_hybrid_bond_);
+  dbTechLayer *db_tech_layer = dbTechLayer::create(db_tech, "hybrid_layer", dbTechLayerType::MASTERSLICE);
+  dbLib *db_lib = dbLib::create(db_database_for_hybrid_bond_, "hybrid_lib");
+  dbChip *db_chip = dbChip::create(db_database_for_hybrid_bond_);
+  dbBlock *db_block = dbBlock::create(db_chip, "hybrid_block");
+
+  // In ICCAD contest, the die size of top and bottom are same.
+  DieInfo die_info = parent_->bench_information_.die_infos.at(0);
+  Point lower_left_point_of_die = Point(die_info.lower_left_x, die_info.lower_left_y);
+  Point upper_right_point_of_die = Point(die_info.upper_right_x, die_info.upper_right_y);
+  Rect die_rect = Rect(lower_left_point_of_die, upper_right_point_of_die);
+  db_block->setDieArea(die_rect);
+
+  // Row setting
+  dbSite *site = dbSite::create(db_lib, "site");
+
+  // change the site size as cell width and height if the complexity of dp is so high
+  int site_width = 1;
+  int site_height = 1;
+  int num_of_sites = floor(die_info.upper_right_x / site_width);
+  int num_of_row = floor(die_info.upper_right_y / site_height);
+
+  site->setWidth(site_width);
+  site->setHeight(site_height);
+  for (int i = 0; i < num_of_row; ++i) {
+    dbRow::create(db_block, ("row" + to_string(i)).c_str(), site,
+                  0, i * site_height, dbOrientType::MX, dbRowDir::HORIZONTAL,
+                  num_of_sites, 10); // What is spacing in here?
+  }
+
+  // Library Construction //
+  // Here, we should make only one library cell
+  string lib_cell_name = "hybrid_lib_cell";
+  dbMaster *master = dbMaster::create(db_lib, lib_cell_name.c_str());
+  master->setWidth(cell_width);
+  master->setHeight(cell_height);
+  master->setType(dbMasterType::CORE);
+  master->setFrozen();
+
+  // odb Instance Construction //
+  for (auto hybrid_bond : parent_->hybrid_bond_pointers_) {
+    dbInst *db_inst = dbInst::create(db_block, master, hybrid_bond->getName().c_str());
+    db_inst->setLocation(hybrid_bond->getCoordinate().first, hybrid_bond->getCoordinate().second);
+    db_inst->setPlacementStatus(dbPlacementStatus::PLACED);
+  }
+}
+void Chip::Legalizer::applyHybridBondCoordinates() {
+  // apply the coordinate with odb data to the hybrid bond's one
+  for (int i = 0; i < parent_->hybrid_bond_pointers_.size(); ++i) {
+    auto hybrid_bond = parent_->hybrid_bond_pointers_.at(i);
+    auto db_inst = db_database_for_hybrid_bond_->getChip()->getBlock()->findInst(hybrid_bond->getName().c_str());
+    assert(db_inst);
+    auto coordinate = db_inst->getLocation();;
+    hybrid_bond->setCoordinate({coordinate.getX(), coordinate.getY()});
+  }
 }
 } // VLSI_backend
