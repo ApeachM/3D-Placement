@@ -41,6 +41,7 @@
 #include <algorithm>
 #include <Eigen/IterativeLinearSolvers>
 #include <Eigen/SparseCore>
+#include <ctime>
 #include "Parser.h"
 #include "Instance.h"
 #include "Net.h"

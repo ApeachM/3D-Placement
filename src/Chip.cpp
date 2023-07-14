@@ -174,6 +174,7 @@ void Chip::partition() {
     // In this case, we will make the own db_database and data structures for only partitioning
     // Construct DbDatabase
     odbConstructionForPartition_ICCAD();
+    saveDb(phase_);
 
 
     // Do partitioning
@@ -3625,6 +3626,9 @@ void Chip::dbCapture(const string &file_name) {
 }
 void Chip::saveDb(int phase) {
   string file_name;
+  if (phase == PHASE::PARTITION){
+    file_name = design_name_ + "_PARTITION_.db";
+  }
   if (phase == PHASE::INITIAL_PLACE) {
     file_name = design_name_ + "_INITIAL_PLACE_" + ".db";
   } else if (phase == PHASE::TWO_DIE_PLACE) {
@@ -3635,7 +3639,10 @@ void Chip::saveDb(int phase) {
   file_name = file_paths_.db_path + file_name;
   FILE *stream = std::fopen(file_name.c_str(), "w");
   if (stream) {
-    pseudo_db_database_->write(stream);
+    if (phase_ == PHASE::INITIAL_PLACE || phase_ == PHASE::TWO_DIE_PLACE)
+      pseudo_db_database_->write(stream);
+    else if (phase_ == PHASE::PARTITION)
+      db_database_for_partition_->write(stream);
     std::fclose(stream);
   }
 }
