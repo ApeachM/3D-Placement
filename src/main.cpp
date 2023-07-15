@@ -65,9 +65,8 @@ int mainParse(int argc,
         return 1;
       }
     } else {
-      test_dir = "../test/benchmarks/etc/";
+      test_dir = "../test/benchmarks/normal/" + test_case_name;
       test_case_name = argv[2];
-      test_case_path = test_dir + test_case_name + ".def";
     }
   }
   return 0;
@@ -89,7 +88,7 @@ int main(int argc, char **argv) {
   } else {
     VLSI_backend::Chip chip;
     chip.setBenchType(VLSI_backend::BENCH_TYPE::NORMAL);
-    chip.do3DPlace(test_case_path, test_dir + "Nangate45.lef");
+    chip.do3DPlace(test_dir+test_case_name+".def", test_dir+test_case_name+".lef");
     // chip.getDbDatabase()->getChip()->getBlock()->saveLef((output_path_name + lefName).c_str());
   }
 }

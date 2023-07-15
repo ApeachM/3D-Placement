@@ -41,7 +41,6 @@
 #include <algorithm>
 #include <Eigen/IterativeLinearSolvers>
 #include <Eigen/SparseCore>
-#include <ctime>
 #include "Parser.h"
 #include "Instance.h"
 #include "Net.h"
@@ -155,7 +154,11 @@ class Chip {
   void parse(const string &def_name, const string &lef_name = "");
   void write(const string &file_name);
   void parseNORMAL(const string &lef_name, const string &def_name);
-  void writeNORMAL(const string &out_file_name);
+  void parseLef(dbDatabase* db_database, string lef_file);
+  void parseDef(dbDatabase* db_database, string def_file);
+  void writeNORMAL(dbDatabase*db_database, const string &out_file_name);
+  void writeDef(dbDatabase* db_database, const string& def_file, const string& version="5.8");
+  static odb::defout::Version stringToDefVersion(const string &version);
   /**
    * \brief
    * This code parses and writes the input data of ICCAD 2022 contest.
@@ -348,7 +351,8 @@ class Chip {
 
   PHASE phase_ = START;
   BENCH_TYPE bench_type_ = NORMAL;
-  ICCAD2022BenchInformation bench_information_;
+  ICCAD2022BenchInformation bench_information_iccad_;
+  dbDatabase* bench_information_normal_;
   InputArguments input_arguments_;
   string design_name_;
   FilePaths file_paths_;
@@ -365,7 +369,6 @@ class Chip {
   // and write the two lef and def files for top and bottom die
   std::vector<odb::dbDatabase *> db_databases_{};  // deprecated variable with odbConstructionForICCAD_deprecated()
 
-  Parser parser_;
   data_storage data_storage_;
   DataMapping mapping_;
 

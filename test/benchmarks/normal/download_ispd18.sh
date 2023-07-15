@@ -8,4 +8,4 @@ do
     tar zxvf ${fname}.tgz -C ./$fname/
   done 
 
-mv *.tar tar/
+rm *.tar
