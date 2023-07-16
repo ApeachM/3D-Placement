@@ -34,7 +34,7 @@
 #ifndef INC_3D_PLACEMENT_INCLUDE_ALGORITHM_INITIALPLACER_H_
 #define INC_3D_PLACEMENT_INCLUDE_ALGORITHM_INITIALPLACER_H_
 #include "Chip.h"
-namespace VLSI_backend {
+namespace flow3D {
 class Chip::InitialPlacer {
  public:
   InitialPlacer(std::vector<Instance *> instance_pointers,

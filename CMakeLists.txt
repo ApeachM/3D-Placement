@@ -26,12 +26,12 @@ set(INCLUDE_DIRS
         ${PROJECT_SOURCE_DIR}/submodules/OpenROAD/src/mpl2/src
         )
 
-add_executable(placer ${SOURCES})
-target_include_directories(placer PRIVATE ${INCLUDE_DIRS})
+add_executable(placer3D ${SOURCES})
+target_include_directories(placer3D PRIVATE ${INCLUDE_DIRS})
 
 find_package(Eigen3 REQUIRED)
 add_subdirectory(submodules/OpenROAD)
-target_link_libraries(placer
+target_link_libraries(placer3D
         PUBLIC
         odb
         mpl2_lib

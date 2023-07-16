@@ -38,7 +38,7 @@
 #include "db.h"
 #include "Die.h"
 
-namespace VLSI_backend {
+namespace flow3D {
 using namespace odb;
 using namespace std;
 class Instance;
@@ -110,9 +110,15 @@ struct ICCAD2022BenchInformation{
   vector<DieInfo> die_infos;
   TerminalInfo terminal_info{};
 };
-enum BENCH_TYPE {
+enum BENCH_FORMAT {
   ICCAD,
-  NORMAL
+  STANDARD
+};
+enum BENCH_TYPE{
+  ICCAD22,
+  ICCAD23,
+  ISPD18,
+  ETC
 };
 
 }

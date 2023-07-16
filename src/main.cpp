@@ -1,94 +1,110 @@
 #include <iostream>
 #include "Chip.h"
 
-using namespace std;
+namespace flow3DMain {
 void printUsage() {
-  cout << "Usage: ./placer is_contest <test_case>" << endl;
-  cout << "\tExample 1:" << endl;
-  cout << "\t\t./placer 1 2.0" << endl;
-  cout << "\t\t\tThis is for the case2 in the ICCAD contest" << endl;
-  cout << "\tExample 2:" << endl;
-  cout << "\t\t./placer 1 2.1" << endl;
-  cout << "\t\t\tThis is for the case2_hidden in the ICCAD contest" << endl;
-  cout << "\tExample 3:" << endl;
-  cout << "\t\t./placer 1 3.0" << endl;
-  cout << "\t\t\tThis is for the case3 in the ICCAD contest" << endl;
-  cout << "\tExample 4:" << endl;
-  cout << "\t\t./placer 1 3.1" << endl;
-  cout << "\t\t\tThis is for the case3_hidden in the ICCAD contest" << endl;
-  cout << "\tExample 5:" << endl;
-  cout << "\t\t./placer 0 simple01" << endl;
-  cout << "\t\t\tThis is for the simple01.def in ispd18" << endl;
+  std::cout << "Usage: ./placer3D benchType <test_case>" << std::endl;
+
+  std::cout << "\tExample 1:" << std::endl;
+  std::cout << "\t\t./placer iccad22 case2" << std::endl;
+  std::cout << "\t\t\tThis is for the case2 in the ICCAD 2022 contest" << std::endl;
+
+  std::cout << "\tExample 2:" << std::endl;
+  std::cout << "\t\t./placer iccad22 case2-1" << std::endl;
+  std::cout << "\t\t\tThis is for the case2_hidden in the ICCAD 2022 contest" << std::endl;
+
+  std::cout << "\tExample 3:" << std::endl;
+  std::cout << "\t\t./placer ispd18 test1" << std::endl;
+  std::cout << "\t\t\tThis is for the ispd18_test1" << std::endl;
 }
 
-int mainParse(int argc,
-              char **argv,
-              string &test_case_name,
-              string &test_dir,
-              string &test_case_path,
-              bool &is_for_contest) {
+bool mainParse(int argc, char **argv, string &test_case_name, string &test_dir,
+               flow3D::BENCH_FORMAT &bench_format, flow3D::BENCH_TYPE &bench_type) {
+  bool parse_fail = false;;
+  string bench_type_string;
   if (argc != 3) {
-    printUsage();
-    return 1;
+    parse_fail = true;
   } else {
-    is_for_contest = atoi(argv[1]);
-    if (is_for_contest) {
-      test_dir = "../test/benchmarks/iccad2022/";
-      test_case_name = argv[2];
-      if (test_case_name == "2.0") {
-        cout << "This is for the case2 in the contest." << endl;
-        test_case_name = "case2.txt";
-        test_case_path = test_dir + test_case_name;
-      } else if (test_case_name == "2.1") {
-        cout << "This is for the case2 in the contest." << endl;
-        test_case_name = "case2_hidden.txt";
-        test_case_path = test_dir + test_case_name;
-      } else if (test_case_name == "3.0") {
-        cout << "This is for the case3 in the contest." << endl;
-        test_case_name = "case3.txt";
-        test_case_path = test_dir + test_case_name;
-      } else if (test_case_name == "3.1") {
-        cout << "This is for the case3_hidden in the contest." << endl;
-        test_case_name = "case3_hidden.txt";
-        test_case_path = test_dir + test_case_name;
-      } else if (test_case_name == "4.0") {
-        cout << "This is for the case4 in the contest." << endl;
-        test_case_name = "case4.txt";
-        test_case_path = test_dir + test_case_name;
-      } else if (test_case_name == "4.1") {
-        cout << "This is for the case4_hidden in the contest." << endl;
-        test_case_name = "case4_hidden.txt";
-        test_case_path = test_dir + test_case_name;
+    // bench type determination from argument
+    bench_type_string = std::to_string(atoi(argv[1]));
+    // test case determination from argument
+    test_case_name = argv[2];
+
+    ///////////////////////////////////////////////////////////////////////
+    if (bench_type_string == "iccad22" || bench_type_string == "iccad23") {
+      bench_format = flow3D::BENCH_FORMAT::ICCAD;
+      if (bench_type_string == "iccad22")
+        bench_type = flow3D::BENCH_TYPE::ICCAD22;
+      if (bench_type_string == "iccad23")
+        bench_type = flow3D::BENCH_TYPE::ICCAD23;
+      test_dir = "../test/benchmarks/iccad/";
+    } //////////////////////////////////////////////////////////////////////
+    else if (bench_type_string == "ispd18") {
+      bench_format = flow3D::BENCH_FORMAT::STANDARD;
+      bench_type = flow3D::BENCH_TYPE::ISPD18;
+
+      test_dir = "../test/benchmarks/standard/ispd/ispd18_test";
+      if (test_case_name == "test1") {
+        test_dir += "1/";
+        test_case_name = "ispd18_test1";
+      } else if (test_case_name == "test2") {
+        test_dir += "2/";
+        test_case_name = "ispd18_test2";
+      } else if (test_case_name == "test3") {
+        test_dir += "3/";
+        test_case_name = "ispd18_test3";
+      } else if (test_case_name == "test4") {
+        test_dir += "4/";
+        test_case_name = "ispd18_test4";
+      } else if (test_case_name == "test5") {
+        test_dir += "5/";
+        test_case_name = "ispd18_test5";
+      } else if (test_case_name == "test6") {
+        test_dir += "6/";
+        test_case_name = "ispd18_test6";
+      } else if (test_case_name == "test7") {
+        test_dir += "7/";
+        test_case_name = "ispd18_test7";
+      } else if (test_case_name == "test8") {
+        test_dir += "8/";
+        test_case_name = "ispd18_test8";
+      } else if (test_case_name == "test9") {
+        test_dir += "9/";
+        test_case_name = "ispd18_test9";
+      } else if (test_case_name == "test10") {
+        test_dir += "10/";
+        test_case_name = "ispd18_test10";
       } else {
-        cout << "Please input the correct test_case." << endl;
-        cout << "Note: There's no case1." << endl;
-        return 1;
+        std::cout << "Please input the correct test_case." << std::endl << std::endl;
+        parse_fail = true;
       }
-    } else {
-      test_dir = "../test/benchmarks/normal/" + test_case_name;
-      test_case_name = argv[2];
+    } //////////////////////////////////////////////////////////////////////
+    else {
+      std::cout << "Please input the correct bench_type." << std::endl << std::endl;
+      parse_fail = true;
     }
   }
-  return 0;
+
+  if (parse_fail) {
+    printUsage();
+    return false;
+  } else
+    return true;
+}
+
 }
 
 int main(int argc, char **argv) {
-  bool is_for_contest;
-  string test_case_name;
-  string test_dir;
-  string test_case_path;
-  string output_path_name ;
-
-  if (mainParse(argc, argv, test_case_name, test_dir, test_case_path, is_for_contest))
+  string test_case_name, test_dir, output_path_name;
+  flow3D::BENCH_FORMAT bench_format;
+  flow3D::BENCH_TYPE bench_type;
+  if (!flow3DMain::mainParse(argc, argv, test_case_name, test_dir, bench_format, bench_type))
     return 1;
-  if (is_for_contest) {
-    VLSI_backend::Chip chip;
-    chip.setBenchType(VLSI_backend::BENCH_TYPE::ICCAD);
-    chip.do3DPlace(test_case_path);
-  } else {
-    VLSI_backend::Chip chip;
-    chip.setBenchType(VLSI_backend::BENCH_TYPE::NORMAL);
-    chip.do3DPlace(test_dir+test_case_name+".def", test_dir+test_case_name+".lef");
-    // chip.getDbDatabase()->getChip()->getBlock()->saveLef((output_path_name + lefName).c_str());
-  }
+
+  flow3D::Chip chip;
+  chip.setDesign(test_case_name, test_dir, bench_format, bench_type);
+
+  chip.do3DPlace();
+
+  return 0;
 }

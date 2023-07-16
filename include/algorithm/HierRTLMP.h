@@ -42,7 +42,7 @@
 #include "par/PartitionMgr.h"
 #include "utl/Logger.h"
 
-namespace VLSI_backend {
+namespace flow3D {
 
 class HierRTLMPartition : public mpl2::HierRTLMP {
   struct HyperParameters {

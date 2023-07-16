@@ -59,7 +59,7 @@ using Eigen::BiCGSTAB;
 using Eigen::IdentityPreconditioner;
 typedef Eigen::SparseMatrix<float, Eigen::RowMajor> SMatrix;
 
-namespace VLSI_backend {
+namespace flow3D {
 using namespace odb;
 // https://codingforspeed.com/using-faster-exponential-approximation/
 static double fastExp(float a);
@@ -128,15 +128,23 @@ class Chip {
    * Minjae Kim \n
    * GitHub: ApeachM (https://github.com/ApeachM)
    * */
-  void do3DPlace(const string &def_name, const string &lef_name = "");
+  void do3DPlace(const string &def_name="", const string &lef_name = "");
 
-  void setBenchType(BENCH_TYPE bench_type);
+  void setBenchFormat(BENCH_FORMAT bench_format);
+  void setInputArguments();
   const string &getDesignName() const;
+  void setDesign(const string &design_name,
+                 const string &bench_path,
+                 flow3D::BENCH_FORMAT bench_format,
+                 flow3D::BENCH_TYPE bench_type);
+  void setDesignName(const string &design_name);
+  void setBenchPath(const string& bench_path);
 
   void test();
 
   // etc
   void dbTutorial() const;
+  void setBenchType(BENCH_TYPE bench_type);
 
  protected:
   // Data initialization
@@ -175,7 +183,7 @@ class Chip {
    * */
   void parseICCAD(const string &input_file_name);
   void writeICCADOutput(const string &output_file_name);
-  void parseICCADBenchData(const string &input_file_name);
+  void parseICCADBenchData();
   /**
    * \brief
    * Construction odb database for pseudo die.
@@ -299,9 +307,6 @@ class Chip {
   void setInstanceNumber(int instance_number);
   int getNetNumber() const;
   void setNetNumber(int net_number);
-  dbDatabase *getDbDatabase() const;
-  void setDbDatabase(dbDatabase *db_database);
-  void setDesignName(const string &input_file_name);
   void drawTotalCircuit(const string &die_name = "die", bool high_resolution = false);
   void saveDb(int phase);
   dbDatabase *loadDb(int phase);
@@ -319,6 +324,7 @@ class Chip {
   void setTargetDensityManually();
   void partitionTriton();
   void setStartTime();
+  void applyPartitionInfoIntoDatabase();
 
  protected:
   enum PHASE {
@@ -340,22 +346,25 @@ class Chip {
     std::unordered_map<dbBTerm *, Pin *> pin_map_b;
   };
   struct InputArguments {
+    string iccad_bench_name;
     string def_name;
     string lef_name;
   };
-  struct FilePaths {
+  struct FileDirPaths {
+    string bench_path = "../test/benchmarks/";
     string db_path = "../output/dbFiles/";
     string partition_path = "../output/partitionFiles/";
     string image_path = "../output/images/";
   };
 
   PHASE phase_ = START;
-  BENCH_TYPE bench_type_ = NORMAL;
+  BENCH_FORMAT bench_format_ = STANDARD;
+  BENCH_TYPE bench_type_;
   ICCAD2022BenchInformation bench_information_iccad_;
   dbDatabase* bench_information_normal_;
   InputArguments input_arguments_;
   string design_name_;
-  FilePaths file_paths_;
+  FileDirPaths file_dir_paths_;
   utl::Logger logger_;
 
   // db databases
@@ -402,10 +411,8 @@ class Chip {
 
   string start_time_;
   ulong current_hpwl_;
-  void setInputArguments(const string &def_name, const string &lef_name);
-  void applyPartitionInfoIntoDatabase();
 };
 
-} // VLSI_backend
+} // flow3D
 
 #endif //PLACER_INCLUDE_DATASTRUCTURES_CIRCUIT_H_

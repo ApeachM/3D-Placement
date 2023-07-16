@@ -1,6 +1,6 @@
 #include "Partitioner.h"
 #include "HierRTLMP.h"
-namespace VLSI_backend {
+namespace flow3D {
 // Hier-RTL-MP Partition //
 void HierRTLMPartition::init() {
   int max_num_macro = hyper_parameters_.max_num_macro;

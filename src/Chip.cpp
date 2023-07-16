@@ -42,20 +42,18 @@
 
 using namespace std;
 
-namespace VLSI_backend {
+namespace flow3D {
 Chip::Chip() : legalizer_(this) {
   setStartTime();
 }
 // main flow //
 void Chip::do3DPlace(const string &def_name, const string &lef_name) {
 
-  setInputArguments(def_name, lef_name);
-  setDesignName(def_name); // todo: handle for NORMAL case
   // stepManager();
 
   if (phase_ <= PHASE::START) {
     phase_ = PHASE::START;
-    parse(input_arguments_.def_name, input_arguments_.lef_name);
+    parse(input_arguments_.iccad_bench_name, input_arguments_.lef_name);
   }
   if (phase_ <= PHASE::PARTITION) {
     phase_ = PHASE::PARTITION;
@@ -80,14 +78,46 @@ void Chip::do3DPlace(const string &def_name, const string &lef_name) {
 
   phase_ = PHASE::END;
 }
-void Chip::setInputArguments(const string &def_name, const string &lef_name) {
-  input_arguments_.def_name = def_name;
-  input_arguments_.lef_name = lef_name;
+void Chip::setInputArguments() {
+  if (bench_format_ == BENCH_FORMAT::ICCAD) {
+    if (design_name_ == "case2")
+      input_arguments_.iccad_bench_name = "case2.txt";
+    else if (design_name_ == "case2-1") {
+      input_arguments_.iccad_bench_name = "case2_hidden.txt";
+      design_name_ = "case2_hidden";
+    } else if (design_name_ == "case3")
+      input_arguments_.iccad_bench_name = "case3.txt";
+    else if (design_name_ == "case3-1") {
+      input_arguments_.iccad_bench_name = "case3_hidden.txt";
+      design_name_ = "case3_hidden";
+    } else if (design_name_ == "case4") {
+      input_arguments_.iccad_bench_name = "case4.txt";
+      design_name_ = "case4";
+    } else if (design_name_ == "case4-1") {
+      input_arguments_.iccad_bench_name = "case4_hidden.txt";
+      design_name_ = "case4_hidden";
+    } else {
+      cout << "We can't find the proper benchmark file for " << design_name_ << endl;
+      assert(0);
+    }
+  } else if (bench_format_ == BENCH_FORMAT::STANDARD) {
+    if (bench_type_ == BENCH_TYPE::ISPD18){
+      design_name_ = "ispd18_" + design_name_;
+      input_arguments_.def_name = design_name_ + ".input.def";
+      input_arguments_.lef_name = design_name_ + ".input.lef";
+    } else {
+      // TODO
+      assert(0);
+    }
+  } else {
+    cout << "We can't find the proper benchmark file for " << design_name_ << endl;
+    assert(0);
+  }
 }
 void Chip::stepManager() {
   // TODO
   // Do not use this function yet
-  assert(bench_type_ == BENCH_TYPE::ICCAD);
+  assert(bench_format_ == BENCH_FORMAT::ICCAD);
   // the phase order follows below.
   /* *
     START,
@@ -114,7 +144,7 @@ void Chip::stepManager() {
   if (phase_ == PHASE::START) {
     return;
   } else if (phase_ == PHASE::PARTITION) {
-    parseICCADBenchData(input_arguments_.def_name);
+    parseICCADBenchData();
 
     ConstructionPseudoDbWithReadingPartitionFile();
     dataBaseInit();
@@ -123,14 +153,14 @@ void Chip::stepManager() {
     phase_ = PHASE::INITIAL_PLACE;
   } else if (phase_ == PHASE::INITIAL_PLACE) {
     // Below three lines of code is similar with Chip::parse()
-    parseICCADBenchData(input_arguments_.def_name);
+    parseICCADBenchData();
     pseudo_db_database_ = loadDb(PHASE::TWO_DIE_PLACE);
     dataBaseInit();
     applyPartitionInfoIntoDatabase();
 
     phase_ = PHASE::GENERATE_HYBRID_BOND;
   } else if (phase_ == PHASE::TWO_DIE_PLACE) {
-    parseICCADBenchData(input_arguments_.def_name);
+    parseICCADBenchData();
     pseudo_db_database_ = loadDb(PHASE::TWO_DIE_PLACE);
     dataBaseInit();
     applyPartitionInfoIntoDatabase();
@@ -147,13 +177,8 @@ void Chip::setTargetDensityManually() {
   densities.push_back(1.4);
   setTargetDensity(densities);
 }
-void Chip::setBenchType(BENCH_TYPE bench_type) {
-  if (bench_type == BENCH_TYPE::ICCAD)
-    bench_type_ = BENCH_TYPE::ICCAD;
-  else if (bench_type == BENCH_TYPE::NORMAL)
-    bench_type_ = BENCH_TYPE::NORMAL;
-  else
-    assert(0);
+void Chip::setBenchFormat(BENCH_FORMAT bench_format) {
+  bench_format_ = bench_format;
 }
 void Chip::normalPlacement() {
   setTargetDensityManually();
@@ -165,8 +190,8 @@ void Chip::partition() {
 /*
   partitionSimple();
 */
-  if (bench_type_ == BENCH_TYPE::ICCAD) {
-    // there's no RTL code in BENCH_TYPE::ICCAD, therefore we use triton partitioning
+  if (bench_format_ == BENCH_FORMAT::ICCAD) {
+    // there's no RTL code in BENCH_FORMAT::ICCAD, therefore we use triton partitioning
     // For using Triton Partitioning, let's construct a temporal db_database and data structures
 
     // In this case, we will make the own db_database and data structures for only partitioning
@@ -184,7 +209,7 @@ void Chip::partition() {
     applyPartitionInfoIntoDatabase();
 
   } else {
-    // TODO: handle the normal bench cases
+    // TODO: handle the standard bench cases
 /*
     auto *sta = new sta::dbSta;
     sta::dbNetwork *network = sta->getDbNetwork();
@@ -507,7 +532,7 @@ void Chip::dataBaseInit() {
     Die die;
     die.setDbBlock(block);
     die.setDieId(i);
-    if (bench_type_ == BENCH_TYPE::ICCAD) {
+    if (bench_format_ == BENCH_FORMAT::ICCAD) {
       auto top_die_info = this->bench_information_iccad_.die_infos.at(0);
       auto bottom_die_info = this->bench_information_iccad_.die_infos.at(1);
       int start_x, start_y, row_width, row_height, repeat_count;
@@ -706,7 +731,7 @@ void Chip::drawTotalCircuit(const string &die_name, bool high_resolution) {
     canvas.drawHybridBond(ll_x, ll_y, ur_x, ur_y);
   }
 
-  canvas.saveImg(design_name_ + "/T_and_B_" + die_name);
+  canvas.saveImg(design_name_ + "_T_and_B_" + die_name);
 }
 void Chip::printDataInfo() const {
   cout << "======================" << endl;
@@ -746,7 +771,7 @@ void Chip::ConstructionPseudoDbWithReadingPartitionFile() {
    * This would use the partitioning information and each library information for each die.
    * Currently, this considers only ICCAD benchmark case.
    * */
-  assert(bench_type_ == BENCH_TYPE::ICCAD);
+  assert(bench_format_ == BENCH_FORMAT::ICCAD);
 
   string file_path = "../output/partitionFiles/";
   string file_name = "partition_info_" + design_name_ + ".par";
@@ -1200,9 +1225,9 @@ odb::defout::Version Chip::stringToDefVersion(const string &version) {
 }
 void Chip::writeNORMAL(dbDatabase *db_database, const string &out_file_name) {
   // TODO: write lef
-  writeDef(db_database,(out_file_name+".def"));
+  writeDef(db_database, (out_file_name + ".def"));
 }
-void Chip::writeDef(dbDatabase *db_database, const string& def_file, const string& version) {
+void Chip::writeDef(dbDatabase *db_database, const string &def_file, const string &version) {
   odb::dbChip *chip = db_database->getChip();
   if (chip) {
     odb::dbBlock *block = chip->getBlock();
@@ -1217,10 +1242,11 @@ void Chip::writeDef(dbDatabase *db_database, const string& def_file, const strin
 }
 
 void Chip::parseICCAD(const string &input_file_name) {
-  parseICCADBenchData(input_file_name);
+  parseICCADBenchData();
 }
-void Chip::parseICCADBenchData(const string &input_file_name) {
+void Chip::parseICCADBenchData() {
   // open input file
+  string input_file_name = file_dir_paths_.bench_path + input_arguments_.iccad_bench_name;
   ifstream input_file(input_file_name);
   if (input_file.fail()) {
     cerr << "Cannot open the input file: " << input_file_name << endl;
@@ -2034,29 +2060,23 @@ void Chip::setNetNumber(int net_number) {
   data_storage_.nets.reserve(net_number);
   net_number_ = net_number;
 }
-dbDatabase *Chip::getDbDatabase() const {
-  return pseudo_db_database_;
+void Chip::setDesign(const string &design_name, const string &bench_path,
+                     flow3D::BENCH_FORMAT bench_format, flow3D::BENCH_TYPE bench_type) {
+  setBenchPath(bench_path);
+  setDesignName(design_name);
+  setBenchType(bench_type);
+
+  setInputArguments();
 }
-void Chip::setDbDatabase(dbDatabase *db_database) {
-  pseudo_db_database_ = db_database;
+
+void Chip::setBenchPath(const string &bench_path) {
+  file_dir_paths_.bench_path = bench_path;
 }
-void Chip::setDesignName(const string &input_file_name) {
-  if (bench_type_ == BENCH_TYPE::ICCAD) {
-    if (input_file_name == "../test/benchmarks/iccad2022/case2.txt")
-      design_name_ = "CASE2";
-    else if (input_file_name == "../test/benchmarks/iccad2022/case2_hidden.txt")
-      design_name_ = "CASE2_HIDDEN";
-    else if (input_file_name == "../test/benchmarks/iccad2022/case3.txt")
-      design_name_ = "CASE3";
-    else if (input_file_name == "../test/benchmarks/iccad2022/case3_hidden.txt")
-      design_name_ = "CASE3_HIDDEN";
-    else if (input_file_name == "../test/benchmarks/iccad2022/case4.txt")
-      design_name_ = "CASE4";
-    else if (input_file_name == "../test/benchmarks/iccad2022/case4_hidden.txt")
-      design_name_ = "CASE4_HIDDEN";
-  } else {
-    design_name_ = "NORMAL"; // TODO: re-specify this
-  }
+void Chip::setDesignName(const string &design_name) {
+  design_name_ = design_name;
+}
+void Chip::setBenchType(BENCH_TYPE bench_type) {
+  bench_type_ = bench_type;
 }
 void Chip::updateHybridBondPositions() {
   for (HybridBond *hybrid_bond : hybrid_bond_pointers_) {
@@ -2319,7 +2339,7 @@ string &Chip::NesterovPlacer::getDrawFileName(int iter, string &file_name) const
     file_name = "bottom_" + file_name;
   else if (die_pointer_->getDieId() == PSEUDO_DIE)
     file_name = "pseudo_" + file_name;
-  file_name = design_name + "/" + file_name;
+  file_name = design_name + "_" + file_name;
   return file_name;
 }
 bool Chip::NesterovPlacer::finishCheck() const {
@@ -3683,7 +3703,7 @@ void Chip::saveDb(int phase) {
   } else
     assert(0);
 
-  file_name = file_paths_.db_path + file_name;
+  file_name = file_dir_paths_.db_path + file_name;
   FILE *stream = std::fopen(file_name.c_str(), "w");
   if (stream) {
     pseudo_db_database_->write(stream);
@@ -3700,7 +3720,7 @@ dbDatabase *Chip::loadDb(int phase) {
   } else
     assert(0);
 
-  file_name = file_paths_.db_path + file_name;
+  file_name = file_dir_paths_.db_path + file_name;
   std::ifstream file;
   file.exceptions(std::ifstream::failbit | std::ifstream::badbit | std::ios::eofbit);
   file.open(file_name, std::ios::binary);
@@ -3718,12 +3738,12 @@ bool Chip::checkDbFile(int phase) {
   string file_name;
   if (phase == PHASE::INITIAL_PLACE) {
     file_name = design_name_ + "_INITIAL_PLACE_.db";
-    file_name = file_paths_.db_path + file_name;
+    file_name = file_dir_paths_.db_path + file_name;
     std::ifstream db_file(file_name, std::ios::binary);
     exist = !db_file.fail();
   } else if (phase == PHASE::TWO_DIE_PLACE) {
     file_name = design_name_ + "_TWO_DIE_PLACE_.db";
-    file_name = file_paths_.db_path + file_name;
+    file_name = file_dir_paths_.db_path + file_name;
     std::ifstream db_file(file_name, std::ios::binary);
     exist = !db_file.fail();
   }
@@ -3755,15 +3775,15 @@ void Chip::destroyAllCircuitInformation() {
   mapping_.pin_map_b.clear();
 }
 void Chip::parse(const string &def_name, const string &lef_name) {
-  if (bench_type_ == BENCH_TYPE::ICCAD)
+  if (bench_format_ == BENCH_FORMAT::ICCAD)
     parseICCAD(def_name);
-  else if (bench_type_ == BENCH_TYPE::NORMAL)
+  else if (bench_format_ == BENCH_FORMAT::STANDARD)
     parseNORMAL(lef_name, def_name);
 }
 void Chip::write(const string &file_name) {
-  if (bench_type_ == BENCH_TYPE::ICCAD)
+  if (bench_format_ == BENCH_FORMAT::ICCAD)
     writeICCADOutput(file_name);
-  else if (bench_type_ == BENCH_TYPE::NORMAL) {
+  else if (bench_format_ == BENCH_FORMAT::STANDARD) {
     writeNORMAL(top_db_database_, file_name + "_top");
     writeNORMAL(bottom_db_database_, file_name + "_bottom");
   }
@@ -3929,7 +3949,7 @@ void Chip::Legalizer::saveDb(DIE_ID die_id, bool after_legalize) {
   } else
     assert(0);
 
-  file_name = parent_->file_paths_.db_path + file_name;
+  file_name = parent_->file_dir_paths_.db_path + file_name;
   FILE *stream = std::fopen((file_name).c_str(), "w");
   if (stream) {
     db_database->write(stream);
@@ -3953,7 +3973,7 @@ void Chip::Legalizer::constructionOdbDatabaseForHybridBond() {
   // This db_database is only for hybrid bond legalize
   // each hybrid bond is considered as a cells in this db_database
   // the cell width and height are determined by the hybrid bond width and height, and the spacing rule
-  assert(parent_->bench_type_ == ICCAD);  // TODO: consider the normal case also in this function
+  assert(parent_->bench_format_ == ICCAD);  // TODO: consider the standard case also in this function
   int spacing_size = parent_->bench_information_iccad_.terminal_info.spacing_size;
   int cell_width = parent_->bench_information_iccad_.terminal_info.size_x;
   int cell_height = parent_->bench_information_iccad_.terminal_info.size_y;
@@ -4015,4 +4035,4 @@ void Chip::Legalizer::applyHybridBondCoordinates() {
     hybrid_bond->setCoordinate({coordinate.getX(), coordinate.getY()});
   }
 }
-} // VLSI_backend
+} // flow3D
