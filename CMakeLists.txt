@@ -41,6 +41,12 @@ target_link_libraries(placer3D
         X11
         )
 
+add_executable(test_db test/dbTest.cpp)
+target_link_libraries(test_db
+        PUBLIC
+        odb
+        )
+
 #target_include_directories(mpl2_lib
 #        PUBLIC
 #        submodules/OpenROAD/src/mpl2/src

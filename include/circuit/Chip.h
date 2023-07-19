@@ -142,8 +142,6 @@ class Chip {
 
   void test();
 
-  // etc
-  void dbTutorial() const;
   void setBenchType(BENCH_TYPE bench_type);
 
  protected:
