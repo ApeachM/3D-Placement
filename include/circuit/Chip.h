@@ -161,9 +161,9 @@ class Chip {
    * */
   void parse(const string &def_name, const string &lef_name = "");
   void write(const string &file_name);
-  void parseNORMAL(const string &lef_name, const string &def_name);
-  void parseLef(dbDatabase* db_database, string lef_file);
-  void parseDef(dbDatabase* db_database, string def_file);
+  void parseNORMAL();
+  void parseLef(dbDatabase* db_database, const string& lef_file);
+  void parseDef(dbDatabase* db_database, const string& def_file);
   void writeNORMAL(dbDatabase*db_database, const string &out_file_name);
   void writeDef(dbDatabase* db_database, const string& def_file, const string& version="5.8");
   static odb::defout::Version stringToDefVersion(const string &version);
@@ -181,7 +181,7 @@ class Chip {
    * Minjae Kim \n
    * GitHub: ApeachM (https://github.com/ApeachM)
    * */
-  void parseICCAD(const string &input_file_name);
+  void parseICCAD();
   void writeICCADOutput(const string &output_file_name);
   void parseICCADBenchData();
   /**
@@ -310,14 +310,6 @@ class Chip {
   void drawTotalCircuit(const string &die_name = "die", bool high_resolution = false);
   void saveDb(int phase);
   dbDatabase *loadDb(int phase);
-  /**
-   * \deprecated
-   * */
-  void dbCapture(const string &file_name);
-  /**
-   * \deprecated
-   * */
-  void dbCaptureRead(const string &file_name);
   bool checkDbFile(int phase);
   void destroyAllCircuitInformation();
   void getAverageInstanceSize();
@@ -411,6 +403,7 @@ class Chip {
 
   string start_time_;
   ulong current_hpwl_;
+  void odbConstructionForPartition_Standard();
 };
 
 } // flow3D

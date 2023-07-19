@@ -26,7 +26,7 @@ bool mainParse(int argc, char **argv, string &test_case_name, string &test_dir,
     parse_fail = true;
   } else {
     // bench type determination from argument
-    bench_type_string = std::to_string(atoi(argv[1]));
+    bench_type_string = argv[1];
     // test case determination from argument
     test_case_name = argv[2];
 
@@ -95,7 +95,7 @@ bool mainParse(int argc, char **argv, string &test_case_name, string &test_dir,
 }
 
 int main(int argc, char **argv) {
-  string test_case_name, test_dir, output_path_name;
+  string test_case_name, test_dir;
   flow3D::BENCH_FORMAT bench_format;
   flow3D::BENCH_TYPE bench_type;
   if (!flow3DMain::mainParse(argc, argv, test_case_name, test_dir, bench_format, bench_type))

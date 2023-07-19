@@ -101,8 +101,7 @@ void Chip::setInputArguments() {
       assert(0);
     }
   } else if (bench_format_ == BENCH_FORMAT::STANDARD) {
-    if (bench_type_ == BENCH_TYPE::ISPD18){
-      design_name_ = "ispd18_" + design_name_;
+    if (bench_type_ == BENCH_TYPE::ISPD18) {
       input_arguments_.def_name = design_name_ + ".input.def";
       input_arguments_.lef_name = design_name_ + ".input.lef";
     } else {
@@ -190,26 +189,26 @@ void Chip::partition() {
 /*
   partitionSimple();
 */
+  // there's no RTL code in BENCH_FORMAT::ICCAD, therefore we use triton partitioning
+  // For using Triton Partitioning, let's construct a temporal db_database and data structures
+
+  // In this case, we will make the own db_database and data structures for only partitioning
+  // Construct DbDatabase
   if (bench_format_ == BENCH_FORMAT::ICCAD) {
-    // there's no RTL code in BENCH_FORMAT::ICCAD, therefore we use triton partitioning
-    // For using Triton Partitioning, let's construct a temporal db_database and data structures
-
-    // In this case, we will make the own db_database and data structures for only partitioning
-    // Construct DbDatabase
     odbConstructionForPartition_ICCAD();
+  } else if (bench_format_ == BENCH_FORMAT::STANDARD) {
+    odbConstructionForPartition_Standard();
+  }
 
+  // Do partitioning
+  partitionTriton();
 
-    // Do partitioning
-    partitionTriton();
+  // Read partition file
+  // Here, we will make the new db_database and data structures for the next step
+  ConstructionPseudoDbWithReadingPartitionFile();
+  dataBaseInit();
+  applyPartitionInfoIntoDatabase();
 
-    // Read partition file
-    // Here, we will make the new db_database and data structures for the next step
-    ConstructionPseudoDbWithReadingPartitionFile();
-    dataBaseInit();
-    applyPartitionInfoIntoDatabase();
-
-  } else {
-    // TODO: handle the standard bench cases
 /*
     auto *sta = new sta::dbSta;
     sta::dbNetwork *network = sta->getDbNetwork();
@@ -221,7 +220,7 @@ void Chip::partition() {
 
     delete hier_rtl_;
 */
-  }
+
 }
 void Chip::partitionTriton() {
 //  if (!checkPartitionFile()) {
@@ -903,6 +902,18 @@ void Chip::ConstructionPseudoDbWithReadingPartitionFile() {
     }
   }
 
+/*
+  auto db_block1 = pseudo_db_database_->getChip()->getBlock();  // rename this after extract method
+  for (int i = 0; i < db_block1->getInsts().size(); ++i) {
+    partition_info_file >> instance_name >> master_name >> partition_info;
+    dbMaster *master = nullptr;
+    if (partition_info == PARTITION_INFO::TOP) {
+      master = pseudo_db_database_->findMaster((master_name + "_TOP").c_str());
+    } else if (partition_info == PARTITION_INFO::BOTTOM) {
+      master = pseudo_db_database_->findMaster((master_name + "_BOTTOM").c_str());
+    }
+  }
+*/
 }
 void Chip::applyPartitionInfoIntoDatabase() {// mark the die assign
   for (Instance *inst : instance_pointers_) {
@@ -1177,13 +1188,15 @@ pair<float, float> Chip::InitialPlacer::cpuSparseSolve() {
 }
 
 // parser //
-void Chip::parseNORMAL(const string &lef_name, const string &def_name) {
+void Chip::parseNORMAL() {
   bench_information_normal_ = dbDatabase::create();
-  parseLef(bench_information_normal_, lef_name);
-  parseDef(bench_information_normal_, def_name);
-  dataBaseInit();
+  parseLef(bench_information_normal_, file_dir_paths_.bench_path + input_arguments_.lef_name);
+  dbMaster* db_master = bench_information_normal_->findMaster("SDFFRX4");
+  bool is_frozen = db_master->isFrozen();
+
+  parseDef(bench_information_normal_, file_dir_paths_.bench_path + input_arguments_.def_name);
 }
-void Chip::parseLef(dbDatabase *db_database, string lef_file) {
+void Chip::parseLef(dbDatabase *db_database, const string &lef_file) {
   odb::lefin lef_reader(db_database, &logger_, false);
   odb::dbLib *lib = lef_reader.createTechAndLib("lib_name", lef_file.c_str()); // TODO: set the lib name
   odb::dbTech *tech = db_database->getTech();
@@ -1194,7 +1207,7 @@ void Chip::parseLef(dbDatabase *db_database, string lef_file) {
     cout << "Lef parsing is failed." << endl;
   }
 }
-void Chip::parseDef(dbDatabase *db_database, string def_file) {
+void Chip::parseDef(dbDatabase *db_database, const string &def_file) {
   odb::defin def_reader(db_database, &logger_);
   vector<odb::dbLib *> search_libs;
   for (odb::dbLib *lib : db_database->getLibs())
@@ -1241,7 +1254,7 @@ void Chip::writeDef(dbDatabase *db_database, const string &def_file, const strin
   }
 }
 
-void Chip::parseICCAD(const string &input_file_name) {
+void Chip::parseICCAD() {
   parseICCADBenchData();
 }
 void Chip::parseICCADBenchData() {
@@ -1772,6 +1785,11 @@ void Chip::odbConstructionForPartition_ICCAD() {
       inst->findITerm(pin_info->lib_pin_name.c_str())->connect(net);
     }
   }
+}
+void Chip::odbConstructionForPartition_Standard() {
+  assert(db_database_for_partition_ == nullptr);
+  //
+  db_database_for_partition_ = odb::dbDatabase::duplicate(bench_information_normal_);
 }
 void Chip::topDieOdbLibConstruction_ICCAD() {
   /**
@@ -3672,28 +3690,6 @@ void Chip::dbTutorial() const {
 */
 
 }
-void Chip::dbCaptureRead(const string &file_name) {
-  if (pseudo_db_database_ == NULL) {
-    pseudo_db_database_ = odb::dbDatabase::create();
-  } else {
-    odb::dbDatabase::destroy(pseudo_db_database_);
-    pseudo_db_database_ = odb::dbDatabase::create();
-  }
-  std::ifstream file;
-  file.exceptions(std::ifstream::failbit | std::ifstream::badbit | std::ios::eofbit);
-  file.open(file_name, std::ios::binary);
-  pseudo_db_database_->read(file);
-
-  dataBaseInit();
-  setTargetDensityManually();
-}
-void Chip::dbCapture(const string &file_name) {
-  FILE *stream = std::fopen(file_name.c_str(), "w");
-  if (stream) {
-    pseudo_db_database_->write(stream);
-    std::fclose(stream);
-  }
-}
 void Chip::saveDb(int phase) {
   string file_name;
   if (phase == PHASE::INITIAL_PLACE) {
@@ -3776,9 +3772,9 @@ void Chip::destroyAllCircuitInformation() {
 }
 void Chip::parse(const string &def_name, const string &lef_name) {
   if (bench_format_ == BENCH_FORMAT::ICCAD)
-    parseICCAD(def_name);
+    parseICCAD();
   else if (bench_format_ == BENCH_FORMAT::STANDARD)
-    parseNORMAL(lef_name, def_name);
+    parseNORMAL();
 }
 void Chip::write(const string &file_name) {
   if (bench_format_ == BENCH_FORMAT::ICCAD)
