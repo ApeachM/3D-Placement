@@ -1,6 +1,7 @@
 #include "db.h"
 #include "lefin.h"
 #include "defin.h"
+#include "lefout.h"
 #include <iostream>
 
 void parseLef(odb::dbDatabase *db_database, const std::string &lef_path) {
@@ -36,188 +37,101 @@ void saveDb(odb::dbDatabase *db_database, const std::string &db_path) {
   }
 }
 
-void dbExample(odb::dbDatabase *db_database) {
+void write_lef(odb::dbLib *lib, const std::string &path) {
+  auto *logger = new utl::Logger(nullptr);
+  std::ofstream os;
+  os.exceptions(std::ofstream::badbit | std::ofstream::failbit);
+  os.open(path.c_str());
+  odb::lefout writer(logger, os);
+  writer.writeTechAndLib(lib);
+}
+void makeShirkedLef(odb::dbDatabase *db_database_original, const std::string &new_lef_path) {
+  auto libs_original = db_database_original->getLibs();
+  auto tech_original = db_database_original->getTech();
 
-  std::cout << db_database->getChip()->getBlock()->getBBox()->getDX() << std::endl;
+  auto db_database = odb::dbDatabase::create();
+  auto tech = odb::dbTech::create(db_database);
+  tech->setLefUnits(tech_original->getLefUnits());
+  tech->setManufacturingGrid(tech_original->getManufacturingGrid());
+  tech->setLefVersion(tech_original->getLefVersion());
+  tech->setDbUnitsPerMicron(tech_original->getDbUnitsPerMicron());
 
-  odb::dbBlock *block = db_database->getChip()->getBlock();
-  for (int i = 0; i < 4; ++i) {
-    std::cout << std::endl;
+  for (auto layer_original : tech_original->getLayers()) {
+    odb::dbTechLayer::create(tech, layer_original->getName().c_str(), layer_original->getType());
   }
-  // instance cloning into circuit variables
-  odb::dbSet<odb::dbInst> db_instances = block->getInsts();
-  int cellIdx = 0;
 
-  for (odb::dbInst *db_instance : db_instances) {
-    if (cellIdx % 10 == 0) {
-      std::cout << "db_instance->getMaster()->getLib()->getDbUnitsPerMicron(): "
-                << db_instance->getMaster()->getLib()->getDbUnitsPerMicron() << std::endl;
-      int x, y;
-      auto type = db_instance->getMaster()->getType();
-      if (!type.isCore() && !type.isBlock()) continue;
+  int lib_number = 0;
 
-      std::cout << "db_instance->getName(): " << db_instance->getName() << std::endl;
-      db_instance->getOrigin(x, y);
-      std::cout << "getOrigin: " << x << " " << y << std::endl;
-      std::cout << "db_instance->getMaster()->getName(): " << db_instance->getMaster()->getName() << std::endl;
-      std::cout << "db_instance->getMaster()->getHeight(): " << db_instance->getMaster()->getHeight() << std::endl;
-      std::cout << "db_instance->getMaster()->getWidth(): " << db_instance->getMaster()->getWidth() << std::endl;
-      std::cout << "db_instance->getMaster()->getLib()->getName(): " << db_instance->getMaster()->getLib()->getName()
-                << std::endl << std::endl;
+  for (auto lib_original : libs_original) {
+    lib_number++;
+    auto lib = odb::dbLib::create(db_database, lib_original->getConstName());
+    lib->setLefUnits(lib_original->getLefUnits());
+    for (auto site_original : lib_original->getSites()) {
+      auto site = odb::dbSite::create(lib, site_original->getConstName());
+      site->setWidth(site_original->getWidth());
+      site->setHeight(site_original->getHeight());
+    }
 
-      for (auto masterTerminal : db_instance->getMaster()->getMTerms()) {
-        std::cout << std::endl;
-        std::cout << "terminal name: " << masterTerminal->getName() << std::endl;
-        std::cout << "masterTerminal->getSigType().getString(): " << masterTerminal->getSigType().getString()
-                  << std::endl;
-        std::cout << "masterTerminal->getIoType().getString(): " << masterTerminal->getIoType().getString()
-                  << std::endl;
-        std::cout << "masterTerminal->getIndex(): " << masterTerminal->getIndex() << std::endl;
-        std::cout << "for (auto pin: masterTerminal->getMPins())" << std::endl;
-        for (auto pin : masterTerminal->getMPins()) {
-          for (auto box : pin->getGeometry()) {
-            std::cout << "\t" << box->xMin() << " " << box->xMax() << "  " << box->yMin() << " " << box->yMax()
-                      << std::endl;
+    for (auto master_original : lib_original->getMasters()) {
+      int master_origin_x, master_origin_y;
+      odb::dbMaster *master = odb::dbMaster::create(lib, master_original->getConstName());
+      master->setType(master_original->getType());
+      if (master_original->getEEQ())
+        master->setEEQ(master_original->getEEQ());
+      if (master_original->getLEQ())
+        master->setLEQ(master_original->getLEQ());
+      master->setWidth(master_original->getWidth());
+      master->setHeight(master_original->getHeight());
+
+      master_original->getOrigin(master_origin_x, master_origin_y);
+      master->setOrigin(master_origin_x, master_origin_y);
+
+      auto site = lib->findSite(master_original->getSite()->getConstName());
+      master->setSite(site);
+
+      if (master_original->getSymmetryX())
+        master->setSymmetryX();
+      if (master_original->getSymmetryY())
+        master->setSymmetryY();
+      if (master_original->getSymmetryR90())
+        master->setSymmetryR90();
+
+      master->setMark(master_original->isMarked());
+      master->setSequential(master_original->isSequential());
+      master->setSpecialPower(master_original->isSpecialPower());
+
+      for (auto m_term_original : master_original->getMTerms()) {
+        auto db_m_term = odb::dbMTerm::create(master, m_term_original->getConstName(),
+                                              m_term_original->getIoType(),
+                                              m_term_original->getSigType(),
+                                              m_term_original->getShape());
+
+        for (auto pin_original : m_term_original->getMPins()) {
+          auto db_m_pin = odb::dbMPin::create(db_m_term);
+          for (auto geometry : pin_original->getGeometry()) {
+            odb::dbBox::create(db_m_pin,
+                               geometry->getTechLayer(),
+                               geometry->xMin(), geometry->yMin(),
+                               geometry->xMax(), geometry->yMax());
           }
         }
       }
-      std::cout << std::endl;
-
-      for (auto instanceTerminal : db_instance->getITerms()) {
-        instanceTerminal->getAvgXY(&x, &y);
-        if (instanceTerminal->getNet())
-          std::cout << instanceTerminal->getNet()->getName() << std::endl;
-        else
-          std::cout << "None net." << std::endl;
-        std::cout << " " << instanceTerminal->getMTerm()->getName()
-                  << " " << instanceTerminal->getIoType().getString() << " " << x << " " << y << std::endl;;
-      }
-
-      std::cout << std::endl << std::endl;
-      std::cout << "get origin: " << x << " " << y << std::endl;
-      for (auto instanceTerminal : db_instance->getITerms()) {
-        instanceTerminal->getAvgXY(&x, &y);
-        std::cout << x << " " << y << std::endl;
-      }
-      db_instance->setOrigin(100, 200);
-      db_instance->getOrigin(x, y);
-      std::cout << "get origin: " << x << " " << y << std::endl;
-      for (auto instanceTerminal : db_instance->getITerms()) {
-        instanceTerminal->getAvgXY(&x, &y);
-        std::cout << x << " " << y << std::endl;
-      }
-
-      std::cout << "instance end." << std::endl << std::endl;
-      cellIdx++;
+      master->setFrozen();
     }
+    write_lef(lib, new_lef_path + std::to_string(lib_number));
+    write_lef(lib_original, "../test/benchmarks/standard/ispd/ispd18_test1/ispd18_test1.input_original.lef");
   }
-/*
-
-  std::cout << std::endl << std::endl << std::endl << std::endl;
-  std::cout << "OpenDB Tutorial starts." << std::endl;
-
-  dbBlock *block = parser_.pseudo_db_database_->getChip()->getBlock();
-  dbSet<dbInst> db_instances = block->getInsts();
-
-  // How to access all instances in database, and print the instance name
-  int numOfInstance = 0;
-  for (dbInst *db_instance : db_instances) {
-    if (!db_instance->getName().empty())
-      numOfInstance++;
-  }
-  std::cout << "The number of Instances: " << numOfInstance << std::endl;
-
-  // Let's access only the first one instance, and explore some other methods.
-  dbInst *db_inst = *db_instances.begin();
-  std::cout << "The name of the instance: " << db_inst->getName() << std::endl;
-  // As the library of the instance, we can know the library name, and cell width and height.
-  dbMaster *lib = db_inst->getMaster();
-  std::cout << "The name of the library of the instance: " << lib->getName() << std::endl;
-  std::cout << "The width of the instance: " << db_inst->getMaster()->getWidth() << std::endl;
-  std::cout << "The height of the instance: " << db_inst->getMaster()->getHeight() << std::endl << std::endl;
-
-  std::cout << "The pin libraries of the instance" << std::endl;
-  for (auto library_terminals : db_inst->getMaster()->getMTerms()) {
-    std::cout << " ";
-    std::cout << "Name: " << library_terminals->getName() << "\t";
-    std::cout << "Signal Type: " << library_terminals->getSigType().getString() << "\t";
-    std::cout << "Terminal Index: " << library_terminals->getIndex() << "\t";
-    std::cout << std::endl;
-  }
-  std::cout << "The number of the terminals of instance: " << db_inst->getMaster()->getMTermCount() << std::endl;
-  std::cout << std::endl;
-
-  std::cout << "The pin data" << std::endl;
-  for (auto instance_terminal : db_inst->getITerms()) {
-    std::cout << " ";
-    std::cout << "Terminal Name: " << instance_terminal->getMTerm()->getName() << "\t";
-    std::cout << "Signal Type: " << instance_terminal->getSigType().getString() << "\t";
-    std::cout << "Terminal Index: " << instance_terminal->getMTerm()->getIndex() << std::endl;
-    std::cout << "  Connected Net: ";
-    if (instance_terminal->getNet() != nullptr) {
-      std::cout << instance_terminal->getNet()->getName() << std::endl;
-      if (instance_terminal->getNet()->getName() != "clk") {
-        std::cout << "   connected Pins correspond to the net" << std::endl;
-        for (auto terminals_in_net : instance_terminal->getNet()->getITerms()) {
-          std::cout << "   "
-               << terminals_in_net->getMTerm()->getName() << " in "
-               << terminals_in_net->getInst()->getName() << "("
-               << terminals_in_net->getInst()->getMaster()->getName() << ") instance" << std::endl;
-        }
-      }
-    } else {
-      std::cout << "None" << std::endl;
-    }
-  }
-
-  // # 2. traverse nets
-  for (int i = 0; i < 3; ++i) {
-    std::cout << std::endl;
-  }
-  // access the nets in the circuit
-  std::cout << "Signal Type\tIoType\tTerminal Name" << std::endl;
-  for (auto net : block->getNets()) {
-    for (auto terminal : net->getITerms()) {
-    }
-    for (auto terminal : net->getBTerms()) {
-      std::cout << terminal->getSigType().getString() << "\t";
-      std::cout << terminal->getIoType().getString() << "\t";
-      std::cout << terminal->getName() << std::endl;
-      for (auto bPin : terminal->getBPins()) {
-        std::cout << " bPin ID: " << bPin->getId() << std::endl;
-        for (auto box : bPin->getBoxes()) {
-          std::cout << "  box xMin: " << box->xMin() << std::endl;
-          std::cout << "  box xMax: " << box->xMax() << std::endl;
-          std::cout << "  box DX: " << box->getDX() << std::endl;
-          std::cout << "  box yMin: " << box->yMin() << std::endl;
-          std::cout << "  box yMax: " << box->yMax() << std::endl;
-          std::cout << "  box DY: " << box->getDY() << std::endl;
-          std::cout << "  box width: " << box->getWidth() << std::endl;
-          std::cout << "  box dir: " << box->getDir() << std::endl;
-          if (box->getBlockVia())*/
-/* meaningless in this case*//*
-
-            std::cout << "  via name: " << box->getBlockVia()->getName() << std::endl;
-        }
-
-      }
-    }
-  }
-
-
-  // # 3. Get Die information
-  odb::Rect Die, Core;
-  block->getDieArea(Die);
-  block->getCoreArea(Core);
-  std::cout << Die.dx() << " " << Die.dy() << std::endl;
-  std::cout << Core.dx() << " " << Core.dy() << std::endl;
-*/
 
 }
 int main() {
   std::string lef_path = "../test/benchmarks/standard/ispd/ispd18_test1/ispd18_test1.input.lef";
+  std::string new_lef_path = "../test/benchmarks/standard/ispd/ispd18_test1/ispd18_test1.input_new.lef";
   std::string def_path = "../test/benchmarks/standard/ispd/ispd18_test1/ispd18_test1.input.def";
   std::string db_path = "../output/dbFiles/test.db";
+
+  odb::dbDatabase *db_database = odb::dbDatabase::create();
+  parseLef(db_database, lef_path);
+  makeShirkedLef(db_database, new_lef_path);
 
 }
 
