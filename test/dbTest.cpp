@@ -45,7 +45,7 @@ void write_lef(odb::dbLib *lib, const std::string &path) {
   odb::lefout writer(logger, os);
   writer.writeTechAndLib(lib);
 }
-void makeShirkedLef(odb::dbDatabase *db_database_original, const std::string &new_lef_path) {
+void makeShrankLef(odb::dbDatabase *db_database_original, const std::string &new_lef_path, float shirk_ratio = 0.7) {
   auto libs_original = db_database_original->getLibs();
   auto tech_original = db_database_original->getTech();
 
@@ -68,22 +68,27 @@ void makeShirkedLef(odb::dbDatabase *db_database_original, const std::string &ne
     lib->setLefUnits(lib_original->getLefUnits());
     for (auto site_original : lib_original->getSites()) {
       auto site = odb::dbSite::create(lib, site_original->getConstName());
-      site->setWidth(site_original->getWidth());
-      site->setHeight(site_original->getHeight());
+      // apply shrink factor on site
+      site->setWidth(static_cast<int>(static_cast<float>(site_original->getWidth()) * shirk_ratio));
+      site->setHeight(static_cast<int> (static_cast<float> (site_original->getHeight()) * shirk_ratio));
     }
 
     for (auto master_original : lib_original->getMasters()) {
-      int master_origin_x, master_origin_y;
       odb::dbMaster *master = odb::dbMaster::create(lib, master_original->getConstName());
       master->setType(master_original->getType());
       if (master_original->getEEQ())
         master->setEEQ(master_original->getEEQ());
       if (master_original->getLEQ())
         master->setLEQ(master_original->getLEQ());
-      master->setWidth(master_original->getWidth());
-      master->setHeight(master_original->getHeight());
+      int width = static_cast<int>(static_cast<float>(master_original->getWidth()) * shirk_ratio);
+      int height = static_cast<int>(static_cast<float>(master_original->getHeight()) * shirk_ratio);
+      master->setWidth(width);
+      master->setHeight(height);
 
+      int master_origin_x, master_origin_y;
       master_original->getOrigin(master_origin_x, master_origin_y);
+      master_origin_x = static_cast<int>(static_cast<float>(master_origin_x) * shirk_ratio);
+      master_origin_y = static_cast<int>(static_cast<float>(master_origin_y) * shirk_ratio);
       master->setOrigin(master_origin_x, master_origin_y);
 
       auto site = lib->findSite(master_original->getSite()->getConstName());
@@ -109,10 +114,12 @@ void makeShirkedLef(odb::dbDatabase *db_database_original, const std::string &ne
         for (auto pin_original : m_term_original->getMPins()) {
           auto db_m_pin = odb::dbMPin::create(db_m_term);
           for (auto geometry : pin_original->getGeometry()) {
-            odb::dbBox::create(db_m_pin,
-                               geometry->getTechLayer(),
-                               geometry->xMin(), geometry->yMin(),
-                               geometry->xMax(), geometry->yMax());
+            int x1, y1, x2, y2;
+            x1 = static_cast<int>(static_cast<float>(geometry->xMin()) * shirk_ratio);
+            y1 = static_cast<int>(static_cast<float>(geometry->yMin()) * shirk_ratio);
+            x2 = static_cast<int>(static_cast<float>(geometry->xMax()) * shirk_ratio);
+            y2 = static_cast<int>(static_cast<float>(geometry->yMax()) * shirk_ratio);
+            odb::dbBox::create(db_m_pin, geometry->getTechLayer(), x1, y1, x2, y2);
           }
         }
       }
@@ -131,7 +138,7 @@ int main() {
 
   odb::dbDatabase *db_database = odb::dbDatabase::create();
   parseLef(db_database, lef_path);
-  makeShirkedLef(db_database, new_lef_path);
+  makeShrankLef(db_database, new_lef_path);
 
 }
 
