@@ -45,7 +45,8 @@ void write_lef(odb::dbLib *lib, const std::string &path) {
   odb::lefout writer(logger, os);
   writer.writeTechAndLib(lib);
 }
-void makeShrankLef(odb::dbDatabase *db_database_original, const std::string &new_lef_path, float shirk_ratio = 0.7) {
+void makeShrankLef(odb::dbDatabase *db_database_original, const std::string &new_lef_path,
+                   float shirk_ratio = 0.7, const std::string &which_die = "") {
   auto libs_original = db_database_original->getLibs();
   auto tech_original = db_database_original->getTech();
 
@@ -57,24 +58,24 @@ void makeShrankLef(odb::dbDatabase *db_database_original, const std::string &new
   tech->setDbUnitsPerMicron(tech_original->getDbUnitsPerMicron());
 
   for (auto layer_original : tech_original->getLayers()) {
-    odb::dbTechLayer::create(tech, layer_original->getName().c_str(), layer_original->getType());
+    odb::dbTechLayer::create(tech, (layer_original->getName() + which_die).c_str(), layer_original->getType());
   }
 
   int lib_number = 0;
 
   for (auto lib_original : libs_original) {
     lib_number++;
-    auto lib = odb::dbLib::create(db_database, lib_original->getConstName());
+    auto lib = odb::dbLib::create(db_database, (lib_original->getName() + which_die).c_str());
     lib->setLefUnits(lib_original->getLefUnits());
     for (auto site_original : lib_original->getSites()) {
-      auto site = odb::dbSite::create(lib, site_original->getConstName());
+      auto site = odb::dbSite::create(lib, (site_original->getName() + which_die).c_str());
       // apply shrink factor on site
       site->setWidth(static_cast<int>(static_cast<float>(site_original->getWidth()) * shirk_ratio));
       site->setHeight(static_cast<int> (static_cast<float> (site_original->getHeight()) * shirk_ratio));
     }
 
     for (auto master_original : lib_original->getMasters()) {
-      odb::dbMaster *master = odb::dbMaster::create(lib, master_original->getConstName());
+      odb::dbMaster *master = odb::dbMaster::create(lib, (master_original->getName() + which_die).c_str());
       master->setType(master_original->getType());
       if (master_original->getEEQ())
         master->setEEQ(master_original->getEEQ());
@@ -91,7 +92,8 @@ void makeShrankLef(odb::dbDatabase *db_database_original, const std::string &new
       master_origin_y = static_cast<int>(static_cast<float>(master_origin_y) * shirk_ratio);
       master->setOrigin(master_origin_x, master_origin_y);
 
-      auto site = lib->findSite(master_original->getSite()->getConstName());
+      std::string site_name = master_original->getSite()->getName()+which_die;
+      auto site = lib->findSite(site_name.c_str());
       master->setSite(site);
 
       if (master_original->getSymmetryX())
@@ -125,20 +127,27 @@ void makeShrankLef(odb::dbDatabase *db_database_original, const std::string &new
       }
       master->setFrozen();
     }
-    write_lef(lib, new_lef_path + std::to_string(lib_number));
-    write_lef(lib_original, "../test/benchmarks/standard/ispd/ispd18_test1/ispd18_test1.input_original.lef");
+    assert(lib_number == 1);
+    write_lef(lib, new_lef_path);
   }
-
+}
+void makeTopDieLef(odb::dbDatabase *db_database, const std::string &lef_path) {
+  makeShrankLef(db_database, lef_path, 0.7, "_top");
+}
+void makeBottomDieLef(odb::dbDatabase *db_database, const std::string &lef_path) {
+  makeShrankLef(db_database, lef_path, 1.0, "_bottom");
 }
 int main() {
-  std::string lef_path = "../test/benchmarks/standard/ispd/ispd18_test1/ispd18_test1.input.lef";
-  std::string new_lef_path = "../test/benchmarks/standard/ispd/ispd18_test1/ispd18_test1.input_new.lef";
-  std::string def_path = "../test/benchmarks/standard/ispd/ispd18_test1/ispd18_test1.input.def";
+  std::string dir_path = "../test/benchmarks/standard/ispd/ispd18_test1/";
+  std::string design_name = "ispd18_test1";
+  std::string lef_name = "ispd18_test1.input.lef";
+  std::string def_name = "ispd18_test1.input.def";
   std::string db_path = "../output/dbFiles/test.db";
 
   odb::dbDatabase *db_database = odb::dbDatabase::create();
-  parseLef(db_database, lef_path);
-  makeShrankLef(db_database, new_lef_path);
+  parseLef(db_database, dir_path + design_name + ".input.lef");
+  makeTopDieLef(db_database, dir_path + design_name + ".input_top.lef");
+  makeBottomDieLef(db_database, dir_path + design_name + ".input_bottom.lef");
 
 }
 
