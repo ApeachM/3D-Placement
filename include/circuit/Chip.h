@@ -179,9 +179,8 @@ class Chip {
    * Minjae Kim \n
    * GitHub: ApeachM (https://github.com/ApeachM)
    * */
-  void parseICCAD();
   void writeICCADOutput(const string &output_file_name);
-  void parseICCADBenchData();
+  void parseICCAD();
   /**
    * \brief
    * Construction odb database for pseudo die.
@@ -309,6 +308,7 @@ class Chip {
   void saveDb(int phase);
   dbDatabase *loadDb(int phase);
   bool checkDbFile(int phase);
+  bool checkTopAndBottomLef() const;
   void destroyAllCircuitInformation();
   void getAverageInstanceSize();
   void setTargetDensityManually();
@@ -352,6 +352,7 @@ class Chip {
   BENCH_TYPE bench_type_;
   ICCAD2022BenchInformation bench_information_iccad_;
   dbDatabase* bench_information_normal_;
+  dbDatabase* bench_information_normal_bottom_;
   InputArguments input_arguments_;
   string design_name_;
   FileDirPaths file_dir_paths_;
@@ -402,6 +403,7 @@ class Chip {
   string start_time_;
   ulong current_hpwl_;
   void odbConstructionForPartition_Standard();
+  void createTopAndBottomLef();
 };
 
 } // flow3D

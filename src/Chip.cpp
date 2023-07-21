@@ -143,7 +143,7 @@ void Chip::stepManager() {
   if (phase_ == PHASE::START) {
     return;
   } else if (phase_ == PHASE::PARTITION) {
-    parseICCADBenchData();
+    parseICCAD();
 
     ConstructionPseudoDbWithReadingPartitionFile();
     dataBaseInit();
@@ -152,14 +152,14 @@ void Chip::stepManager() {
     phase_ = PHASE::INITIAL_PLACE;
   } else if (phase_ == PHASE::INITIAL_PLACE) {
     // Below three lines of code is similar with Chip::parse()
-    parseICCADBenchData();
+    parseICCAD();
     pseudo_db_database_ = loadDb(PHASE::TWO_DIE_PLACE);
     dataBaseInit();
     applyPartitionInfoIntoDatabase();
 
     phase_ = PHASE::GENERATE_HYBRID_BOND;
   } else if (phase_ == PHASE::TWO_DIE_PLACE) {
-    parseICCADBenchData();
+    parseICCAD();
     pseudo_db_database_ = loadDb(PHASE::TWO_DIE_PLACE);
     dataBaseInit();
     applyPartitionInfoIntoDatabase();
@@ -771,8 +771,7 @@ void Chip::ConstructionPseudoDbWithReadingPartitionFile() {
    * Currently, this considers only ICCAD benchmark case.
    * */
   assert(bench_format_ == BENCH_FORMAT::ICCAD);
-
-  string file_path = "../output/partitionFiles/";
+  string file_path = file_dir_paths_.partition_path;
   string file_name = "partition_info_" + design_name_ + ".par";
   ifstream partition_info_file(file_path + file_name);
   if (partition_info_file.fail())
@@ -902,18 +901,6 @@ void Chip::ConstructionPseudoDbWithReadingPartitionFile() {
     }
   }
 
-/*
-  auto db_block1 = pseudo_db_database_->getChip()->getBlock();  // rename this after extract method
-  for (int i = 0; i < db_block1->getInsts().size(); ++i) {
-    partition_info_file >> instance_name >> master_name >> partition_info;
-    dbMaster *master = nullptr;
-    if (partition_info == PARTITION_INFO::TOP) {
-      master = pseudo_db_database_->findMaster((master_name + "_TOP").c_str());
-    } else if (partition_info == PARTITION_INFO::BOTTOM) {
-      master = pseudo_db_database_->findMaster((master_name + "_BOTTOM").c_str());
-    }
-  }
-*/
 }
 void Chip::applyPartitionInfoIntoDatabase() {// mark the die assign
   for (Instance *inst : instance_pointers_) {
@@ -1190,10 +1177,15 @@ pair<float, float> Chip::InitialPlacer::cpuSparseSolve() {
 // parser //
 void Chip::parseNORMAL() {
   bench_information_normal_ = dbDatabase::create();
-  parseLef(bench_information_normal_, file_dir_paths_.bench_path + input_arguments_.lef_name);
-  dbMaster* db_master = bench_information_normal_->findMaster("SDFFRX4");
-  bool is_frozen = db_master->isFrozen();
 
+  // check whether the top and bottom lef exist.
+  if (!checkTopAndBottomLef()) {
+    // if there's no top and bottom lef, then we need to create it.
+    createTopAndBottomLef();
+  }
+
+  parseLef(bench_information_normal_, file_dir_paths_.bench_path + input_arguments_.lef_name + "Top");
+  parseLef(bench_information_normal_, file_dir_paths_.bench_path + input_arguments_.lef_name + "Bottom");
   parseDef(bench_information_normal_, file_dir_paths_.bench_path + input_arguments_.def_name);
 }
 void Chip::parseLef(dbDatabase *db_database, const string &lef_file) {
@@ -1253,11 +1245,7 @@ void Chip::writeDef(dbDatabase *db_database, const string &def_file, const strin
     cout << "Writing Def is failed." << endl;
   }
 }
-
 void Chip::parseICCAD() {
-  parseICCADBenchData();
-}
-void Chip::parseICCADBenchData() {
   // open input file
   string input_file_name = file_dir_paths_.bench_path + input_arguments_.iccad_bench_name;
   ifstream input_file(input_file_name);
@@ -3569,6 +3557,27 @@ bool Chip::checkDbFile(int phase) {
     exist = !db_file.fail();
   }
   return exist;
+}
+bool Chip::checkTopAndBottomLef() const {
+  string file_name_top = file_dir_paths_.bench_path + input_arguments_.lef_name + "Top";
+  std::ifstream lef_file_top(file_name_top, std::ios::binary);
+  bool exist_top = !lef_file_top.fail();
+
+  string file_name_bottom = file_dir_paths_.bench_path + input_arguments_.lef_name + "Bottom";
+  std::ifstream lef_file_bottom(file_name_bottom, std::ios::binary);
+  bool exist_bottom = !lef_file_bottom.fail();
+
+  return exist_top && exist_bottom;
+}
+void Chip::createTopAndBottomLef() {
+
+  dbDatabase *db_database = dbDatabase::create();
+  dbTech *db_tech = dbTech::create(pseudo_db_database_);
+  dbTechLayer *db_tech_layer = dbTechLayer::create(db_tech, "topLayer", dbTechLayerType::MASTERSLICE);
+  dbLib *db_lib = dbLib::create(pseudo_db_database_, "topDieLib", ',');
+  dbChip *db_chip = dbChip::create(pseudo_db_database_);
+  dbBlock *db_block = dbBlock::create(db_chip, "topBlock");
+
 }
 void Chip::destroyAllCircuitInformation() {
   /*
