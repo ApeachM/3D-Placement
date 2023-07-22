@@ -36,7 +36,14 @@ void saveDb(odb::dbDatabase *db_database, const std::string &db_path) {
     std::fclose(stream);
   }
 }
-
+odb::dbDatabase *loadDB(const std::string &db_path) {
+  odb::dbDatabase *db_database = odb::dbDatabase::create();
+  std::ifstream file;
+  file.exceptions(std::ifstream::failbit | std::ifstream::badbit | std::ios::eofbit);
+  file.open(db_path, std::ios::binary);
+  db_database->read(file);
+  return db_database;
+}
 void write_lef(odb::dbLib *lib, const std::string &path) {
   auto *logger = new utl::Logger(nullptr);
   std::ofstream os;
@@ -92,7 +99,7 @@ void makeShrankLef(odb::dbDatabase *db_database_original, const std::string &new
       master_origin_y = static_cast<int>(static_cast<float>(master_origin_y) * shirk_ratio);
       master->setOrigin(master_origin_x, master_origin_y);
 
-      std::string site_name = master_original->getSite()->getName()+which_die;
+      std::string site_name = master_original->getSite()->getName() + which_die;
       auto site = lib->findSite(site_name.c_str());
       master->setSite(site);
 
@@ -137,6 +144,33 @@ void makeTopDieLef(odb::dbDatabase *db_database, const std::string &lef_path) {
 void makeBottomDieLef(odb::dbDatabase *db_database, const std::string &lef_path) {
   makeShrankLef(db_database, lef_path, 1.0, "_bottom");
 }
+void testRatioPartition(){
+  auto db_database = loadDB("/home/mik077/tmp/tmp.yGF2jgykCL2/submodules/OpenROAD/src/par/test/gcd_0x100.db");
+
+  int num_1 = 0;
+  int num_2 = 0;
+  for (auto inst : db_database->getChip()->getBlock()->getInsts()) {
+    if (odb::dbIntProperty::find(inst, "partition_id")->getValue() == 0) {
+      num_1++;
+    } else if (odb::dbIntProperty::find(inst, "partition_id")->getValue() == 1) {
+      num_2++;
+    }
+/*
+    int partition = odb::dbIntProperty::find(inst, "partition_id")->getValue();
+    std::cout << inst->getName() << ": " << odb::dbIntProperty::find(inst, "partition_id")->getValue() << std::endl;
+*/
+  }
+
+  // total db inst number
+  std::cout << "total db inst number: " << db_database->getChip()->getBlock()->getInsts().size() << std::endl;
+
+  std::cout << "num_1: " << num_1 << std::endl;
+  std::cout << "num_2: " << num_2 << std::endl;
+
+  // partition ratio
+  std::cout << "partition ratio (1): " << static_cast<float>(num_1) / static_cast<float>(num_1 + num_2) << std::endl;
+  std::cout << "partition ratio (2): " << static_cast<float>(num_2) / static_cast<float>(num_1 + num_2) << std::endl;
+}
 int main() {
   std::string dir_path = "../test/benchmarks/standard/ispd/ispd18_test1/";
   std::string design_name = "ispd18_test1";
@@ -148,6 +182,5 @@ int main() {
   parseLef(db_database, dir_path + design_name + ".input.lef");
   makeTopDieLef(db_database, dir_path + design_name + ".input_top.lef");
   makeBottomDieLef(db_database, dir_path + design_name + ".input_bottom.lef");
-
 }
 
