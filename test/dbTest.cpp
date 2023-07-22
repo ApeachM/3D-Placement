@@ -139,10 +139,12 @@ void makeShrankLef(odb::dbDatabase *db_database_original, const std::string &new
   }
 }
 void makeTopDieLef(odb::dbDatabase *db_database, const std::string &lef_path) {
-  makeShrankLef(db_database, lef_path, 0.7, "_top");
+  // makeShrankLef(db_database, lef_path, 0.7, "_top");
+  makeShrankLef(db_database, lef_path, 0.7);
 }
 void makeBottomDieLef(odb::dbDatabase *db_database, const std::string &lef_path) {
-  makeShrankLef(db_database, lef_path, 1.0, "_bottom");
+  // makeShrankLef(db_database, lef_path, 1.0, "_bottom");
+  makeShrankLef(db_database, lef_path, 1.0);
 }
 void testRatioPartition(){
   auto db_database = loadDB("/home/mik077/tmp/tmp.yGF2jgykCL2/submodules/OpenROAD/src/par/test/gcd_0x100.db");
@@ -155,10 +157,6 @@ void testRatioPartition(){
     } else if (odb::dbIntProperty::find(inst, "partition_id")->getValue() == 1) {
       num_2++;
     }
-/*
-    int partition = odb::dbIntProperty::find(inst, "partition_id")->getValue();
-    std::cout << inst->getName() << ": " << odb::dbIntProperty::find(inst, "partition_id")->getValue() << std::endl;
-*/
   }
 
   // total db inst number

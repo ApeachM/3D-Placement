@@ -43,6 +43,30 @@
 using namespace std;
 
 namespace flow3D {
+void saveDbForDebug(dbDatabase *db_database, const string &db_path) {
+  FILE *stream = std::fopen(db_path.c_str(), "w");
+  if (stream) {
+    db_database->write(stream);
+    std::fclose(stream);
+  }
+}
+odb::defout::Version Chip::stringToDefVersion(const string &version) {
+  if (version == "5.8")
+    return odb::defout::Version::DEF_5_8;
+  else if (version == "5.7")
+    return odb::defout::Version::DEF_5_6;
+  else if (version == "5.6")
+    return odb::defout::Version::DEF_5_6;
+  else if (version == "5.5")
+    return odb::defout::Version::DEF_5_5;
+  else if (version == "5.4")
+    return odb::defout::Version::DEF_5_4;
+  else if (version == "5.3")
+    return odb::defout::Version::DEF_5_3;
+  else
+    return odb::defout::Version::DEF_5_8;
+}
+
 Chip::Chip() : legalizer_(this) {
   setStartTime();
 }
@@ -53,7 +77,7 @@ void Chip::do3DPlace(const string &def_name, const string &lef_name) {
 
   if (phase_ <= PHASE::START) {
     phase_ = PHASE::START;
-    parse(input_arguments_.iccad_bench_name, input_arguments_.lef_name);
+    parse();
   }
   if (phase_ <= PHASE::PARTITION) {
     phase_ = PHASE::PARTITION;
@@ -103,7 +127,9 @@ void Chip::setInputArguments() {
   } else if (bench_format_ == BENCH_FORMAT::STANDARD) {
     if (bench_type_ == BENCH_TYPE::ISPD18) {
       input_arguments_.def_name = design_name_ + ".input.def";
-      input_arguments_.lef_name = design_name_ + ".input.lef";
+      input_arguments_.original_lef_name = design_name_ + ".input.lef";
+      input_arguments_.top_lef_name = design_name_ + ".input_top.lef";
+      input_arguments_.bottom_lef_name = design_name_ + ".input_bottom.lef";
     } else {
       // TODO
       assert(0);
@@ -145,7 +171,7 @@ void Chip::stepManager() {
   } else if (phase_ == PHASE::PARTITION) {
     parseICCAD();
 
-    ConstructionPseudoDbWithReadingPartitionFile();
+    constructionPseudoDbWithReadingPartitionFile();
     dataBaseInit();
     applyPartitionInfoIntoDatabase();
 
@@ -194,18 +220,13 @@ void Chip::partition() {
 
   // In this case, we will make the own db_database and data structures for only partitioning
   // Construct DbDatabase
-  if (bench_format_ == BENCH_FORMAT::ICCAD) {
-    odbConstructionForPartition_ICCAD();
-  } else if (bench_format_ == BENCH_FORMAT::STANDARD) {
-    odbConstructionForPartition_Standard();
-  }
-
+  odbConstructionForPartition();
   // Do partitioning
   partitionTriton();
 
   // Read partition file
   // Here, we will make the new db_database and data structures for the next step
-  ConstructionPseudoDbWithReadingPartitionFile();
+  constructionPseudoDbWithReadingPartitionFile();
   dataBaseInit();
   applyPartitionInfoIntoDatabase();
 
@@ -223,15 +244,15 @@ void Chip::partition() {
 
 }
 void Chip::partitionTriton() {
-//  if (!checkPartitionFile()) {
-  partitioner_ = new Partitioner(nullptr, db_database_for_partition_, nullptr, &logger_);
-  partitioner_->init(design_name_);
-  partitioner_->doPartitioning();
-  partitioner_->writeSolution();
-  delete partitioner_;
-//  } else {
-//    cout << "Load partition info" << endl;
-//  }
+  if (!checkPartitionFile()) {
+    partitioner_ = new Partitioner(nullptr, db_database_for_partition_, nullptr, &logger_);
+    partitioner_->init(design_name_);
+    partitioner_->doPartitioning();
+    partitioner_->writeSolution();
+    delete partitioner_;
+  } else {
+    cout << "Load partition info" << endl;
+  }
 
 }
 void Chip::generateHybridBonds() {
@@ -532,8 +553,8 @@ void Chip::dataBaseInit() {
     die.setDbBlock(block);
     die.setDieId(i);
     if (bench_format_ == BENCH_FORMAT::ICCAD) {
-      auto top_die_info = this->bench_information_iccad_.die_infos.at(0);
-      auto bottom_die_info = this->bench_information_iccad_.die_infos.at(1);
+      auto top_die_info = this->bench_information_.die_infos.at(0);
+      auto bottom_die_info = this->bench_information_.die_infos.at(1);
       int start_x, start_y, row_width, row_height, repeat_count;
       start_x = start_y = row_width = row_height = repeat_count = 0;
 
@@ -761,16 +782,17 @@ bool Chip::checkPartitionFile() {
   if (partition_info_file.fail()) {
     partition_info_file.close();
     return false;
-  } else
-    return false;
+  } else {
+    partition_info_file.close();
+    return true;
+  }
 }
-void Chip::ConstructionPseudoDbWithReadingPartitionFile() {
+void Chip::constructionPseudoDbWithReadingPartitionFile() {
   /**
    * Here, We will make the new db Database for Two Die placement.
    * This would use the partitioning information and each library information for each die.
    * Currently, this considers only ICCAD benchmark case.
    * */
-  assert(bench_format_ == BENCH_FORMAT::ICCAD);
   string file_path = file_dir_paths_.partition_path;
   string file_name = "partition_info_" + design_name_ + ".par";
   ifstream partition_info_file(file_path + file_name);
@@ -785,8 +807,8 @@ void Chip::ConstructionPseudoDbWithReadingPartitionFile() {
   dbChip *db_chip = dbChip::create(pseudo_db_database_);
   dbBlock *db_block = dbBlock::create(db_chip, "pseudoBlock");
 
-  auto top_die_info = &bench_information_iccad_.die_infos.at(0);
-  auto bottom_die_info = &bench_information_iccad_.die_infos.at(1);
+  auto top_die_info = &bench_information_.die_infos.at(0);
+  auto bottom_die_info = &bench_information_.die_infos.at(1);
 
   // Die Area Construction //
   int lower_left_x, lower_left_y, upper_right_x, upper_right_y;
@@ -871,7 +893,7 @@ void Chip::ConstructionPseudoDbWithReadingPartitionFile() {
   string instance_name;
   string master_name;
   int partition_info;
-  for (int i = 0; i < bench_information_iccad_.instance_infos.size(); ++i) {
+  for (int i = 0; i < bench_information_.instance_infos.size(); ++i) {
     partition_info_file >> instance_name >> master_name >> partition_info;
     dbMaster *master = nullptr;
     if (partition_info == PARTITION_INFO::TOP) {
@@ -886,9 +908,9 @@ void Chip::ConstructionPseudoDbWithReadingPartitionFile() {
   }
 
   // Net Construction //
-  for (int i = 0; i < bench_information_iccad_.net_infos.size(); ++i) {
+  for (int i = 0; i < bench_information_.net_infos.size(); ++i) {
     // (refer to `dbDatabase* create2LevetDbNoBTerms()` function in submodule/OpenDB/test/cpp/helper.cpp)
-    NetInfo *net_info = &bench_information_iccad_.net_infos.at(i);
+    NetInfo *net_info = &bench_information_.net_infos.at(i);
     dbNet *net = dbNet::create(db_block, net_info->net_name.c_str());
 
     // read pins in one Net
@@ -1175,8 +1197,10 @@ pair<float, float> Chip::InitialPlacer::cpuSparseSolve() {
 }
 
 // parser //
-void Chip::parseNORMAL() {
-  bench_information_normal_ = dbDatabase::create();
+void Chip::parseSTANDARD() {
+  parsed_db_database = dbDatabase::create();
+  auto parsed_db_database_top = dbDatabase::create();
+  auto parsed_db_database_bottom = dbDatabase::create();
 
   // check whether the top and bottom lef exist.
   if (!checkTopAndBottomLef()) {
@@ -1184,9 +1208,149 @@ void Chip::parseNORMAL() {
     createTopAndBottomLef();
   }
 
-  parseLef(bench_information_normal_, file_dir_paths_.bench_path + input_arguments_.lef_name + "Top");
-  parseLef(bench_information_normal_, file_dir_paths_.bench_path + input_arguments_.lef_name + "Bottom");
-  parseDef(bench_information_normal_, file_dir_paths_.bench_path + input_arguments_.def_name);
+  parseLef(parsed_db_database, file_dir_paths_.bench_path + input_arguments_.original_lef_name);
+  parseLef(parsed_db_database_top, file_dir_paths_.bench_path + input_arguments_.top_lef_name);
+  parseLef(parsed_db_database_bottom, file_dir_paths_.bench_path + input_arguments_.bottom_lef_name);
+  parseDef(parsed_db_database, file_dir_paths_.bench_path + input_arguments_.def_name);
+
+  // // construct `bench_information_` // //
+  auto test1 = parsed_db_database->getTech()->getLayerCount();
+  auto test2 = parsed_db_database->getLibs().size();
+  for (auto lib : parsed_db_database->getLibs()) {
+    cout << lib->getMasters().size() << endl;
+    for (auto master : lib->getMasters()) {
+      cout << master->getName() << endl;
+    }
+  }
+  assert(parsed_db_database_top->getLibs().size() == 1);
+  assert(parsed_db_database_bottom->getLibs().size() == 1);
+  num_technologies_ = 2;
+  // Library cell information setting //
+
+  // For Top Die
+  TechInfo tech_info_top;
+  tech_info_top.name = "Top";
+  tech_info_top.lib_cell_num = static_cast<int>(parsed_db_database_top->getNumberOfMasters());
+  // read LibCells in top tech
+  auto master_set_top = (*parsed_db_database_top->getLibs().begin())->getMasters();
+  assert(tech_info_top.lib_cell_num == master_set_top.size());
+  for (auto master : master_set_top) {
+    LibCellInfo lib_cell_info;
+    lib_cell_info.name = master->getName();
+    lib_cell_info.width = static_cast<int>(master->getWidth());
+    lib_cell_info.height = static_cast<int>( master->getHeight());
+    lib_cell_info.pin_number = master->getMTermCount();
+
+    for (auto master_terminal : master->getMTerms()) {
+      LibPinInfo lib_pin_info;
+      lib_pin_info.pin_name = master_terminal->getName();
+      // This is not accurate. Change Whole structure for parsing, when you afford to do.
+      lib_pin_info.pin_location_x = master_terminal->getBBox().xMin();
+      lib_pin_info.pin_location_y = master_terminal->getBBox().yMin();
+      lib_cell_info.lib_pin_infos.push_back(lib_pin_info);
+    }
+    tech_info_top.lib_cell_infos.push_back(lib_cell_info);
+  }
+  bench_information_.tech_infos.push_back(tech_info_top);
+
+  // For Bottom Die
+  TechInfo tech_info_bottom;
+  tech_info_bottom.name = "Bottom";
+  tech_info_bottom.lib_cell_num = static_cast<int>(parsed_db_database_bottom->getNumberOfMasters());
+  // read LibCells in top tech
+  auto master_set_bottom = (*parsed_db_database_bottom->getLibs().begin())->getMasters();
+  assert(tech_info_bottom.lib_cell_num == master_set_bottom.size());
+  for (auto master : master_set_bottom) {
+    LibCellInfo lib_cell_info;
+    lib_cell_info.name = master->getName();
+    lib_cell_info.width = static_cast<int>(master->getWidth());
+    lib_cell_info.height = static_cast<int>( master->getHeight());
+    lib_cell_info.pin_number = master->getMTermCount();
+
+    for (auto master_terminal : master->getMTerms()) {
+      LibPinInfo lib_pin_info;
+      lib_pin_info.pin_name = master_terminal->getName();
+      // This is not accurate. Change Whole structure for parsing, when you afford to do.
+      lib_pin_info.pin_location_x = master_terminal->getBBox().xMin();
+      lib_pin_info.pin_location_y = master_terminal->getBBox().yMin();
+      lib_cell_info.lib_pin_infos.push_back(lib_pin_info);
+    }
+    tech_info_bottom.lib_cell_infos.push_back(lib_cell_info);
+  }
+  bench_information_.tech_infos.push_back(tech_info_bottom);
+
+  // Die size setting //
+  // Currently, the two die size is same and follows the original def file.
+  // This code should be changed as the plan changed.
+  auto die_bbox = parsed_db_database->getChip()->getBlock()->getBBox();
+  for (int i = 0; i < num_technologies_; ++i) {
+    DieInfo die_info;
+    die_info.lower_left_x = die_bbox->xMin();
+    die_info.lower_left_y = die_bbox->yMin();
+    die_info.upper_right_x = die_bbox->xMax();
+    die_info.upper_right_y = die_bbox->yMax();
+    if (i == 0)
+      die_info.tech_name = "Top";
+    else
+      die_info.tech_name = "Bottom";
+    bench_information_.die_infos.push_back(die_info);
+  }
+
+  // Set the utilization of Top and Bottom Die as 0.8, temporary.
+  bench_information_.die_infos.at(0).max_util = 80;
+  bench_information_.die_infos.at(1).max_util = 80;
+
+  // Row setting //
+  RowInfo *row_info;
+  row_info = &bench_information_.die_infos.at(0).row_info;
+  auto row_sample = *parsed_db_database->getChip()->getBlock()->getRows().begin();
+  auto row_height = row_sample->getSite()->getHeight();
+  auto row_width = row_sample->getBBox().dy();
+  auto row_start_point_x = row_sample->getBBox().xMin();
+
+
+  // Terminal Information
+  // Let the terminal size as the half of row height of original def, temporary
+  // This code should be changed as the plan changed
+  bench_information_.terminal_info.size_x =
+      static_cast<int>((*parsed_db_database->getChip()->getBlock()->getRows().begin())->getSite()->getWidth() / 2);
+  bench_information_.terminal_info.size_y =
+      static_cast<int>((*parsed_db_database->getChip()->getBlock()->getRows().begin())->getSite()->getWidth() / 2);
+  // and also spacing
+  bench_information_.terminal_info.spacing_size =
+      static_cast<int>((*parsed_db_database->getChip()->getBlock()->getRows().begin())->getSite()->getWidth() / 2);
+
+  // read instances
+  instance_number_ = static_cast<int>(parsed_db_database->getChip()->getBlock()->getInsts().size());
+  for (auto inst : parsed_db_database->getChip()->getBlock()->getInsts()) {
+    InstanceInfo instance_info;
+    instance_info.inst_name = inst->getName();
+    instance_info.lib_cell_name = inst->getMaster()->getName();
+    bench_information_.instance_infos.push_back(instance_info);
+  }
+
+  net_number_ = static_cast<int>(parsed_db_database->getChip()->getBlock()->getNets().size());
+  for (auto net : parsed_db_database->getChip()->getBlock()->getNets()) {
+    NetInfo net_info;
+    net_info.net_name = net->getName();
+    net_info.pin_num = net->getITerms().size() + net->getBTerms().size();
+
+    // read pins in one Net
+    for (auto instance_pin : net->getITerms()) {
+      ConnectedPinInfo pin_info;
+      pin_info.instance_name = instance_pin->getInst()->getName();
+      pin_info.lib_pin_name = instance_pin->getMTerm()->getName();
+      net_info.connected_pins_infos.push_back(pin_info);
+    }
+    bench_information_.net_infos.push_back(net_info);
+  }
+
+  for (DieInfo &die_info : bench_information_.die_infos) {
+    for (TechInfo &tech_info : bench_information_.tech_infos)
+      if (die_info.tech_name == tech_info.name)
+        die_info.tech_info = &tech_info;
+  }
+
 }
 void Chip::parseLef(dbDatabase *db_database, const string &lef_file) {
   odb::lefin lef_reader(db_database, &logger_, false);
@@ -1211,22 +1375,6 @@ void Chip::parseDef(dbDatabase *db_database, const string &def_file) {
   } else {
     cout << "Def parsing is failed." << endl;
   }
-}
-odb::defout::Version Chip::stringToDefVersion(const string &version) {
-  if (version == "5.8")
-    return odb::defout::Version::DEF_5_8;
-  else if (version == "5.7")
-    return odb::defout::Version::DEF_5_6;
-  else if (version == "5.6")
-    return odb::defout::Version::DEF_5_6;
-  else if (version == "5.5")
-    return odb::defout::Version::DEF_5_5;
-  else if (version == "5.4")
-    return odb::defout::Version::DEF_5_4;
-  else if (version == "5.3")
-    return odb::defout::Version::DEF_5_3;
-  else
-    return odb::defout::Version::DEF_5_8;
 }
 void Chip::writeNORMAL(dbDatabase *db_database, const string &out_file_name) {
   // TODO: write lef
@@ -1296,7 +1444,7 @@ void Chip::parseICCAD() {
       }
       tech_info.lib_cell_infos.push_back(lib_cell_info);
     }
-    bench_information_iccad_.tech_infos.push_back(tech_info);
+    bench_information_.tech_infos.push_back(tech_info);
   }
 
   // Syntax: DieSize <lowerLeftX> <lowerLeftY> <upperRightX> <upperRightY>
@@ -1309,57 +1457,57 @@ void Chip::parseICCAD() {
     die_info.lower_left_y = n2;
     die_info.upper_right_x = n3;
     die_info.upper_right_y = n4;
-    bench_information_iccad_.die_infos.push_back(die_info);
+    bench_information_.die_infos.push_back(die_info);
   }
 
   // Syntax: TopDieMaxUtil <util>
   input_file >> info >> n1;
   assert(info == "TopDieMaxUtil");
-  bench_information_iccad_.die_infos.at(TOP_DIE - 1).max_util = n1;
+  bench_information_.die_infos.at(TOP_DIE - 1).max_util = n1;
 
   // Syntax: BottomDieMaxUtil <util>
   input_file >> info >> n1;
   assert(info == "BottomDieMaxUtil");
-  bench_information_iccad_.die_infos.at(BOTTOM_DIE - 1).max_util = n1;
+  bench_information_.die_infos.at(BOTTOM_DIE - 1).max_util = n1;
 
   // Syntax: TopDieRows <startX> <startY> <rowLength> <rowHeight> <repeatCount>
   input_file >> info >> n1 >> n2 >> n3 >> n4 >> n5;
   assert(info == "TopDieRows");
-  bench_information_iccad_.die_infos.at(TOP_DIE - 1).row_info.start_x = n1;
-  bench_information_iccad_.die_infos.at(TOP_DIE - 1).row_info.start_y = n2;
-  bench_information_iccad_.die_infos.at(TOP_DIE - 1).row_info.row_width = n3;
-  bench_information_iccad_.die_infos.at(TOP_DIE - 1).row_info.row_height = n4;
-  bench_information_iccad_.die_infos.at(TOP_DIE - 1).row_info.repeat_count = n5;
+  bench_information_.die_infos.at(TOP_DIE - 1).row_info.start_x = n1;
+  bench_information_.die_infos.at(TOP_DIE - 1).row_info.start_y = n2;
+  bench_information_.die_infos.at(TOP_DIE - 1).row_info.row_width = n3;
+  bench_information_.die_infos.at(TOP_DIE - 1).row_info.row_height = n4;
+  bench_information_.die_infos.at(TOP_DIE - 1).row_info.repeat_count = n5;
 
   // Syntax: BottomDieRows <startX> <startY> <rowLength> <rowHeight> <repeatCount>
   input_file >> info >> n1 >> n2 >> n3 >> n4 >> n5;
   assert(info == "BottomDieRows");
-  bench_information_iccad_.die_infos.at(BOTTOM_DIE - 1).row_info.start_x = n1;
-  bench_information_iccad_.die_infos.at(BOTTOM_DIE - 1).row_info.start_y = n2;
-  bench_information_iccad_.die_infos.at(BOTTOM_DIE - 1).row_info.row_width = n3;
-  bench_information_iccad_.die_infos.at(BOTTOM_DIE - 1).row_info.row_height = n4;
-  bench_information_iccad_.die_infos.at(BOTTOM_DIE - 1).row_info.repeat_count = n5;
+  bench_information_.die_infos.at(BOTTOM_DIE - 1).row_info.start_x = n1;
+  bench_information_.die_infos.at(BOTTOM_DIE - 1).row_info.start_y = n2;
+  bench_information_.die_infos.at(BOTTOM_DIE - 1).row_info.row_width = n3;
+  bench_information_.die_infos.at(BOTTOM_DIE - 1).row_info.row_height = n4;
+  bench_information_.die_infos.at(BOTTOM_DIE - 1).row_info.repeat_count = n5;
 
   // Syntax: TopDieTech <TechName>
   input_file >> info >> name1;
   assert(info == "TopDieTech");
-  bench_information_iccad_.die_infos.at(TOP_DIE - 1).tech_name = name1;
+  bench_information_.die_infos.at(TOP_DIE - 1).tech_name = name1;
 
   // Syntax: BottomDieTech <TechName>
   input_file >> info >> name1;
   assert(info == "BottomDieTech");
-  bench_information_iccad_.die_infos.at(BOTTOM_DIE - 1).tech_name = name1;
+  bench_information_.die_infos.at(BOTTOM_DIE - 1).tech_name = name1;
 
   // Syntax: TerminalSize <sizeX> <sizeY>
   input_file >> info >> n1 >> n2;
   assert(info == "TerminalSize");
-  bench_information_iccad_.terminal_info.size_x = n1;
-  bench_information_iccad_.terminal_info.size_y = n2;
+  bench_information_.terminal_info.size_x = n1;
+  bench_information_.terminal_info.size_y = n2;
 
   // Syntax: TerminalSpacing <spacing>
   input_file >> info >> n1;
   assert(info == "TerminalSpacing");
-  bench_information_iccad_.terminal_info.spacing_size = n1;
+  bench_information_.terminal_info.spacing_size = n1;
 
   // Syntax: NumInstances <instanceCount>
   input_file >> info >> n1;
@@ -1374,7 +1522,7 @@ void Chip::parseICCAD() {
     InstanceInfo instance_info;
     instance_info.inst_name = name1;
     instance_info.lib_cell_name = name2;
-    bench_information_iccad_.instance_infos.push_back(instance_info);
+    bench_information_.instance_infos.push_back(instance_info);
   }
 
   // Syntax: NumNets <netCount>
@@ -1404,21 +1552,21 @@ void Chip::parseICCAD() {
       pin_info.lib_pin_name = lib_pin_name;
       net_info.connected_pins_infos.push_back(pin_info);
     }
-    bench_information_iccad_.net_infos.push_back(net_info);
+    bench_information_.net_infos.push_back(net_info);
   }
 
-  for (DieInfo &die_info : bench_information_iccad_.die_infos)
-    for (TechInfo &tech_info : bench_information_iccad_.tech_infos)
+  for (DieInfo &die_info : bench_information_.die_infos)
+    for (TechInfo &tech_info : bench_information_.tech_infos)
       if (die_info.tech_name == tech_info.name)
         die_info.tech_info = &tech_info;
 
-  row_infos_.first = bench_information_iccad_.die_infos.at(TOP_DIE - 1).row_info;
-  max_utils_.first = bench_information_iccad_.die_infos.at(TOP_DIE - 1).max_util;
-  row_infos_.second = bench_information_iccad_.die_infos.at(BOTTOM_DIE - 1).row_info;
-  max_utils_.second = bench_information_iccad_.die_infos.at(BOTTOM_DIE - 1).max_util;
+  row_infos_.first = bench_information_.die_infos.at(TOP_DIE - 1).row_info;
+  max_utils_.first = bench_information_.die_infos.at(TOP_DIE - 1).max_util;
+  row_infos_.second = bench_information_.die_infos.at(BOTTOM_DIE - 1).row_info;
+  max_utils_.second = bench_information_.die_infos.at(BOTTOM_DIE - 1).max_util;
 
   // check
-  for (DieInfo die_info : bench_information_iccad_.die_infos) {
+  for (DieInfo die_info : bench_information_.die_infos) {
     assert(die_info.tech_name == die_info.tech_info->name);
   }
 }
@@ -1458,7 +1606,7 @@ void Chip::odbConstructionForICCAD_deprecated() {
   // Library Construction //
   // for top and bottom die
   for (int die_id = 0; die_id < 2; ++die_id) {
-    DieInfo *die_info = &bench_information_iccad_.die_infos.at(die_id);
+    DieInfo *die_info = &bench_information_.die_infos.at(die_id);
     TechInfo *tech_info = die_info->tech_info;
     dbDatabase *db_database = db_databases_.at(die_id);
     dbTech *db_tech = db_database->getTech();
@@ -1509,8 +1657,8 @@ void Chip::odbConstructionForICCAD_deprecated() {
   dbBlock *db_block = db_chip->getBlock();
   assert(db_tech_layer != nullptr);
 
-  DieInfo *top_die_info = &bench_information_iccad_.die_infos.at(TOP_DIE - 1);
-  DieInfo *bottom_die_info = &bench_information_iccad_.die_infos.at(BOTTOM_DIE - 1);
+  DieInfo *top_die_info = &bench_information_.die_infos.at(TOP_DIE - 1);
+  DieInfo *bottom_die_info = &bench_information_.die_infos.at(BOTTOM_DIE - 1);
   assert(top_die_info->tech_info->lib_cell_num == bottom_die_info->tech_info->lib_cell_num);
   for (int i = 0; i < top_die_info->tech_info->lib_cell_num; ++i) {
     string lib_cell_name;
@@ -1566,7 +1714,7 @@ void Chip::odbConstructionForICCAD_deprecated() {
   pair<int, int> upper_right_pseudo = {0, 0};
 
   for (int i = 0; i < 2; ++i) {
-    DieInfo &die_info = bench_information_iccad_.die_infos.at(i);
+    DieInfo &die_info = bench_information_.die_infos.at(i);
     Point lower_left = Point(die_info.lower_left_x, die_info.lower_left_y);
     Point upper_right = Point(die_info.upper_right_x, die_info.upper_right_y);
     Rect die_rect = Rect(lower_left, upper_right);
@@ -1593,7 +1741,7 @@ void Chip::odbConstructionForICCAD_deprecated() {
   // for top and bottom die, that will be implemented only when writing lef and def, the end of process
   // for pseudo die
   for (int i = 0; i < instance_number_; ++i) {
-    InstanceInfo *instance_info = &bench_information_iccad_.instance_infos.at(i);
+    InstanceInfo *instance_info = &bench_information_.instance_infos.at(i);
     dbMaster *master = pseudo_db_database_->findMaster(instance_info->lib_cell_name.c_str());
     dbInst::create(db_block, master, instance_info->inst_name.c_str());
   }
@@ -1601,7 +1749,7 @@ void Chip::odbConstructionForICCAD_deprecated() {
   // Net and connections setting //
   for (int i = 0; i < net_number_; ++i) {
     // (refer to `dbDatabase* create2LevetDbNoBTerms()` function in submodule/OpenDB/test/cpp/helper.cpp)
-    NetInfo *net_info = &bench_information_iccad_.net_infos.at(i);
+    NetInfo *net_info = &bench_information_.net_infos.at(i);
     dbNet *net = dbNet::create(db_block, net_info->net_name.c_str());
 
     // read pins in one Net
@@ -1643,11 +1791,11 @@ void Chip::odbConstructionForICCAD_deprecated() {
   }
 
   // Terminal info setting //
-  hybrid_size_x_ = bench_information_iccad_.terminal_info.size_x;
-  hybrid_size_y_ = bench_information_iccad_.terminal_info.size_y;
-  hybrid_spacing_ = bench_information_iccad_.terminal_info.spacing_size;
+  hybrid_size_x_ = bench_information_.terminal_info.size_x;
+  hybrid_size_y_ = bench_information_.terminal_info.size_y;
+  hybrid_spacing_ = bench_information_.terminal_info.spacing_size;
 }
-void Chip::odbConstructionForPartition_ICCAD() {
+void Chip::odbConstructionForPartition() {
   /**
    * \brief
    * Construction odb database for pseudo die.
@@ -1669,7 +1817,7 @@ void Chip::odbConstructionForPartition_ICCAD() {
   pair<int, int> upper_right_pseudo = {0, 0};
 
   for (int i = 0; i < 2; ++i) {
-    DieInfo &die_info = bench_information_iccad_.die_infos.at(i);
+    DieInfo &die_info = bench_information_.die_infos.at(i);
     Point lower_left = Point(die_info.lower_left_x, die_info.lower_left_y);
     Point upper_right = Point(die_info.upper_right_x, die_info.upper_right_y);
     Rect die_rect = Rect(lower_left, upper_right);
@@ -1690,8 +1838,13 @@ void Chip::odbConstructionForPartition_ICCAD() {
   db_database_for_partition_->getChip()->getBlock()->setDieArea(pseudo_die_rect);
 
   // Row setting
-  int die_height = row_infos_.first.row_height * row_infos_.second.repeat_count;
-  int row_height = floor((row_infos_.first.row_height + row_infos_.second.row_height) / 2);
+  // We don't need to construction rows when partitioning
+/*
+  int die_height =
+      bench_information_.die_infos.at(0).row_info.row_height * bench_information_.die_infos.at(0).row_info.repeat_count;
+  int row_height =
+      floor((bench_information_.die_infos.at(0).row_info.row_height
+          + bench_information_.die_infos.at(1).row_info.row_height) / 2);
   int repeat_count = floor(die_height / row_height);
   for (int i = 0; i < repeat_count; ++i) {
     dbSite *site = dbSite::create(db_database_for_partition_->findLib("pseudoDieLib"), ("site" + to_string(i)).c_str());
@@ -1699,10 +1852,11 @@ void Chip::odbConstructionForPartition_ICCAD() {
     dbRow::create(db_block, ("row" + to_string(i)).c_str(), site,
                   0, 0, dbOrientType::MX, dbRowDir::HORIZONTAL, 1, row_height);
   }
+*/
 
   // Library Construction
-  DieInfo *top_die_info = &bench_information_iccad_.die_infos.at(TOP_DIE - 1);
-  DieInfo *bottom_die_info = &bench_information_iccad_.die_infos.at(BOTTOM_DIE - 1);
+  DieInfo *top_die_info = &bench_information_.die_infos.at(TOP_DIE - 1);
+  DieInfo *bottom_die_info = &bench_information_.die_infos.at(BOTTOM_DIE - 1);
 
   int lib_cell_num = top_die_info->tech_info->lib_cell_num;
   assert(lib_cell_num == bottom_die_info->tech_info->lib_cell_num);
@@ -1754,7 +1908,7 @@ void Chip::odbConstructionForPartition_ICCAD() {
 
   // Instance Construction //
   for (int i = 0; i < instance_number_; ++i) {
-    InstanceInfo *instance_info = &bench_information_iccad_.instance_infos.at(i);
+    InstanceInfo *instance_info = &bench_information_.instance_infos.at(i);
     dbMaster *master = db_database_for_partition_->findMaster(instance_info->lib_cell_name.c_str());
     dbInst::create(db_block, master, instance_info->inst_name.c_str());
   }
@@ -1762,7 +1916,7 @@ void Chip::odbConstructionForPartition_ICCAD() {
   // Net and connections setting //
   for (int i = 0; i < net_number_; ++i) {
     // (refer to `dbDatabase* create2LevetDbNoBTerms()` function in submodule/OpenDB/test/cpp/helper.cpp)
-    NetInfo *net_info = &bench_information_iccad_.net_infos.at(i);
+    NetInfo *net_info = &bench_information_.net_infos.at(i);
     dbNet *net = dbNet::create(db_block, net_info->net_name.c_str());
 
     // read pins in one Net
@@ -1773,11 +1927,6 @@ void Chip::odbConstructionForPartition_ICCAD() {
       inst->findITerm(pin_info->lib_pin_name.c_str())->connect(net);
     }
   }
-}
-void Chip::odbConstructionForPartition_Standard() {
-  assert(db_database_for_partition_ == nullptr);
-  //
-  db_database_for_partition_ = odb::dbDatabase::duplicate(bench_information_normal_);
 }
 void Chip::topDieOdbLibConstruction_ICCAD() {
   /**
@@ -1794,7 +1943,7 @@ void Chip::topDieOdbLibConstruction_ICCAD() {
   dbBlock *db_block = dbBlock::create(db_chip, "topDieBlock");
 
   // DieArea Construction //
-  auto top_die_info = &bench_information_iccad_.die_infos.at(0);
+  auto top_die_info = &bench_information_.die_infos.at(0);
   Point lower_left = Point(top_die_info->lower_left_x, top_die_info->lower_left_y);
   Point upper_right = Point(top_die_info->upper_right_x, top_die_info->upper_right_y);
   Rect die_area(lower_left, upper_right);
@@ -1848,7 +1997,7 @@ void Chip::bottomDieOdbLibConstruction_ICCAD() {
   dbBlock *db_block = dbBlock::create(db_chip, "bottomDieBlock");
 
   // DieArea Construction //
-  DieInfo *bottom_die_info = &bench_information_iccad_.die_infos.at(1);
+  DieInfo *bottom_die_info = &bench_information_.die_infos.at(1);
   Point lower_left = Point(bottom_die_info->lower_left_x, bottom_die_info->lower_left_y);
   Point upper_right = Point(bottom_die_info->upper_right_x, bottom_die_info->upper_right_y);
   Rect die_area(lower_left, upper_right);
@@ -3559,25 +3708,19 @@ bool Chip::checkDbFile(int phase) {
   return exist;
 }
 bool Chip::checkTopAndBottomLef() const {
-  string file_name_top = file_dir_paths_.bench_path + input_arguments_.lef_name + "Top";
+  string file_name_top = file_dir_paths_.bench_path + input_arguments_.top_lef_name;
   std::ifstream lef_file_top(file_name_top, std::ios::binary);
   bool exist_top = !lef_file_top.fail();
 
-  string file_name_bottom = file_dir_paths_.bench_path + input_arguments_.lef_name + "Bottom";
+  string file_name_bottom = file_dir_paths_.bench_path + input_arguments_.bottom_lef_name;
   std::ifstream lef_file_bottom(file_name_bottom, std::ios::binary);
   bool exist_bottom = !lef_file_bottom.fail();
 
   return exist_top && exist_bottom;
 }
 void Chip::createTopAndBottomLef() {
-
-  dbDatabase *db_database = dbDatabase::create();
-  dbTech *db_tech = dbTech::create(pseudo_db_database_);
-  dbTechLayer *db_tech_layer = dbTechLayer::create(db_tech, "topLayer", dbTechLayerType::MASTERSLICE);
-  dbLib *db_lib = dbLib::create(pseudo_db_database_, "topDieLib", ',');
-  dbChip *db_chip = dbChip::create(pseudo_db_database_);
-  dbBlock *db_block = dbBlock::create(db_chip, "topBlock");
-
+  // TODO: bring the code from test/dbTest.cpp
+  assert(0);
 }
 void Chip::destroyAllCircuitInformation() {
   /*
@@ -3604,11 +3747,11 @@ void Chip::destroyAllCircuitInformation() {
   mapping_.pin_map_i.clear();
   mapping_.pin_map_b.clear();
 }
-void Chip::parse(const string &def_name, const string &lef_name) {
+void Chip::parse() {
   if (bench_format_ == BENCH_FORMAT::ICCAD)
     parseICCAD();
   else if (bench_format_ == BENCH_FORMAT::STANDARD)
-    parseNORMAL();
+    parseSTANDARD();
 }
 void Chip::write(const string &file_name) {
   if (bench_format_ == BENCH_FORMAT::ICCAD)
@@ -3664,10 +3807,10 @@ void Chip::Legalizer::constructionOdbDatabaseForCell(DIE_ID die_id) {
   DieInfo die_info;
   if (die_id == DIE_ID::TOP_DIE) {
     which_die = "TOP";
-    die_info = parent_->bench_information_iccad_.die_infos.at(0);
+    die_info = parent_->bench_information_.die_infos.at(0);
   } else if (die_id == DIE_ID::BOTTOM_DIE) {
     which_die = "BOTTOM";
-    die_info = parent_->bench_information_iccad_.die_infos.at(1);
+    die_info = parent_->bench_information_.die_infos.at(1);
   }
   dbDatabase *db_database = dbDatabase::create();
   dbTech *db_tech = dbTech::create(db_database);
@@ -3804,9 +3947,9 @@ void Chip::Legalizer::constructionOdbDatabaseForHybridBond() {
   // each hybrid bond is considered as a cells in this db_database
   // the cell width and height are determined by the hybrid bond width and height, and the spacing rule
   assert(parent_->bench_format_ == ICCAD);  // TODO: consider the standard case also in this function
-  int spacing_size = parent_->bench_information_iccad_.terminal_info.spacing_size;
-  int cell_width = parent_->bench_information_iccad_.terminal_info.size_x;
-  int cell_height = parent_->bench_information_iccad_.terminal_info.size_y;
+  int spacing_size = parent_->bench_information_.terminal_info.spacing_size;
+  int cell_width = parent_->bench_information_.terminal_info.size_x;
+  int cell_height = parent_->bench_information_.terminal_info.size_y;
 
   db_database_for_hybrid_bond_ = dbDatabase::create();
   dbTech *db_tech = dbTech::create(db_database_for_hybrid_bond_);
@@ -3816,7 +3959,7 @@ void Chip::Legalizer::constructionOdbDatabaseForHybridBond() {
   dbBlock *db_block = dbBlock::create(db_chip, "hybrid_block");
 
   // In ICCAD contest, the die size of top and bottom are same.
-  DieInfo die_info = parent_->bench_information_iccad_.die_infos.at(0);
+  DieInfo die_info = parent_->bench_information_.die_infos.at(0);
   Point lower_left_point_of_die = Point(die_info.lower_left_x, die_info.lower_left_y);
   Point upper_right_point_of_die = Point(die_info.upper_right_x, die_info.upper_right_y);
   Rect die_rect = Rect(lower_left_point_of_die, upper_right_point_of_die);

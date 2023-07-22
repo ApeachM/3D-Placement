@@ -157,9 +157,9 @@ class Chip {
    * Minjae Kim \n
    * GitHub: ApeachM (https://github.com/ApeachM)
    * */
-  void parse(const string &def_name, const string &lef_name = "");
+  void parse();
   void write(const string &file_name);
-  void parseNORMAL();
+  void parseSTANDARD();
   void parseLef(dbDatabase* db_database, const string& lef_file);
   void parseDef(dbDatabase* db_database, const string& def_file);
   void writeNORMAL(dbDatabase*db_database, const string &out_file_name);
@@ -186,7 +186,7 @@ class Chip {
    * Construction odb database for pseudo die.
    * This is just for the partitioning with Triton.
    * */
-  void odbConstructionForPartition_ICCAD();
+  void odbConstructionForPartition();
 
   void topDieOdbLibConstruction_ICCAD();
   void bottomDieOdbLibConstruction_ICCAD();
@@ -224,7 +224,9 @@ class Chip {
    * */
   void partitionSimple();
   bool checkPartitionFile();
-  void ConstructionPseudoDbWithReadingPartitionFile();
+  void constructionPseudoDbWithReadingPartitionFile();
+  void constructionPseudoDbWithReadingPartitionFile_ICCAD();
+  void constructionPseudoDbWithReadingPartitionFile_STANDARD();
 
   /**\brief
    * After partitioning, the
@@ -336,9 +338,14 @@ class Chip {
     std::unordered_map<dbBTerm *, Pin *> pin_map_b;
   };
   struct InputArguments {
+    // for iccad bench case
     string iccad_bench_name;
+
+    // for standard bench case
     string def_name;
-    string lef_name;
+    string original_lef_name;
+    string top_lef_name;
+    string bottom_lef_name;
   };
   struct FileDirPaths {
     string bench_path = "../test/benchmarks/";
@@ -350,9 +357,8 @@ class Chip {
   PHASE phase_ = START;
   BENCH_FORMAT bench_format_ = STANDARD;
   BENCH_TYPE bench_type_;
-  ICCAD2022BenchInformation bench_information_iccad_;
-  dbDatabase* bench_information_normal_;
-  dbDatabase* bench_information_normal_bottom_;
+  BenchInformation bench_information_;
+  dbDatabase* parsed_db_database;
   InputArguments input_arguments_;
   string design_name_;
   FileDirPaths file_dir_paths_;
@@ -402,7 +408,6 @@ class Chip {
 
   string start_time_;
   ulong current_hpwl_;
-  void odbConstructionForPartition_Standard();
   void createTopAndBottomLef();
 };
 

@@ -103,7 +103,7 @@ struct NetInfo {
   int pin_num;
   vector<ConnectedPinInfo> connected_pins_infos;
 };
-struct ICCAD2022BenchInformation{
+struct BenchInformation{
   vector<TechInfo> tech_infos;
   vector<InstanceInfo> instance_infos;
   vector<NetInfo> net_infos;
