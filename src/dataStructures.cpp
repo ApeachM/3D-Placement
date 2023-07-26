@@ -34,7 +34,7 @@
 #include "NesterovPlacer.h"
 #include "Net.h"
 
-namespace VLSI_backend {
+namespace flow3D {
 // Die //
 Die::Die() {
 }
@@ -54,7 +54,7 @@ uint Die::getWidth() {
 uint Die::getHeight() {
   return die_shape_.dy();
 }
-uint Die::getArea() {
+uint64 Die::getArea() {
   return die_shape_.area();
 }
 void Die::setDieSize(uint width, uint height) {

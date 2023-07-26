@@ -38,7 +38,7 @@
 #include "db.h"
 #include "Die.h"
 
-namespace VLSI_backend {
+namespace flow3D {
 using namespace odb;
 using namespace std;
 class Instance;
@@ -103,16 +103,22 @@ struct NetInfo {
   int pin_num;
   vector<ConnectedPinInfo> connected_pins_infos;
 };
-struct ICCAD2022BenchInformation{
+struct BenchInformation{
   vector<TechInfo> tech_infos;
   vector<InstanceInfo> instance_infos;
   vector<NetInfo> net_infos;
   vector<DieInfo> die_infos;
   TerminalInfo terminal_info{};
 };
-enum BENCH_TYPE {
+enum BENCH_FORMAT {
   ICCAD,
-  NORMAL
+  STANDARD
+};
+enum BENCH_TYPE{
+  ICCAD22,
+  ICCAD23,
+  ISPD18,
+  ETC
 };
 
 }

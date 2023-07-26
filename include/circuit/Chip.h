@@ -41,7 +41,6 @@
 #include <algorithm>
 #include <Eigen/IterativeLinearSolvers>
 #include <Eigen/SparseCore>
-#include <ctime>
 #include "Parser.h"
 #include "Instance.h"
 #include "Net.h"
@@ -60,7 +59,7 @@ using Eigen::BiCGSTAB;
 using Eigen::IdentityPreconditioner;
 typedef Eigen::SparseMatrix<float, Eigen::RowMajor> SMatrix;
 
-namespace VLSI_backend {
+namespace flow3D {
 using namespace odb;
 // https://codingforspeed.com/using-faster-exponential-approximation/
 static double fastExp(float a);
@@ -129,15 +128,21 @@ class Chip {
    * Minjae Kim \n
    * GitHub: ApeachM (https://github.com/ApeachM)
    * */
-  void do3DPlace(const string &def_name, const string &lef_name = "");
+  void do3DPlace(const string &def_name="", const string &lef_name = "");
 
-  void setBenchType(BENCH_TYPE bench_type);
+  void setBenchFormat(BENCH_FORMAT bench_format);
+  void setInputArguments();
   const string &getDesignName() const;
+  void setDesign(const string &design_name,
+                 const string &bench_path,
+                 flow3D::BENCH_FORMAT bench_format,
+                 flow3D::BENCH_TYPE bench_type);
+  void setDesignName(const string &design_name);
+  void setBenchPath(const string& bench_path);
 
   void test();
 
-  // etc
-  void dbTutorial() const;
+  void setBenchType(BENCH_TYPE bench_type);
 
  protected:
   // Data initialization
@@ -152,10 +157,14 @@ class Chip {
    * Minjae Kim \n
    * GitHub: ApeachM (https://github.com/ApeachM)
    * */
-  void parse(const string &def_name, const string &lef_name = "");
+  void parse();
   void write(const string &file_name);
-  void parseNORMAL(const string &lef_name, const string &def_name);
-  void writeNORMAL(const string &out_file_name);
+  void parseSTANDARD();
+  void parseLef(dbDatabase* db_database, const string& lef_file);
+  void parseDef(dbDatabase* db_database, const string& def_file);
+  void writeNORMAL(dbDatabase*db_database, const string &out_file_name);
+  void writeDef(dbDatabase* db_database, const string& def_file, const string& version="5.8");
+  static odb::defout::Version stringToDefVersion(const string &version);
   /**
    * \brief
    * This code parses and writes the input data of ICCAD 2022 contest.
@@ -170,15 +179,14 @@ class Chip {
    * Minjae Kim \n
    * GitHub: ApeachM (https://github.com/ApeachM)
    * */
-  void parseICCAD(const string &input_file_name);
   void writeICCADOutput(const string &output_file_name);
-  void parseICCADBenchData(const string &input_file_name);
+  void parseICCAD();
   /**
    * \brief
    * Construction odb database for pseudo die.
    * This is just for the partitioning with Triton.
    * */
-  void odbConstructionForPartition_ICCAD();
+  void odbConstructionForPartition();
 
   void topDieOdbLibConstruction_ICCAD();
   void bottomDieOdbLibConstruction_ICCAD();
@@ -216,7 +224,9 @@ class Chip {
    * */
   void partitionSimple();
   bool checkPartitionFile();
-  void ConstructionPseudoDbWithReadingPartitionFile();
+  void constructionPseudoDbWithReadingPartitionFile();
+  void constructionPseudoDbWithReadingPartitionFile_ICCAD();
+  void constructionPseudoDbWithReadingPartitionFile_STANDARD();
 
   /**\brief
    * After partitioning, the
@@ -296,26 +306,17 @@ class Chip {
   void setInstanceNumber(int instance_number);
   int getNetNumber() const;
   void setNetNumber(int net_number);
-  dbDatabase *getDbDatabase() const;
-  void setDbDatabase(dbDatabase *db_database);
-  void setDesignName(const string &input_file_name);
   void drawTotalCircuit(const string &die_name = "die", bool high_resolution = false);
   void saveDb(int phase);
   dbDatabase *loadDb(int phase);
-  /**
-   * \deprecated
-   * */
-  void dbCapture(const string &file_name);
-  /**
-   * \deprecated
-   * */
-  void dbCaptureRead(const string &file_name);
   bool checkDbFile(int phase);
+  bool checkTopAndBottomLef() const;
   void destroyAllCircuitInformation();
   void getAverageInstanceSize();
   void setTargetDensityManually();
   void partitionTriton();
   void setStartTime();
+  void applyPartitionInfoIntoDatabase();
 
  protected:
   enum PHASE {
@@ -337,21 +338,30 @@ class Chip {
     std::unordered_map<dbBTerm *, Pin *> pin_map_b;
   };
   struct InputArguments {
+    // for iccad bench case
+    string iccad_bench_name;
+
+    // for standard bench case
     string def_name;
-    string lef_name;
+    string original_lef_name;
+    string top_lef_name;
+    string bottom_lef_name;
   };
-  struct FilePaths {
+  struct FileDirPaths {
+    string bench_path = "../test/benchmarks/";
     string db_path = "../output/dbFiles/";
     string partition_path = "../output/partitionFiles/";
     string image_path = "../output/images/";
   };
 
   PHASE phase_ = START;
-  BENCH_TYPE bench_type_ = NORMAL;
-  ICCAD2022BenchInformation bench_information_;
+  BENCH_FORMAT bench_format_ = STANDARD;
+  BENCH_TYPE bench_type_;
+  BenchInformation bench_information_;
+  dbDatabase* parsed_db_database;
   InputArguments input_arguments_;
   string design_name_;
-  FilePaths file_paths_;
+  FileDirPaths file_dir_paths_;
   utl::Logger logger_;
 
   // db databases
@@ -365,7 +375,6 @@ class Chip {
   // and write the two lef and def files for top and bottom die
   std::vector<odb::dbDatabase *> db_databases_{};  // deprecated variable with odbConstructionForICCAD_deprecated()
 
-  Parser parser_;
   data_storage data_storage_;
   DataMapping mapping_;
 
@@ -399,10 +408,9 @@ class Chip {
 
   string start_time_;
   ulong current_hpwl_;
-  void setInputArguments(const string &def_name, const string &lef_name);
-  void applyPartitionInfoIntoDatabase();
+  void createTopAndBottomLef();
 };
 
-} // VLSI_backend
+} // flow3D
 
 #endif //PLACER_INCLUDE_DATASTRUCTURES_CIRCUIT_H_

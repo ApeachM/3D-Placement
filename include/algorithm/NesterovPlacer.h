@@ -36,7 +36,7 @@
 #include "Chip.h"
 #include "CImg.h"
 
-namespace VLSI_backend {
+namespace flow3D {
 class Chip::NesterovPlacer {
   class Bin;
   class biNormalParameters;

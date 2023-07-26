@@ -3,7 +3,7 @@
 #include "Chip.h"
 #include "TritonPart.h"
 
-namespace VLSI_backend {
+namespace flow3D {
 class Chip::Partitioner : par::TritonPart {
  public:
   Partitioner(ord::dbNetwork *network, dbDatabase *db, sta::dbSta *sta, utl::Logger *logger) :

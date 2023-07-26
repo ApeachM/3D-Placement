@@ -10,18 +10,16 @@ This is based on [OpenDB](https://github.com/The-OpenROAD-Project/OpenDB) API.
 
 ## External Dependencies
 
-You can use `Dockerfile` in the `OpenDB` submodule, or you are required to install `cmake`, `siwg`, `spdlog`, `boost` in the `Ubuntu` Environment.
+You can use [`Dockerfile`](submodules/OpenROAD/etc/DockerHelper.sh) in the [`OpenROAD`](submodules/OpenROAD) submodule, 
+or you are required to install `cmake`, `siwg`, `spdlog`, `boost` in the `Ubuntu` Environment.
 
-You can use `etc/DependencyInstaller.sh` in linux system.
+The shell script in [`etc/DependencyInstaller.sh`](etc/DependencyInstaller.sh) can give you help.
 
 ## How to build
 
 ```shell
 git clone --recurse-submodules https://github.com/ApeachM/3D-Placement.git
 cd 3D-Placement
-git submodule update --force --recursive --init --remote
-cd submodule/OpenROAD
-git switch OpenROAD/feature/Custom
 ```
 
 ```shell
@@ -29,7 +27,7 @@ mkdir build
 cd build
 cmake ..
 make
-./placer
+./placer3D
 ```
 
 

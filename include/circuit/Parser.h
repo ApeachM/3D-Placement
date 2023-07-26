@@ -41,7 +41,7 @@
 #include "defin.h"
 
 using std::string;
-namespace VLSI_backend {
+namespace flow3D {
 
 class Parser {
  private:
@@ -59,7 +59,7 @@ class Parser {
   void setLoggerPtr(utl::Logger *logger);
 };
 
-} // VLSI_backend
+} // flow3D
 
 #endif //PLACER_INCLUDE_DATASTRUCTURES_PARSER_H_
 

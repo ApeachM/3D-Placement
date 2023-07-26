@@ -36,7 +36,7 @@
 #define PLACER_INCLUDE_DATASTRUCTURES_DIE_H_
 #include "db.h"
 
-namespace VLSI_backend {
+namespace flow3D {
 using namespace odb;
 struct RowInfo {
  public:
@@ -55,7 +55,7 @@ class Die {
   uint getWidth();
   uint getHeight();
 
-  uint getArea();
+  uint64 getArea();
   float getDensity() const;
   void setDensity(double density);
 
@@ -119,6 +119,6 @@ class Die {
   void setDieSize(uint width, uint height);
 };
 
-} // VLSI_backend
+} // flow3D
 
 #endif //PLACER_INCLUDE_DATASTRUCTURES_DIE_H_
