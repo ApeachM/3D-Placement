@@ -169,7 +169,7 @@ void testRatioPartition(){
   std::cout << "partition ratio (1): " << static_cast<float>(num_1) / static_cast<float>(num_1 + num_2) << std::endl;
   std::cout << "partition ratio (2): " << static_cast<float>(num_2) / static_cast<float>(num_1 + num_2) << std::endl;
 }
-int main() {
+void makeShrunkLef(){
   std::string dir_path = "../test/benchmarks/standard/ispd/ispd18_test1/";
   std::string design_name = "ispd18_test1";
   std::string lef_name = "ispd18_test1.input.lef";
@@ -180,5 +180,7 @@ int main() {
   parseLef(db_database, dir_path + design_name + ".input.lef");
   makeTopDieLef(db_database, dir_path + design_name + ".input_top.lef");
   makeBottomDieLef(db_database, dir_path + design_name + ".input_bottom.lef");
+}
+int main() {
 }
 
