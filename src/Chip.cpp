@@ -552,20 +552,18 @@ void Chip::dataBaseInit() {
     Die die;
     die.setDbBlock(block);
     die.setDieId(i);
-    if (bench_format_ == BENCH_FORMAT::ICCAD) {
-      auto top_die_info = this->bench_information_.die_infos.at(0);
-      auto bottom_die_info = this->bench_information_.die_infos.at(1);
-      int start_x, start_y, row_width, row_height, repeat_count;
-      start_x = start_y = row_width = row_height = repeat_count = 0;
+    auto top_die_info = this->bench_information_.die_infos.at(0);
+    auto bottom_die_info = this->bench_information_.die_infos.at(1);
+    int start_x, start_y, row_width, row_height, repeat_count;
+    start_x = start_y = row_width = row_height = repeat_count = 0;
 
-      start_x = floor((top_die_info.row_info.start_x + bottom_die_info.row_info.start_x) / 2);
-      start_y = floor((top_die_info.row_info.start_y + bottom_die_info.row_info.start_y) / 2);
-      row_width = floor((top_die_info.row_info.row_width + bottom_die_info.row_info.row_width) / 2);
-      row_height = floor((top_die_info.row_info.row_height + bottom_die_info.row_info.row_height) / 2);
-      repeat_count = floor((top_die_info.row_info.repeat_count + bottom_die_info.row_info.repeat_count) / 2);
+    start_x = floor((top_die_info.row_info.start_x + bottom_die_info.row_info.start_x) / 2);
+    start_y = floor((top_die_info.row_info.start_y + bottom_die_info.row_info.start_y) / 2);
+    row_width = floor((top_die_info.row_info.row_width + bottom_die_info.row_info.row_width) / 2);
+    row_height = floor((top_die_info.row_info.row_height + bottom_die_info.row_info.row_height) / 2);
+    repeat_count = floor((top_die_info.row_info.repeat_count + bottom_die_info.row_info.repeat_count) / 2);
 
-      die.setRowInfo(start_x, start_y, row_width, row_height, repeat_count);
-    }
+    die.setRowInfo(start_x, start_y, row_width, row_height, repeat_count);
 
     data_storage_.dies.push_back(die);
   }
@@ -1302,11 +1300,34 @@ void Chip::parseSTANDARD() {
 
   // Row setting //
   RowInfo *row_info;
+  // get shrunk ratio between top and bottom die
+  // here, we assume that the die has not multi-height
+  auto master_top_height = (*(*parsed_db_database_top->getLibs().begin())->getMasters().begin())->getHeight();
+  auto master_bottom_height = (*(*parsed_db_database_bottom->getLibs().begin())->getMasters().begin())->getHeight();
+  auto shrunk_ratio = master_bottom_height / master_top_height;
+
+  // Top die
   row_info = &bench_information_.die_infos.at(0).row_info;
   auto row_sample = *parsed_db_database->getChip()->getBlock()->getRows().begin();
+  auto row_start_point_x = row_sample->getBBox().xMin();
+  auto row_start_point_y = row_sample->getBBox().yMin();
   auto row_height = row_sample->getSite()->getHeight();
   auto row_width = row_sample->getBBox().dy();
-  auto row_start_point_x = row_sample->getBBox().xMin();
+  auto repeat_count = parsed_db_database->getChip()->getBlock()->getBBox()->getDY() / row_height;
+
+  row_info->start_x = row_start_point_x;
+  row_info->start_y = row_start_point_y;
+  row_info->row_width = static_cast<int>(row_width);
+  row_info->row_height = static_cast<int>(row_height);
+  row_info->repeat_count = static_cast<int>(repeat_count);
+
+  // Bottom die: here, we assume that the die size of top and bottom are same.
+  row_info = &bench_information_.die_infos.at(1).row_info;
+  row_info->start_x = row_start_point_x;
+  row_info->start_y = row_start_point_y;
+  row_info->row_width = static_cast<int>(row_width);
+  row_info->row_height = static_cast<int>(row_height * shrunk_ratio);
+  row_info->repeat_count = static_cast<int>(repeat_count / shrunk_ratio);
 
 
   // Terminal Information

@@ -55,7 +55,7 @@ class Die {
   uint getWidth();
   uint getHeight();
 
-  uint getArea();
+  uint64 getArea();
   float getDensity() const;
   void setDensity(double density);
 
