@@ -6,9 +6,6 @@ This is working on progress to be integrated into OpenROAD Project.
 
 This repository is 3D placer in VLSI back-end design, based on [ICCAD2022 Contest Problem B](http://iccad-contest.org).
 
-This is based on [OpenDB](https://github.com/The-OpenROAD-Project/OpenDB) API.
-
-
 
 ## External Dependencies
 
